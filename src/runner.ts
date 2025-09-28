@@ -1,0 +1,433 @@
+import { TestFile, TestResult, TestConfig, TestStatus, TestHandler, TestSuite, DiscoveryOptions, TestType } from './types.ts';
+import { TestDiscovery } from './discovery.ts';
+import { ArtifactManager } from './artifacts.ts';
+import { TestReporter } from './reporter.ts';
+import { createHandlers, ShellTestHandler, CTestHandler, JavaScriptTestHandler, TypeScriptTestHandler } from './handlers/index.ts';
+import { ConfigManager } from './config.ts';
+
+/*
+ Simple semaphore implementation to limit concurrent operations
+ */
+class Semaphore {
+  private permits: number;
+  private waitQueue: Array<() => void> = [];
+
+  constructor(permits: number) {
+    this.permits = permits;
+  }
+
+  async acquire(): Promise<void> {
+    if (this.permits > 0) {
+      this.permits--;
+      return Promise.resolve();
+    }
+
+    return new Promise<void>((resolve) => {
+      this.waitQueue.push(resolve);
+    });
+  }
+
+  release(): void {
+    if (this.waitQueue.length > 0) {
+      const resolve = this.waitQueue.shift()!;
+      resolve();
+    } else {
+      this.permits++;
+    }
+  }
+}
+
+export class TestRunner {
+  private handlers: TestHandler[];
+  private artifactManager: ArtifactManager;
+
+  constructor() {
+    this.handlers = createHandlers();
+    this.artifactManager = new ArtifactManager();
+  }
+
+  async discoverTests(options: DiscoveryOptions): Promise<TestFile[]> {
+    return await TestDiscovery.discoverTests(options);
+  }
+
+  async runTests(testSuite: TestSuite): Promise<TestResult[]> {
+    const reporter = new TestReporter(testSuite.config);
+    const results: TestResult[] = [];
+
+    // Only show "Running tests..." if not in quiet mode and we have tests to run
+    if (!this.isQuietMode(testSuite.config) && testSuite.tests.length > 0) {
+      reporter.reportTestsStarting();
+    }
+
+    if (testSuite.config.execution?.parallel) {
+      return await this.runTestsParallel(testSuite, reporter);
+    } else {
+      return await this.runTestsSequential(testSuite, reporter);
+    }
+  }
+
+  async cleanArtifacts(rootDir: string): Promise<void> {
+    await this.artifactManager.cleanAllArtifacts(rootDir);
+  }
+
+  private async runTestsSequential(testSuite: TestSuite, reporter: TestReporter): Promise<TestResult[]> {
+    const results: TestResult[] = [];
+
+    for (let i = 0; i < testSuite.tests.length; i++) {
+      const testFile = testSuite.tests[i];
+
+      // Handle step mode prompting
+      if (testSuite.config.execution?.stepMode) {
+        const shouldSkip = await this.promptForNextTest(testFile);
+
+        if (shouldSkip) {
+          // Create a skipped result
+          const skippedResult = {
+            file: testFile,
+            status: TestStatus.Skipped,
+            duration: 0,
+            output: 'Test skipped by user in step mode'
+          };
+          results.push(skippedResult);
+
+          if (!this.isQuietMode(testSuite.config)) {
+            reporter.reportProgress(skippedResult);
+          }
+          continue;
+        }
+      }
+
+      const result = await this.executeTest(testFile, testSuite.config);
+      results.push(result);
+
+      if (!this.isQuietMode(testSuite.config)) {
+        reporter.reportProgress(result);
+      }
+    }
+
+    return results;
+  }
+
+  private async runTestsParallel(testSuite: TestSuite, reporter: TestReporter): Promise<TestResult[]> {
+    const workers = testSuite.config.execution?.workers || 4;
+    const results: TestResult[] = [];
+
+    // Create a semaphore to limit concurrent executions
+    const semaphore = new Semaphore(workers);
+
+    // Create promises for all tests but limit concurrent execution
+    const testPromises = testSuite.tests.map(async (testFile) => {
+      // Acquire semaphore before starting test
+      await semaphore.acquire();
+
+      try {
+        const result = await this.executeTest(testFile, testSuite.config);
+
+        if (!this.isQuietMode(testSuite.config)) {
+          reporter.reportProgress(result);
+        }
+
+        return result;
+      } finally {
+        // Always release semaphore
+        semaphore.release();
+      }
+    });
+
+    // Wait for all tests to complete
+    const allResults = await Promise.all(testPromises);
+    results.push(...allResults);
+
+    return results;
+  }
+
+  private async executeTest(testFile: TestFile, globalConfig: TestConfig): Promise<TestResult> {
+    const handler = this.createFreshHandler(testFile);
+
+    if (!handler) {
+      return {
+        file: testFile,
+        status: TestStatus.Error,
+        duration: 0,
+        output: '',
+        error: `No handler found for test type: ${testFile.type}`
+      };
+    }
+
+    try {
+      // Find the nearest config file to this specific test file
+      const testSpecificConfig = await this.findConfigForTest(testFile, globalConfig);
+
+      // Prepare test (if needed)
+      if (handler.prepare) {
+        await handler.prepare(testFile);
+      }
+
+      // Execute the test with its specific config
+      const result = await handler.execute(testFile, testSpecificConfig);
+
+      // Cleanup (if needed)
+      if (handler.cleanup) {
+        await handler.cleanup(testFile, testSpecificConfig);
+      }
+
+      return result;
+    } catch (error) {
+      return {
+        file: testFile,
+        status: TestStatus.Error,
+        duration: 0,
+        output: '',
+        error: `Test execution failed: ${error}`
+      };
+    }
+  }
+
+  private findHandler(testFile: TestFile): TestHandler | undefined {
+    return this.handlers.find(handler => handler.canHandle(testFile));
+  }
+
+  /*
+   Creates a fresh handler instance for each test to avoid shared state conflicts
+   @param testFile Test file to create handler for
+   @returns New handler instance or undefined if no handler found
+   */
+  private createFreshHandler(testFile: TestFile): TestHandler | undefined {
+    switch (testFile.type) {
+      case TestType.Shell:
+        return new ShellTestHandler();
+      case TestType.C:
+        return new CTestHandler();
+      case TestType.JavaScript:
+        return new JavaScriptTestHandler();
+      case TestType.TypeScript:
+        return new TypeScriptTestHandler();
+      default:
+        return undefined;
+    }
+  }
+
+  async listTests(options: DiscoveryOptions, config: TestConfig, invocationDir?: string): Promise<void> {
+    const tests = await this.discoverTests(options);
+
+    if (!tests.length) {
+      console.log('No tests discovered');
+      return;
+    }
+
+    // Create mock results for the reporter
+    const mockResults: TestResult[] = tests.map(test => ({
+      file: test,
+      status: TestStatus.Pending,
+      duration: 0,
+      output: ''
+    }));
+
+    const reporter = new TestReporter(config, invocationDir || options.rootDir);
+    reporter.reportDiscoveredTests(mockResults);
+  }
+
+  async executeTestSuite(
+    rootDir: string,
+    patterns: string[],
+    config: TestConfig
+  ): Promise<TestResult[]> {
+    // Discover tests
+    const tests = await this.discoverTests({
+      rootDir,
+      patterns: patterns.length ? patterns : config.patterns?.include || [],
+      excludePatterns: config.patterns?.exclude || []
+    });
+
+    if (!tests.length) {
+      if (!this.isQuietMode(config)) {
+        console.log('No tests discovered');
+      }
+      return [];
+    }
+
+    // Create test suite
+    const testSuite: TestSuite = {
+      tests,
+      config,
+      rootDir
+    };
+
+    // Run tests with elapsed time tracking
+    const startTime = Date.now();
+    const results = await this.runTests(testSuite);
+    const elapsedTime = Date.now() - startTime;
+
+    // Report final results only if not in quiet mode
+    if (!this.isQuietMode(config)) {
+      // Check if there are any failures or errors
+      const hasFailures = results.some(result =>
+        result.status === TestStatus.Failed || result.status === TestStatus.Error
+      );
+
+      // If there are failures and we're not already in verbose mode, re-report with verbose mode showing only errors
+      if (hasFailures && !config.output?.verbose) {
+        const verboseConfig = {
+          ...config,
+          output: {
+            ...config.output,
+            verbose: true,
+            format: "detailed" as const,
+            colors: config.output?.colors ?? true,
+            errorsOnly: true,
+          }
+        };
+        const verboseReporter = new TestReporter(verboseConfig);
+        verboseReporter.reportResults(results, elapsedTime);
+      } else {
+        const reporter = new TestReporter(config);
+        reporter.reportResults(results, elapsedTime);
+      }
+    }
+
+    return results;
+  }
+
+  getExitCode(results: TestResult[]): number {
+    const hasFailures = results.some(result =>
+      result.status === TestStatus.Failed || result.status === TestStatus.Error
+    );
+
+    return hasFailures ? 1 : 0;
+  }
+
+  private isQuietMode(config: TestConfig): boolean {
+    return config.output?.quiet === true;
+  }
+
+  /*
+   Finds the most specific config file for a test file
+   Walks up from the test file directory looking for testme.json5
+   Falls back to global config if no specific config is found
+   @param testFile Test file to find config for
+   @param globalConfig Fallback global configuration with CLI overrides applied
+   @returns Test-specific configuration with CLI overrides preserved
+   */
+  private async findConfigForTest(testFile: TestFile, globalConfig: TestConfig): Promise<TestConfig> {
+    try {
+      // Look for config starting from the test file's directory
+      const testSpecificConfig = await ConfigManager.findConfig(testFile.directory);
+
+      // If we found a config and it has a configDir, merge with global CLI overrides
+      if (testSpecificConfig.configDir) {
+        // Preserve CLI overrides from global config
+        return {
+          ...testSpecificConfig,
+          // Preserve execution settings that may have CLI overrides
+          execution: {
+            ...testSpecificConfig.execution,
+            // Preserve CLI-specific overrides from global config
+            ...(globalConfig.execution?.showCommands && { showCommands: globalConfig.execution.showCommands }),
+            ...(globalConfig.execution?.debugMode && { debugMode: globalConfig.execution.debugMode }),
+            ...(globalConfig.execution?.keepArtifacts && { keepArtifacts: globalConfig.execution.keepArtifacts }),
+            ...(globalConfig.execution?.stepMode && { stepMode: globalConfig.execution.stepMode }),
+            ...(globalConfig.execution?.depth !== undefined && { depth: globalConfig.execution.depth }),
+          },
+          // Preserve output settings that may have CLI overrides
+          output: {
+            ...testSpecificConfig.output,
+            ...(globalConfig.output?.verbose !== undefined && { verbose: globalConfig.output.verbose }),
+            ...(globalConfig.output?.format && { format: globalConfig.output.format }),
+            ...(globalConfig.output?.errorsOnly !== undefined && { errorsOnly: globalConfig.output.errorsOnly }),
+          }
+        };
+      }
+    } catch (error) {
+      // If config loading fails, fall back to global config
+      console.warn(`Warning: Failed to load config for ${testFile.path}: ${error}`);
+    }
+
+    // Fall back to global config
+    return globalConfig;
+  }
+
+  /*
+   Prompts user for input before running the next test in step mode
+   @param testFile The test file about to be executed
+   @returns Promise that resolves to true if test should be skipped, false to continue
+   */
+  private async promptForNextTest(testFile: TestFile): Promise<boolean> {
+    console.log(`\n📋 About to run: ${testFile.name}`);
+    console.log(`   Path: ${testFile.path}`);
+    console.log(`   Type: ${testFile.type}`);
+
+    // Use Bun's built-in prompt functionality
+    const input = prompt('Press Enter to continue, "s" to skip, or "q" to quit: ');
+
+    if (input === 'q' || input === 'quit') {
+      console.log('🛑 Test execution stopped by user');
+      process.exit(0);
+    } else if (input === 's' || input === 'skip') {
+      console.log('⏭️  Skipping test');
+      return true; // Skip this test
+    }
+
+    console.log('▶️  Running test...');
+    return false; // Continue with test
+  }
+
+  /*
+   Executes a specific set of tests with a given configuration
+   @param tests Array of test files to execute
+   @param config Configuration to use for execution
+   @param invocationDir Directory from which tests were invoked (for relative path display)
+   @returns Array of test results
+   */
+  async executeTestsWithConfig(tests: TestFile[], config: TestConfig, invocationDir?: string): Promise<TestResult[]> {
+    // Create a test suite with the given tests
+    const testSuite: TestSuite = {
+      tests: tests,
+      config: config,
+      rootDir: tests.length > 0 ? tests[0].directory : ''
+    };
+
+    // Create reporter for this configuration
+    const reporter = new TestReporter(config, invocationDir);
+
+    // Execute tests
+    if (config.execution?.parallel) {
+      return await this.runTestsParallel(testSuite, reporter);
+    } else {
+      return await this.runTestsSequential(testSuite, reporter);
+    }
+  }
+
+  /*
+   Reports final results from all test groups
+   @param allResults Combined results from all test executions
+   @param config Configuration for output formatting
+   @param invocationDir Directory from which tests were invoked (for relative path display)
+   */
+  reportFinalResults(allResults: TestResult[], config: TestConfig, invocationDir?: string): void {
+    // Create reporter for final output
+    const reporter = new TestReporter(config, invocationDir);
+
+    // Check if there are any failures or errors
+    const hasFailures = allResults.some(result =>
+      result.status === TestStatus.Failed || result.status === TestStatus.Error
+    );
+
+    // If there are failures and we're not already in verbose mode, re-report with verbose mode showing only errors
+    if (hasFailures && !config.output?.verbose) {
+      const verboseConfig = {
+        ...config,
+        output: {
+          ...config.output,
+          verbose: true,
+          format: "detailed" as const,
+          colors: config.output?.colors ?? true,
+          errorsOnly: true,
+        }
+      };
+      const verboseReporter = new TestReporter(verboseConfig, invocationDir);
+      verboseReporter.reportResults(allResults);
+    } else {
+      reporter.reportResults(allResults);
+    }
+  }
+}

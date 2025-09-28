@@ -1,0 +1,57 @@
+{
+    // Compiler configuration for different languages
+    compiler: {
+        c: {
+            compiler: "gcc",
+            flags: [
+                "-std=c99",
+                "-Wall",
+                "-Wextra",
+                "-Wno-unused-parameter",
+                "-Wno-strict-prototypes",
+                "-I.",
+                "-I${../build/*/inc}",
+                "-L${../build/*/bin}",
+                "-I/usr/local/include",
+                "-std=c99",
+                "-Wl,-rpath,@executable_path/${../../build/*/bin}",
+                "-Wl,-rpath,@loader_path/${../../build/*/bin}",
+                "-O0",
+                "-g",
+            ],
+            libraries: [
+                "m",
+                "pthread",
+                // '${../build/*/lib*.a}'
+            ],
+        },
+    },
+
+    // Test execution settings
+    execution: {
+        timeout: 30000, // Timeout per test in milliseconds
+        parallel: true, // Run tests in parallel
+        workers: 4, // Number of parallel workers
+    },
+
+    // Output formatting options
+    output: {
+        verbose: false, // Show detailed output
+        format: "simple", // Output format: simple, detailed, json
+        colors: true, // Enable colored output
+    },
+
+    // File discovery patterns
+    patterns: {
+        include: ["**/*.tst.sh", "**/*.tst.c", "**/*.tst.js", "**/*.tst.ts"],
+        exclude: ["**/node_modules/**", "**/.testme/**", "**/.*/**"],
+    },
+
+    // Service management for test setup/teardown
+    services: {
+        setup: "",
+        cleanup: "",
+        setupTimeout: 30000, // Setup timeout in milliseconds
+        cleanupTimeout: 10000, // Cleanup timeout in milliseconds
+    },
+}

@@ -1,0 +1,386 @@
+.TH TM 1 "2024-09-28" "TestMe 1.0" "User Commands"
+.SH NAME
+tm \- Multi-language test runner for embedded development
+.SH SYNOPSIS
+.B tm
+[\fIOPTIONS\fR] [\fIPATTERNS\fR...]
+.SH DESCRIPTION
+.B tm
+is a multi-language test runner built with Bun that discovers, compiles, and executes tests across shell, C, JavaScript, and TypeScript with configurable patterns and parallel execution. It is designed for embedded development environments and provides a simple, consistent interface for running tests.
+
+TestMe discovers test files with specific extensions (\fB.tst.sh\fR, \fB.tst.c\fR, \fB.tst.js\fR, \fB.tst.ts\fR) and executes them according to their type. C tests are automatically compiled before execution, while script tests are run directly.
+
+By default, TestMe shows test names as they execute and displays a summary of results. Use \fB\-\-quiet\fR for silent operation with only exit codes, or \fB\-\-verbose\fR for detailed output with additional information.
+
+.SH OPTIONS
+.TP
+.BR \-\-chdir " " \fIDIR\fR
+Change to directory before running tests. Useful for running tests from different locations.
+.TP
+.BR \-\-clean
+Clean all .testme artifact directories. Removes compilation outputs and temporary files.
+.TP
+.BR \-c ", " \-\-config " " \fIFILE\fR
+Use specific configuration file instead of searching for testme.json5.
+.TP
+.BR \-d ", " \-\-debug
+Launch debugger for C tests. Uses GDB on Linux and Xcode on macOS.
+.TP
+.BR \-\-depth " " \fINUMBER\fR
+Set TESTME_DEPTH environment variable for tests. Used by test frameworks for nested execution control.
+.TP
+.BR \-h ", " \-\-help
+Show help message with usage information and examples.
+.TP
+.BR \-k ", " \-\-keep
+Keep .testme artifact directories after running tests. Useful for debugging compilation issues.
+.TP
+.BR \-l ", " \-\-list
+List discovered tests without running them. Shows all test files that would be executed.
+.TP
+.BR \-q ", " \-\-quiet
+Run silently with no output, only exit codes. Useful for scripting and automation.
+.TP
+.BR \-s ", " \-\-show
+Display the C compile command used. Shows compiler flags, libraries, and paths for debugging.
+.TP
+.BR \-\-step
+Run tests one at a time with prompts. Forces serial mode and prompts before each test execution.
+.TP
+.BR \-v ", " \-\-verbose
+Enable verbose mode with detailed output. Sets TESTME_VERBOSE environment variable for tests.
+.TP
+.BR \-V ", " \-\-version
+Show version information.
+.TP
+.BR \-w ", " \-\-workers " " \fINUMBER\fR
+Number of parallel workers (overrides configuration). Must be a positive integer.
+
+.SH PATTERNS
+Test patterns are glob-style expressions used to filter which tests to run:
+
+.TP
+.B Full filenames
+"math.tst.c", "*.tst.c" - Match specific files or all files of a type
+.TP
+.B Base names
+"math", "test*" - Match base names across all test types (math.tst.c, math.tst.js, etc.)
+.TP
+.B Path patterns
+"**/math*", "tests/*.tst.c" - Match files in subdirectories or specific paths
+
+If no patterns are provided, all discoverable tests are run.
+
+.SH TEST TYPES
+TestMe supports four types of test files:
+
+.TP
+.B .tst.sh
+Shell script tests. Must be executable or have a shebang line. Exit code 0 indicates success.
+.TP
+.B .tst.c
+C program tests. Automatically compiled with gcc/clang using configuration flags and libraries. Linked against specified libraries and run as executables.
+.TP
+.B .tst.js
+JavaScript tests. Executed directly with the Bun runtime.
+.TP
+.B .tst.ts
+TypeScript tests. Executed directly with Bun's TypeScript support.
+
+.SH WORKING DIRECTORY
+All tests execute with their working directory (CWD) set to the directory containing the test file. This ensures consistent behavior across all test types and allows tests to access relative files reliably.
+
+.TP
+.B C Tests
+Compiled in the .testme artifact directory but executed from the test file's directory. Xcode debugging projects also set the working directory to the test directory.
+.TP
+.B Script Tests
+Shell, JavaScript, and TypeScript tests execute directly from the test file's directory.
+.TP
+.B Relative File Access
+Tests can reliably access configuration files, data files, and other resources using relative paths from their location.
+
+.SH CONFIGURATION
+TestMe supports hierarchical configuration using nested \fBtestme.json5\fR files throughout your project structure.
+
+.SS Configuration Discovery
+TestMe discovers configuration files using the following priority order (highest to lowest):
+.IP 1. 4
+CLI arguments (highest priority)
+.IP 2. 4
+Test-specific \fBtestme.json5\fR (nearest to test file)
+.IP 3. 4
+Project \fBtestme.json5\fR (walking up directory tree)
+.IP 4. 4
+Built-in defaults (lowest priority)
+
+.SS Nested Configuration Behavior
+Each test file gets its own configuration resolution by walking up from the test file's directory to find the nearest \fBtestme.json5\fR file. This enables:
+.IP \(bu 4
+Project-wide defaults at the repository root
+.IP \(bu 4
+Module-specific overrides in subdirectories
+.IP \(bu 4
+Test-specific configuration closest to individual tests
+.IP \(bu 4
+Automatic merging with CLI arguments preserved
+
+For example, a project structure like:
+.nf
+project/
+├── testme.json5          # Project defaults
+├── module-a/
+│   ├── testme.json5      # Module-specific settings
+│   └── test.tst.c
+└── module-b/
+    └── test.tst.c        # Uses project defaults
+.fi
+
+Configuration files support:
+
+.SS Compiler Settings
+Configure C compilation with custom compilers, flags, and libraries:
+.nf
+{
+    compiler: {
+        c: {
+            compiler: "gcc",
+            flags: ["-std=c99", "-Wall", "-Wextra"],
+            libraries: ["m", "pthread", "mylib"]
+        }
+    }
+}
+.fi
+
+.SS Execution Settings
+Control test execution behavior:
+.nf
+{
+    execution: {
+        timeout: 30000,        // Timeout per test (ms)
+        parallel: true,        // Run tests in parallel
+        workers: 4,            // Number of parallel workers
+    }
+}
+.fi
+
+.SS Output Settings
+Control output formatting:
+.nf
+{
+    output: {
+        verbose: false,        // Show detailed output
+        format: "simple",      // simple, detailed, json
+        colors: true          // Enable colored output
+    }
+}
+.fi
+
+.SS Pattern Settings
+Configure test discovery:
+.nf
+{
+    patterns: {
+        include: ["**/*.tst.c", "**/*.tst.sh"],
+        exclude: ["**/node_modules/**", "**/.*/**"]
+    }
+}
+.fi
+
+.SS Service Settings
+Configure prep, setup and cleanup commands:
+.nf
+{
+    services: {
+        prep: "make build",
+        setup: "docker-compose up -d",
+        cleanup: "docker-compose down",
+        prepTimeout: 30000,
+        setupTimeout: 30000,
+        cleanupTimeout: 10000
+    }
+}
+.fi
+
+The prep command runs once before all tests begin and waits for completion. The setup command starts a background service that runs during test execution. The cleanup command runs after all tests complete to clean up resources.
+
+.SH ARTIFACTS
+C tests create build artifacts in \fB.testme\fR directories co-located with test files:
+
+.TP
+.B Compiled binaries
+C source files are compiled to executables with names matching the test base name.
+.TP
+.B Compilation logs
+\fBcompile.log\fR files contain compiler output for debugging compilation issues.
+.TP
+.B Debug symbols
+Debug builds include .dSYM directories on macOS for debugging support.
+.TP
+.B Xcode projects
+Debug mode creates Xcode project files for integrated debugging on macOS.
+
+.SH PARALLEL EXECUTION
+TestMe executes tests in parallel by default with configurable concurrency:
+
+.TP
+.B Batched processing
+Tests are processed in batches to prevent system overload.
+.TP
+.B Fresh handler instances
+Each test gets isolated handler instances to prevent race conditions.
+.TP
+.B Artifact isolation
+Each test compiles in its own directory to avoid conflicts.
+.TP
+.B Configurable concurrency
+Use \fBworkers\fR setting to tune based on system resources.
+
+.SH OUTPUT MODES
+TestMe provides three levels of output verbosity:
+
+.TP
+.B Default Mode
+Shows test names as they execute with pass/fail status and execution time, followed by a summary.
+.TP
+.B Verbose Mode (\-\-verbose)
+Includes all default output plus detailed error information, compilation commands, and sets TESTME_VERBOSE=1 for tests.
+.TP
+.B Quiet Mode (\-\-quiet)
+Produces no output at all, only returns exit codes. Ideal for scripts and automated systems.
+
+.SH ENVIRONMENT VARIABLES
+TestMe sets and respects several environment variables:
+
+.TP
+.B TESTME_VERBOSE
+Set to "1" when verbose mode is enabled. Tests can check this for detailed output.
+.TP
+.B TESTME_DEPTH
+Set to the value provided by \fB\-\-depth\fR option. Used for nested test execution control.
+.TP
+.B TMPDIR
+Set to /tmp/claude/ for temporary file operations in sandboxed environments.
+
+.SH EXIT STATUS
+.TP
+.B 0
+All tests passed successfully.
+.TP
+.B 1
+One or more tests failed, had errors, or compilation failed.
+.TP
+.B 2
+Invalid command line arguments or configuration errors.
+
+.SH EXAMPLES
+.TP
+Run all tests (shows test names as they execute):
+.B tm
+
+.TP
+Run only C tests:
+.B tm "*.tst.c"
+
+.TP
+Run specific test file:
+.B tm "math.tst.c"
+
+.TP
+Run tests matching pattern:
+.B tm "**/math*"
+
+.TP
+List all discoverable tests:
+.B tm --list
+
+.TP
+Clean all test artifacts:
+.B tm --clean
+
+.TP
+Run with verbose output:
+.B tm -v "integration*"
+
+.TP
+Keep build artifacts for debugging:
+.B tm --keep "*.tst.c"
+
+.TP
+Run tests one at a time with prompts:
+.B tm --step
+
+.TP
+Set custom test depth:
+.B tm --depth 5
+
+.TP
+Debug a specific C test:
+.B tm --debug math.tst.c
+
+.TP
+Show compilation commands:
+.B tm --show "*.tst.c"
+
+.TP
+Run silently with no output (for scripts):
+.B tm --quiet
+
+.TP
+Use custom configuration:
+.B tm -c /path/to/testme.json5
+
+.TP
+Change directory before running:
+.B tm --chdir /path/to/tests
+
+.SH FILES
+.TP
+.B testme.json5
+Configuration file searched from current directory upward.
+.TP
+.B .testme/
+Artifact directories created alongside test files for build outputs.
+.TP
+.B *.tst.sh, *.tst.c, *.tst.js, *.tst.ts
+Test files with recognized extensions.
+
+.SH DEBUGGING
+For C tests, TestMe provides integrated debugging support:
+
+.SS macOS (Xcode)
+Use \fB\-\-debug\fR to create and open an Xcode project with proper build settings, include paths, and library linking. The project includes:
+- All compiler flags from configuration
+- Expanded library and include paths
+- Direct dylib linking for runtime libraries
+- Proper rpath configuration
+
+.SS Linux (GDB)
+Use \fB\-\-debug\fR to launch GDB with the compiled test binary. Provides command-line debugging with full symbol information.
+
+.SH TROUBLESHOOTING
+.TP
+.B Compilation failures
+Use \fB\-\-show\fR to see exact compiler commands and \fB\-\-keep\fR to examine compilation logs in .testme directories.
+.TP
+.B Library linking issues
+Check library paths in configuration and ensure dylib files exist in specified locations.
+.TP
+.B Parallel execution issues
+Reduce \fBworkers\fR setting if tests fail due to resource contention.
+.TP
+.B Permission errors
+Ensure test files are readable and script files are executable.
+
+.SH SEE ALSO
+.BR gcc (1),
+.BR clang (1),
+.BR bun (1),
+.BR gdb (1),
+.BR xcodegen (1)
+
+.SH AUTHOR
+TestMe was written for embedded development environments requiring multi-language test execution with consistent tooling across C, shell scripts, JavaScript, and TypeScript.
+
+.SH COPYRIGHT
+This is free software; see the source for copying conditions.

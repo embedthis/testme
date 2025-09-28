@@ -1,0 +1,46 @@
+{
+  "name": "testme",
+  "version": "1.0.0",
+  "description": "Multi-language test runner for shell, C, JavaScript, and TypeScript tests",
+  "main": "src/pkg/testme.js",
+  "module": "src/pkg/testme.js",
+  "types": "src/pkg/testme.d.ts",
+  "type": "module",
+  "private": false,
+  "bin": {
+    "tm": "./src/index.ts"
+  },
+  "exports": {
+    ".": {
+      "import": "./src/pkg/testme.js",
+      "types": "./src/pkg/testme.d.ts"
+    }
+  },
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "build": "bun build src/index.ts --outdir ./dist --target bun",
+    "test": "bun test",
+    "clean": "rm -rf dist .testme"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "bun-types": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "keywords": [
+    "test",
+    "testing",
+    "test-runner",
+    "c",
+    "javascript",
+    "typescript",
+    "shell",
+    "bun"
+  ],
+  "dependencies": {
+    "glob": "^11.0.3",
+    "json5": "^2.2.3"
+  }
+}
