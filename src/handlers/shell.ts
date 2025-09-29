@@ -1,6 +1,12 @@
-import { TestFile, TestResult, TestConfig, TestStatus, TestType } from '../types.ts';
-import { BaseTestHandler } from './base.ts';
-import { chmod } from 'node:fs/promises';
+import {
+    TestFile,
+    TestResult,
+    TestConfig,
+    TestStatus,
+    TestType,
+} from "../types.ts";
+import { BaseTestHandler } from "./base.ts";
+import { chmod } from "node:fs/promises";
 
 /*
  Handler for executing shell script tests (.tst.sh files)
@@ -31,10 +37,10 @@ export class ShellTestHandler extends BaseTestHandler {
     }
 
     /*
-     Executes shell script test and returns results
-     @param file Shell test file to execute
-     @param config Test execution configuration
-     @returns Promise resolving to test results
+        Executes shell script test and returns results
+        @param file Shell test file to execute
+        @param config Test execution configuration
+        @returns Promise resolving to test results
      */
     async execute(file: TestFile, config: TestConfig): Promise<TestResult> {
         const { result, duration } = await this.measureExecution(async () => {
@@ -44,15 +50,23 @@ export class ShellTestHandler extends BaseTestHandler {
             return await this.runCommand(shell, [file.path], {
                 cwd: file.directory,
                 timeout: config.execution?.timeout || 30000,
-                env: await this.getTestEnvironment(config)
+                env: await this.getTestEnvironment(config),
             });
         });
 
-        const status = result.exitCode === 0 ? TestStatus.Passed : TestStatus.Failed;
+        const status =
+            result.exitCode === 0 ? TestStatus.Passed : TestStatus.Failed;
         const output = this.combineOutput(result.stdout, result.stderr);
         const error = result.exitCode !== 0 ? result.stderr : undefined;
 
-        return this.createTestResult(file, status, duration, output, error, result.exitCode);
+        return this.createTestResult(
+            file,
+            status,
+            duration,
+            output,
+            error,
+            result.exitCode
+        );
     }
 
     /*
@@ -66,14 +80,14 @@ export class ShellTestHandler extends BaseTestHandler {
             // Read the first line to check for shebang
             const file = Bun.file(filePath);
             const content = await file.text();
-            const firstLine = content.split('\n')[0];
+            const firstLine = content.split("\n")[0];
 
-            if (firstLine.startsWith('#!')) {
+            if (firstLine.startsWith("#!")) {
                 const shebang = firstLine.slice(2).trim();
-                if (shebang.includes('bash')) return 'bash';
-                if (shebang.includes('zsh')) return 'zsh';
-                if (shebang.includes('fish')) return 'fish';
-                if (shebang.includes('sh')) return 'sh';
+                if (shebang.includes("bash")) return "bash";
+                if (shebang.includes("zsh")) return "zsh";
+                if (shebang.includes("fish")) return "fish";
+                if (shebang.includes("sh")) return "sh";
             }
         } catch {
             // Ignore errors and fall back to default
@@ -82,13 +96,13 @@ export class ShellTestHandler extends BaseTestHandler {
         // Default shell detection from environment
         if (process.env.SHELL) {
             const shellPath = process.env.SHELL;
-            if (shellPath.includes('bash')) return 'bash';
-            if (shellPath.includes('zsh')) return 'zsh';
-            if (shellPath.includes('fish')) return 'fish';
+            if (shellPath.includes("bash")) return "bash";
+            if (shellPath.includes("zsh")) return "zsh";
+            if (shellPath.includes("fish")) return "fish";
         }
 
         // Ultimate fallback to POSIX shell
-        return 'sh';
+        return "sh";
     }
 
     /*
@@ -98,7 +112,7 @@ export class ShellTestHandler extends BaseTestHandler {
      @returns Formatted combined output
      */
     private combineOutput(stdout: string, stderr: string): string {
-        let output = '';
+        let output = "";
         if (stdout.trim()) {
             output += `STDOUT:\n${stdout}\n`;
         }

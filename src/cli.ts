@@ -176,7 +176,7 @@ OPTIONS:
         --clean            Clean all .testme artifact directories
     -c, --config <FILE>    Use specific configuration file
     -d, --debug            Launch debugger (GDB on Linux, Xcode on macOS)
-        --depth <NUMBER>   Set TESTME_DEPTH environment variable for tests
+        --depth <NUMBER>   Run tests with depth requirement <= NUMBER (default: 0)
     -h, --help             Show this help message
     -k, --keep             Keep .testme artifacts after running tests
     -l, --list             List discovered tests without running them
@@ -198,7 +198,7 @@ EXAMPLES:
     tm -v "integration*"       # Run integration tests with verbose output
     tm --keep "*.tst.c"        # Run C tests and keep build artifacts
     tm --step                  # Run tests one at a time with prompts
-    tm --depth 5               # Set TESTME_DEPTH=5 for all tests
+    tm --depth 5               # Run tests with depth requirement <= 5
     tm --debug math            # Debug math.tst.c with GDB/Xcode
     tm -s "*.tst.c"            # Display C compile commands used
     tm -w 8                    # Use 8 parallel workers (overrides config)
@@ -219,6 +219,7 @@ CONFIGURATION:
     - Output formatting preferences
     - Include/exclude patterns
     - Service commands (prep, setup, cleanup)
+    - Depth requirements (tests only run if --depth >= config depth)
 
 For more information, see the project documentation.
 `;

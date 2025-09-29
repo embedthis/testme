@@ -16,6 +16,73 @@ export class ServiceManager {
     }
 
     /*
+     Runs the skip script to determine if tests should be skipped
+     @param config Test configuration containing service settings
+     @returns Object with shouldSkip boolean and optional message
+     */
+    async runSkip(config: TestConfig): Promise<{ shouldSkip: boolean; message?: string }> {
+        const skipCommand = config.services?.skip;
+        if (!skipCommand) {
+            return { shouldSkip: false };
+        }
+
+        const timeout = config.services?.skipTimeout || 30000;
+
+        const displayPath = this.getDisplayPath(skipCommand, config);
+        if (config.output?.verbose) {
+            console.log(`🔍 Running skip script: ${displayPath}`);
+        }
+
+        try {
+            // Parse command and arguments
+            const [command, ...args] = this.parseCommand(skipCommand);
+
+            // Run skip script in foreground with proper environment
+            const skipProcess = Bun.spawn([command, ...args], {
+                stdout: "pipe",
+                stderr: "pipe",
+                cwd: config.configDir, // Run in the directory containing testme.json5
+                env: await this.getServiceEnvironment(config)
+            });
+
+            // Set up timeout
+            let timeoutId: Timer | undefined;
+            let timedOut = false;
+
+            if (timeout > 0) {
+                timeoutId = setTimeout(() => {
+                    timedOut = true;
+                    skipProcess.kill();
+                }, timeout);
+            }
+
+            const result = await skipProcess.exited;
+
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+            }
+
+            if (timedOut) {
+                throw new Error(`Skip script timed out after ${timeout}ms`);
+            } else if (result === 0) {
+                // Exit code 0 means don't skip (run tests)
+                if (config.output?.verbose) {
+                    console.log("✅ Skip script returned 0 - tests will run");
+                }
+                return { shouldSkip: false };
+            } else {
+                // Non-zero exit code means skip tests
+                const stdout = await new Response(skipProcess.stdout).text();
+                const stderr = await new Response(skipProcess.stderr).text();
+                const message = (stdout.trim() || stderr.trim()) || `Skip script returned exit code ${result}`;
+                return { shouldSkip: true, message };
+            }
+        } catch (error) {
+            throw new Error(`Failed to run skip script: ${error}`);
+        }
+    }
+
+    /*
      Runs the prep command in the foreground and waits for completion
      @param config Test configuration containing service settings
      @throws Error if prep command fails or times out

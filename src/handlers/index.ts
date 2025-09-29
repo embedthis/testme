@@ -3,6 +3,7 @@ import { ShellTestHandler } from './shell.ts';
 import { CTestHandler } from './c.ts';
 import { JavaScriptTestHandler } from './javascript.ts';
 import { TypeScriptTestHandler } from './typescript.ts';
+import { EjscriptTestHandler } from './ejscript.ts';
 
 /*
  Creates and returns all available test handlers
@@ -13,7 +14,8 @@ export const createHandlers = (): TestHandler[] => {
         new ShellTestHandler(),
         new CTestHandler(),
         new JavaScriptTestHandler(),
-        new TypeScriptTestHandler()
+        new TypeScriptTestHandler(),
+        new EjscriptTestHandler()
     ];
 };
 
@@ -22,5 +24,6 @@ export {
     ShellTestHandler,
     CTestHandler,
     JavaScriptTestHandler,
-    TypeScriptTestHandler
+    TypeScriptTestHandler,
+    EjscriptTestHandler
 };

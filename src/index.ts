@@ -73,6 +73,27 @@ class TestMeApp {
                 continue;
             }
 
+            // Check if depth requirement is met
+            const requiredDepth = mergedConfig.depth ?? 0;
+            const currentDepth = options.depth ?? 0;
+            if (currentDepth < requiredDepth) {
+                if (mergedConfig.output?.verbose) {
+                    console.log(`\n⏭️  Skipping tests in: ${relative(rootDir, configDir) || '.'} (requires --depth ${requiredDepth}, current: ${currentDepth})`);
+                }
+                continue;
+            }
+
+            // Check if tests should be skipped via skip script
+            if (mergedConfig.services?.skip) {
+                const skipResult = await this.getServiceManager(rootDir).runSkip(mergedConfig);
+                if (skipResult.shouldSkip) {
+                    if (mergedConfig.output?.verbose) {
+                        console.log(`\n⏭️  Skipping tests in: ${relative(rootDir, configDir) || '.'} - ${skipResult.message || 'Skip script returned non-zero'}`);
+                    }
+                    continue;
+                }
+            }
+
             console.log(`\n🧪 Running ${tests.length} test(s) in: ${relative(rootDir, configDir) || '.'}`);
 
             try {

@@ -1,5 +1,11 @@
-import { TestFile, TestResult, TestConfig, TestStatus, TestHandler } from '../types.ts';
-import { GlobExpansion } from '../utils/glob-expansion.ts';
+import {
+    TestFile,
+    TestResult,
+    TestConfig,
+    TestStatus,
+    TestHandler,
+} from "../types.ts";
+import { GlobExpansion } from "../utils/glob-expansion.ts";
 
 /*
  Abstract base class for all test handlers
@@ -57,8 +63,8 @@ export abstract class BaseTestHandler implements TestHandler {
         const proc = Bun.spawn([command, ...args], {
             cwd: options.cwd,
             env: { ...process.env, ...options.env },
-            stdout: 'pipe',
-            stderr: 'pipe'
+            stdout: "pipe",
+            stderr: "pipe",
         });
 
         let timeoutId: Timer | undefined;
@@ -86,14 +92,14 @@ export abstract class BaseTestHandler implements TestHandler {
                 return {
                     exitCode: -1,
                     stdout: stdout,
-                    stderr: stderr + '\nProcess timed out'
+                    stderr: stderr + "\nProcess timed out",
                 };
             }
 
             return {
                 exitCode: result,
                 stdout,
-                stderr
+                stderr,
             };
         } catch (error) {
             if (timeoutId) {
@@ -102,8 +108,8 @@ export abstract class BaseTestHandler implements TestHandler {
 
             return {
                 exitCode: -1,
-                stdout: '',
-                stderr: `Failed to execute command: ${error}`
+                stdout: "",
+                stderr: `Failed to execute command: ${error}`,
             };
         }
     }
@@ -113,12 +119,14 @@ export abstract class BaseTestHandler implements TestHandler {
      @param config Test configuration that may include verbose mode settings
      @returns Promise resolving to environment variables object to pass to test processes
      */
-    protected async getTestEnvironment(config: TestConfig): Promise<Record<string, string>> {
+    protected async getTestEnvironment(
+        config: TestConfig
+    ): Promise<Record<string, string>> {
         const env: Record<string, string> = {};
 
         // Set TESTME_VERBOSE if verbose mode is enabled
         if (config.output?.verbose) {
-            env.TESTME_VERBOSE = '1';
+            env.TESTME_VERBOSE = "1";
         }
 
         // Set TESTME_DEPTH if depth is specified
@@ -132,7 +140,10 @@ export abstract class BaseTestHandler implements TestHandler {
 
             for (const [key, value] of Object.entries(config.env)) {
                 // Expand ${...} references in environment variable values
-                const expandedValue = await GlobExpansion.expandSingle(value, baseDir);
+                const expandedValue = await GlobExpansion.expandSingle(
+                    value,
+                    baseDir
+                );
                 env[key] = expandedValue;
             }
         }
@@ -164,7 +175,7 @@ export abstract class BaseTestHandler implements TestHandler {
             duration,
             output,
             error,
-            exitCode
+            exitCode,
         };
     }
 

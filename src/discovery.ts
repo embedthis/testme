@@ -12,7 +12,8 @@ export class TestDiscovery {
         '.tst.sh': TestType.Shell,
         '.tst.c': TestType.C,
         '.tst.js': TestType.JavaScript,
-        '.tst.ts': TestType.TypeScript
+        '.tst.ts': TestType.TypeScript,
+        '.tst.es': TestType.Ejscript
     };
 
     /*
@@ -30,7 +31,7 @@ export class TestDiscovery {
             throw new Error(`Failed to discover tests in ${options.rootDir}: ${error}`);
         }
 
-        return this.filterByPatterns(tests, options.patterns);
+        return this.filterByPatterns(tests, options.patterns, options.rootDir);
     }
 
     /*
@@ -140,9 +141,10 @@ export class TestDiscovery {
      Filters test files by include patterns
      @param tests Array of test files to filter
      @param patterns Array of include patterns
+     @param rootDir Root directory for relative path calculation
      @returns Filtered array of test files
      */
-    private static filterByPatterns(tests: TestFile[], patterns: string[]): TestFile[] {
+    private static filterByPatterns(tests: TestFile[], patterns: string[], rootDir: string): TestFile[] {
         if (!patterns.length) return tests;
 
         return tests.filter(test => {
@@ -154,6 +156,32 @@ export class TestDiscovery {
 
                 // Get base name without test extension for matching
                 const baseName = this.getBaseNameWithoutTestExtension(test.name);
+
+                // Check if pattern matches a directory component (relative to rootDir)
+                const relativePath = test.directory.startsWith(rootDir)
+                    ? test.directory.slice(rootDir.length).replace(/^\//, '')
+                    : test.directory;
+                const directoryParts = relativePath.split('/').filter(p => p.length > 0);
+                if (directoryParts.includes(pattern)) {
+                    return true;
+                }
+
+                // If pattern contains a path separator, check if the path ends with the pattern
+                if (pattern.includes('/')) {
+                    if (test.path.endsWith(pattern)) {
+                        return true;
+                    }
+                    // Also try matching with the test extension removed from the path
+                    const pathWithoutExt = test.path.slice(0, -test.extension.length);
+                    if (pathWithoutExt.endsWith(pattern)) {
+                        return true;
+                    }
+                    // Check if pattern is a directory prefix (test directory contains the pattern)
+                    const normalizedPattern = pattern.endsWith('/') ? pattern : pattern + '/';
+                    if (test.path.includes('/' + normalizedPattern) || test.path.includes(normalizedPattern)) {
+                        return true;
+                    }
+                }
 
                 // Match against full path, full filename, or base name
                 return this.matchesGlob(test.path, pattern) ||

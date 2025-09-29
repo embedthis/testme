@@ -1,5 +1,11 @@
-import { TestFile, TestResult, TestConfig, TestStatus, TestType } from '../types.ts';
-import { BaseTestHandler } from './base.ts';
+import {
+    TestFile,
+    TestResult,
+    TestConfig,
+    TestStatus,
+    TestType,
+} from "../types.ts";
+import { BaseTestHandler } from "./base.ts";
 
 /*
  Handler for executing JavaScript tests (.tst.js files)
@@ -23,18 +29,26 @@ export class JavaScriptTestHandler extends BaseTestHandler {
      */
     async execute(file: TestFile, config: TestConfig): Promise<TestResult> {
         const { result, duration } = await this.measureExecution(async () => {
-            return await this.runCommand('bun', [file.path], {
+            return await this.runCommand("bun", [file.path], {
                 cwd: file.directory,
                 timeout: config.execution?.timeout || 30000,
-                env: await this.getTestEnvironment(config)
+                env: await this.getTestEnvironment(config),
             });
         });
 
-        const status = result.exitCode === 0 ? TestStatus.Passed : TestStatus.Failed;
+        const status =
+            result.exitCode === 0 ? TestStatus.Passed : TestStatus.Failed;
         const output = this.combineOutput(result.stdout, result.stderr);
         const error = result.exitCode !== 0 ? result.stderr : undefined;
 
-        return this.createTestResult(file, status, duration, output, error, result.exitCode);
+        return this.createTestResult(
+            file,
+            status,
+            duration,
+            output,
+            error,
+            result.exitCode
+        );
     }
 
     /*
@@ -44,7 +58,7 @@ export class JavaScriptTestHandler extends BaseTestHandler {
      @returns Formatted combined output
      */
     private combineOutput(stdout: string, stderr: string): string {
-        let output = '';
+        let output = "";
         if (stdout.trim()) {
             output += `STDOUT:\n${stdout}\n`;
         }

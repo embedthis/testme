@@ -4,14 +4,15 @@ TestMe is a powerful, multi-language test runner built with Bun that can discove
 
 ## 🚀 Features
 
--   **Multi-language Support**: Shell (`.tst.sh`), C (`.tst.c`), JavaScript (`.tst.js`), TypeScript (`.tst.ts`)
+-   **Multi-language Support**: Shell (`.tst.sh`), C (`.tst.c`), JavaScript (`.tst.js`), TypeScript (`.tst.ts`), Ejscript (`.tst.es`)
 -   **Automatic Compilation**: C programs are compiled automatically before execution
 -   **Recursive Discovery**: Finds test files at any depth in directory trees
--   **Pattern Matching**: Filter tests using glob patterns
+-   **Pattern Matching**: Filter tests using glob patterns, file names, or directory names
 -   **Parallel Execution**: Run tests concurrently for better performance
 -   **Artifact Management**: Organized build artifacts in `.testme` directories
 -   **Hierarchical Configuration**: `testme.json5` files with tree traversal lookup
 -   **Environment Variables**: Dynamic environment setup with glob expansion support
+-   **Test Control**: Skip scripts, depth requirements, and enable/disable flags
 -   **Multiple Output Formats**: Simple, detailed, and JSON reporting
 -   **Cross-platform**: Works on Windows, macOS, and Linux
 
@@ -19,13 +20,12 @@ TestMe is a powerful, multi-language test runner built with Bun that can discove
 
 -   [Installation](#installation)
 -   [Quick Start](#quick-start)
--   [Test File Types](#test-file-types)
 -   [Usage](#usage)
+-   [Test File Types](#test-file-types)
 -   [Configuration](#configuration)
--   [Examples](#examples)
--   [API Reference](#api-reference)
+-   [Output Formats](#output-formats)
 -   [Development](#development)
--   [Contributing](#contributing)
+-   [Tips and Best Practices](#tips-and-best-practices)
 
 ## 🔧 Installation
 
@@ -45,6 +45,10 @@ TestMe is a powerful, multi-language test runner built with Bun that can discove
 
     ```bash
     bun run build
+
+    or
+
+    make
     ```
 
 4. Install the project:
@@ -54,44 +58,41 @@ TestMe is a powerful, multi-language test runner built with Bun that can discove
 
 ## 🚀 Quick Start
 
-1. **Create test files** in your project with the appropriate extensions:
-
-    - `math.tst.c` - C test
-    - `utils.tst.js` - JavaScript test
-    - `helpers.tst.ts` - TypeScript test
-    - `setup.tst.sh` - Shell test
-
-2. **Run all tests**:
+1. **Create test files** with the appropriate extensions:
 
     ```bash
-    tm
+    # C test
+    echo '#include "testme.h"
+    int main() { teq(2+2, 4, "math works"); return 0; }' > math.tst.c
+
+    # JavaScript test
+    echo 'console.log("✓ Test passed"); process.exit(0);' > test.tst.js
     ```
 
-3. **List discovered tests**:
+2. **Run tests**:
 
     ```bash
+    # Run all tests
+    tm
+
+    # Run specific tests
+    tm "*.tst.c"
+
+    # Run tests in a directory
+    tm integration
+
+    # List available tests
     tm --list
     ```
 
-4. **Run specific test types**:
+3. **Clean up build artifacts**:
     ```bash
-    tm "*.tst.c"
+    tm --clean
     ```
 
-## 📂 Working Directory Behavior
-
-All tests execute with their working directory (CWD) set to the directory containing the test file. This ensures consistent behavior across all test types and allows tests to access relative files reliably.
-
-### C Tests
-Compiled in the `.testme` artifact directory but executed from the test file's directory. Debug builds also use the test directory as the working directory.
-
-### Script Tests
-Shell, JavaScript, and TypeScript tests execute directly from the test file's directory.
-
-### Relative File Access
-Tests can reliably access configuration files, data files, and other resources using relative paths from their location.
-
 ## 📝 Test File Types
+
+TestMe supports five test file types. All tests should exit with code 0 for success, non-zero for failure.
 
 ### Shell Tests (`.tst.sh`)
 
@@ -147,18 +148,18 @@ int main() {
 
 #### C Testing Functions (testme.h)
 
-- `teq(a, b, msg)` - Assert two values are equal
-- `tneq(a, b, msg)` - Assert two values are not equal
-- `ttrue(expr, msg)` - Assert expression is true
-- `tfalse(expr, msg)` - Assert expression is false
-- `tmatch(str, pattern, msg)` - Assert string matches pattern
-- `tcontains(str, substr, msg)` - Assert string contains substring
-- `tfail(msg)` - Fail test with message
-- `tget(key, default)` - Get environment variable with default
-- `tgeti(key, default)` - Get environment variable as integer
-- `thas(key)` - Check if environment variable exists
-- `tdepth()` - Get current test depth
-- `tinfo(...)`, `tdebug(...)` - Print informational messages
+-   `teq(a, b, msg)` - Assert two values are equal
+-   `tneq(a, b, msg)` - Assert two values are not equal
+-   `ttrue(expr, msg)` - Assert expression is true
+-   `tfalse(expr, msg)` - Assert expression is false
+-   `tmatch(str, pattern, msg)` - Assert string matches pattern
+-   `tcontains(str, substr, msg)` - Assert string contains substring
+-   `tfail(msg)` - Fail test with message
+-   `tget(key, default)` - Get environment variable with default
+-   `tgeti(key, default)` - Get environment variable as integer
+-   `thas(key)` - Check if environment variable exists
+-   `tdepth()` - Get current test depth
+-   `tinfo(...)`, `tdebug(...)` - Print informational messages
 
 ### JavaScript Tests (`.tst.js`)
 
@@ -166,43 +167,43 @@ JavaScript tests executed with Bun runtime. Import `testme.js` for built-in test
 
 ```javascript
 // test_array.tst.js
-import { teq, tneq, ttrue, tinfo, tget, thas } from "./testme.js";
+import {teq, tneq, ttrue, tinfo, tget, thas} from './testme.js'
 
-tinfo("Running JavaScript tests...");
+tinfo('Running JavaScript tests...')
 
-const arr = [1, 2, 3];
-const sum = arr.reduce((a, b) => a + b, 0);
+const arr = [1, 2, 3]
+const sum = arr.reduce((a, b) => a + b, 0)
 
 // Test using testme utilities
-teq(sum, 6, "Array sum test");
-tneq(sum, 0, "Array sum is not zero");
-ttrue(arr.length === 3, "Array has correct length");
+teq(sum, 6, 'Array sum test')
+tneq(sum, 0, 'Array sum is not zero')
+ttrue(arr.length === 3, 'Array has correct length')
 
 // Test environment variable access
-const binPath = tget("BIN", "/default/bin");
-ttrue(binPath !== null, "BIN environment variable available");
+const binPath = tget('BIN', '/default/bin')
+ttrue(binPath !== null, 'BIN environment variable available')
 
 // Check if running in verbose mode
-if (thas("TESTME_VERBOSE")) {
-    tinfo("Verbose mode enabled");
+if (thas('TESTME_VERBOSE')) {
+    tinfo('Verbose mode enabled')
 }
 ```
 
 #### JavaScript Testing Functions (testme.js)
 
-- `teq(received, expected, msg)` - Assert two values are equal
-- `tneq(received, expected, msg)` - Assert two values are not equal
-- `ttrue(expr, msg)` - Assert expression is true
-- `tfalse(expr, msg)` - Assert expression is false
-- `tmatch(str, pattern, msg)` - Assert string matches regex pattern
-- `tcontains(str, substr, msg)` - Assert string contains substring
-- `tfail(msg)` - Fail test with message
-- `tget(key, default)` - Get environment variable with default
-- `thas(key)` - Check if environment variable exists (as number)
-- `tdepth()` - Get current test depth
-- `tverbose()` - Check if verbose mode is enabled
-- `tinfo(...)`, `tdebug(...)` - Print informational messages
-- `tassert(expr, msg)` - Alias for `ttrue`
+-   `teq(received, expected, msg)` - Assert two values are equal
+-   `tneq(received, expected, msg)` - Assert two values are not equal
+-   `ttrue(expr, msg)` - Assert expression is true
+-   `tfalse(expr, msg)` - Assert expression is false
+-   `tmatch(str, pattern, msg)` - Assert string matches regex pattern
+-   `tcontains(str, substr, msg)` - Assert string contains substring
+-   `tfail(msg)` - Fail test with message
+-   `tget(key, default)` - Get environment variable with default
+-   `thas(key)` - Check if environment variable exists (as number)
+-   `tdepth()` - Get current test depth
+-   `tverbose()` - Check if verbose mode is enabled
+-   `tinfo(...)`, `tdebug(...)` - Print informational messages
+-   `tassert(expr, msg)` - Alias for `ttrue`
 
 ### TypeScript Tests (`.tst.ts`)
 
@@ -210,154 +211,92 @@ TypeScript tests executed with Bun runtime (includes automatic transpilation). I
 
 ```typescript
 // test_types.tst.ts
-import { teq, ttrue, tinfo, tget } from "./testme.js";
+import {teq, ttrue, tinfo, tget} from './testme.js'
 
-tinfo("Running TypeScript tests...");
+tinfo('Running TypeScript tests...')
 
 interface User {
-    name: string;
-    age: number;
+    name: string
+    age: number
 }
 
-const user: User = { name: "John", age: 30 };
+const user: User = {name: 'John', age: 30}
 
 // Test using testme utilities with TypeScript types
-teq(user.name, "John", "User name test");
-teq(user.age, 30, "User age test");
-ttrue(typeof user.name === "string", "Name is string type");
-ttrue(typeof user.age === "number", "Age is number type");
+teq(user.name, 'John', 'User name test')
+teq(user.age, 30, 'User age test')
+ttrue(typeof user.name === 'string', 'Name is string type')
+ttrue(typeof user.age === 'number', 'Age is number type')
 
 // Test environment variable access with types
-const binPath: string | null = tget("BIN", "/default/bin");
-ttrue(binPath !== null, "BIN environment variable available");
+const binPath: string | null = tget('BIN', '/default/bin')
+ttrue(binPath !== null, 'BIN environment variable available')
 ```
 
 **Note**: TypeScript tests use the same testing functions as JavaScript tests since both run on the Bun runtime with full TypeScript support.
 
-### Using Environment Variables in Tests
-
-Environment variables defined in `testme.json5` are automatically available to all tests:
-
-**Configuration (`testme.json5`):**
-```json
-{
-    "env": {
-        "BIN": "${../build/macosx-arm64-debug/bin}",
-        "TEST_DATA": "${./test-data}"
-    }
-}
-```
-
-**C Test with Environment Variables:**
-```c
-// test_integration.tst.c
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-int main() {
-    const char* bin_path = getenv("BIN");
-    const char* test_data = getenv("TEST_DATA");
-
-    if (bin_path && test_data) {
-        printf("BIN directory: %s\n", bin_path);
-        printf("Test data: %s\n", test_data);
-        printf("✓ Environment variables available\n");
-        return 0;
-    } else {
-        printf("✗ Environment variables not set\n");
-        return 1;
-    }
-}
-```
-
-**Shell Test with Environment Variables:**
-```bash
-#!/bin/bash
-# test_paths.tst.sh
-
-echo "Checking environment variables..."
-
-if [ -d "$BIN" ]; then
-    echo "✓ BIN directory exists: $BIN"
-else
-    echo "✗ BIN directory not found: $BIN"
-    exit 1
-fi
-
-if [ -d "$TEST_DATA" ]; then
-    echo "✓ Test data directory exists: $TEST_DATA"
-else
-    echo "✗ Test data directory not found: $TEST_DATA"
-    exit 1
-fi
-```
-
 ## 🎯 Usage
 
-### Command Line Interface
+### Command Syntax
 
 ```bash
 tm [OPTIONS] [PATTERNS...]
 ```
 
-### Arguments
+### Pattern Matching
 
--   `<PATTERNS>` - Optional glob patterns to filter tests (e.g., `"*.tst.c"`, `"**/math*"`)
+Filter tests using various pattern types:
 
-### Options
+-   **File patterns**: `"*.tst.c"`, `"math.tst.js"`
+-   **Base names**: `"math"` (matches math.tst.c, math.tst.js, etc.)
+-   **Directory names**: `"integration"`, `"unit/api"` (runs all tests in directory)
+-   **Path patterns**: `"**/math*"`, `"test/unit/*.tst.c"`
 
--   `--chdir <DIR>` - Change to directory before running tests
--   `--clean` - Clean all `.testme` artifact directories
--   `-c, --config <FILE>` - Use specific configuration file
--   `-d, --debug` - Launch debugger (GDB on Linux, Xcode on macOS)
--   `--depth <NUMBER>` - Set TESTME_DEPTH environment variable for tests
--   `-h, --help` - Show help message
--   `-k, --keep` - Keep `.testme` artifacts after running tests
--   `-l, --list` - List discovered tests without running them
--   `-q, --quiet` - Run silently with no output, only exit codes
--   `-s, --show` - Display the C compile command used
--   `--step` - Run tests one at a time with prompts (forces serial mode)
--   `-v, --verbose` - Enable verbose mode with detailed output and TESTME_VERBOSE
--   `-V, --version` - Show version information
--   `-w, --workers <NUMBER>` - Number of parallel workers (overrides config)
+### Common Options
 
-### Examples
+| Option | Description |
+|--------|-------------|
+| `-l, --list` | List discovered tests without running |
+| `-v, --verbose` | Show detailed output |
+| `-q, --quiet` | Silent mode (exit codes only) |
+| `-c, --config <FILE>` | Use specific config file |
+| `--clean` | Remove all `.testme` artifacts |
+| `-d, --debug` | Launch debugger (GDB/Xcode) |
+| `-k, --keep` | Keep artifacts after tests |
+| `--depth <N>` | Run tests requiring depth ≤ N |
+| `-w, --workers <N>` | Set parallel workers |
+| `-s, --show` | Display C compile commands |
+| `--step` | Run tests one at a time with prompts |
+
+### Usage Examples
 
 ```bash
-# Run all tests in current directory tree
-tm
+# Basic usage
+tm                              # Run all tests
+tm --list                       # List tests without running
+tm "*.tst.c"                    # Run only C tests
 
-# Run only C tests
-tm "*.tst.c"
+# Pattern filtering
+tm integration                  # Run all tests in integration/ directory
+tm test/unit                    # Run tests in test/unit/ directory
+tm "math*"                      # Run tests starting with 'math'
+tm "**/api*"                    # Run tests with 'api' in path
 
-# Run tests with 'math' in their name
-tm "**/math*"
+# Advanced options
+tm -v integration               # Verbose output for integration tests
+tm --depth 2                    # Run tests requiring depth ≤ 2
+tm --debug math.tst.c           # Debug specific C test
+tm -s "*.tst.c"                 # Show compilation commands
+tm --keep "*.tst.c"             # Keep build artifacts
 
-# List all discoverable tests
-tm --list
-
-# Clean all test artifacts
-tm --clean
-
-# Run integration tests with verbose output
-tm -v "integration*"
-
-# Use specific configuration file
-tm --config ./config/testme.json5
-
-# Debug a specific C test
-tm --debug math.tst.c
-
-# Show compilation commands
-tm --show "*.tst.c"
-
-# Run with custom test depth
-tm --depth 5
-
-# Change directory before running
-tm --chdir /path/to/tests
+# Configuration
+tm -c custom.json5              # Use custom config
+tm --chdir /path/to/tests       # Change directory first
 ```
+
+### Working Directory Behavior
+
+All tests execute with their working directory set to the directory containing the test file, allowing reliable access to relative files and resources.
 
 ## ⚙️ Configuration
 
@@ -366,23 +305,30 @@ tm --chdir /path/to/tests
 TestMe supports hierarchical configuration using nested `testme.json5` files throughout your project structure. Each test file gets its own configuration by walking up from the test file's directory to find the nearest configuration file.
 
 #### Configuration Discovery Priority (highest to lowest):
+
 1. CLI arguments
 2. Test-specific `testme.json5` (nearest to test file)
 3. Project `testme.json5` (walking up directory tree)
 4. Built-in defaults
 
 This enables:
-- Project-wide defaults at the repository root
-- Module-specific overrides in subdirectories
-- Test-specific configuration closest to individual tests
-- Automatic merging with CLI arguments preserved
+
+-   Project-wide defaults at the repository root
+-   Module-specific overrides in subdirectories
+-   Test-specific configuration closest to individual tests
+-   Automatic merging with CLI arguments preserved
 
 ```json
 {
+    "enable": true,
+    "depth": 0,
     "compiler": {
         "c": {
             "compiler": "gcc",
             "flags": ["-std=c99", "-Wall", "-Wextra", "-O2"]
+        },
+        "es": {
+            "require": "testme"
         }
     },
     "execution": {
@@ -396,16 +342,19 @@ This enables:
         "colors": true
     },
     "patterns": {
-        "include": ["**/*.tst.sh", "**/*.tst.c", "**/*.tst.js", "**/*.tst.ts"],
+        "include": ["**/*.tst.sh", "**/*.tst.c", "**/*.tst.js", "**/*.tst.ts", "**/*.tst.es"],
         "exclude": ["**/node_modules/**", "**/.testme/**", "**/.*/**"]
     },
     "services": {
+        "skip": "./check-requirements.sh",
         "prep": "make build",
         "setup": "docker-compose up -d",
         "cleanup": "docker-compose down",
+        "skipTimeout": 30000,
         "prepTimeout": 30000,
         "setupTimeout": 30000,
-        "cleanupTimeout": 10000
+        "cleanupTimeout": 10000,
+        "delay": 3000
     },
     "env": {
         "BIN": "${../build/*/bin}",
@@ -417,10 +366,16 @@ This enables:
 
 ### Configuration Options
 
+#### Test Control Settings
+
+-   `enable` - Enable or disable tests in this directory (default: true)
+-   `depth` - Minimum depth required to run tests (default: 0, requires `--depth N` to run)
+
 #### Compiler Settings
 
 -   `compiler.c.compiler` - C compiler command (default: "gcc")
 -   `compiler.c.flags` - Compiler flags array (default: ["-std=c99", "-Wall", "-Wextra"])
+-   `compiler.es.require` - Ejscript modules to preload with `--require` (string or array)
 
 #### Execution Settings
 
@@ -441,12 +396,15 @@ This enables:
 
 #### Service Settings
 
+-   `services.skip` - Script to check if tests should run (exit 0=run, non-zero=skip)
 -   `services.prep` - Command to run once before all tests begin (waits for completion)
 -   `services.setup` - Command to start background service during test execution
 -   `services.cleanup` - Command to run after all tests complete for cleanup
+-   `services.skipTimeout` - Skip script timeout in milliseconds (default: 30000)
 -   `services.prepTimeout` - Prep command timeout in milliseconds (default: 30000)
 -   `services.setupTimeout` - Setup command timeout in milliseconds (default: 30000)
 -   `services.cleanupTimeout` - Cleanup command timeout in milliseconds (default: 10000)
+-   `services.delay` - Delay after setup before running tests in milliseconds (default: 0)
 
 #### Environment Variables
 
@@ -456,49 +414,36 @@ This enables:
 -   Useful for providing dynamic paths to build artifacts, libraries, and test data
 
 **Examples:**
+
 ```json
 {
     "env": {
-        "BIN": "${../build/*/bin}",           // Expands to build directory path
-        "LIB_PATH": "${../lib}",              // Points to library directory
+        "BIN": "${../build/*/bin}", // Expands to build directory path
+        "LIB_PATH": "${../lib}", // Points to library directory
         "TEST_DATA": "${./test-data/*.json}", // Expands to test data files
-        "API_URL": "http://localhost:8080"    // Static values work too
+        "API_URL": "http://localhost:8080" // Static values work too
     }
 }
 ```
 
-Tests can access these variables using standard environment variable mechanisms:
-- C tests: `getenv("BIN")`
-- Shell tests: `$BIN` or `${BIN}`
-- JavaScript/TypeScript: `process.env.BIN`
+**Accessing Environment Variables:**
+-   C tests: `getenv("BIN")` or use `tget("BIN", default)` from testme.h
+-   Shell tests: `$BIN` or `${BIN}`
+-   JavaScript/TypeScript: `process.env.BIN` or use `tget("BIN", default)` from testme.js
 
 ## 📁 Artifact Management
 
-tm automatically creates `.testme` directories alongside test files to store:
-
--   **C compilation artifacts** (object files, binaries)
--   **Build logs** and error output
--   **Temporary files** generated during test execution
-
-### Artifact Directory Structure
+TestMe automatically creates `.testme` directories alongside test files for C compilation artifacts:
 
 ```
-project/
-├── tests/
-│   ├── math.tst.c
-│   ├── .testme/           # Artifact directory
-│   │   ├── math           # Compiled binary
-│   │   └── compile.log    # Compilation log
-│   └── utils.tst.js
+project/tests/
+├── math.tst.c
+└── .testme/
+    ├── math              # Compiled binary
+    └── compile.log       # Compilation output
 ```
 
-### Cleaning Artifacts
-
-Remove all artifact directories:
-
-```bash
-tm --clean
-```
+Use `tm --clean` to remove all artifact directories, or `tm --keep` to preserve them after tests run.
 
 ## 🔍 Output Formats
 
@@ -557,41 +502,6 @@ Machine-readable output for integration with other tools:
 }
 ```
 
-## 🏗️ Architecture
-
-### Core Components
-
--   **TestDiscovery** - Recursively finds test files using glob patterns
--   **ConfigManager** - Loads and merges configuration files with defaults
--   **TestRunner** - Orchestrates test execution with parallel support
--   **TestHandlers** - Language-specific execution engines:
-    -   `ShellTestHandler` - Executes shell scripts
-    -   `CTestHandler` - Compiles and runs C programs
-    -   `JavaScriptTestHandler` - Runs JavaScript with Bun
-    -   `TypeScriptTestHandler` - Runs TypeScript with Bun
--   **ArtifactManager** - Manages build artifacts and cleanup
--   **TestReporter** - Formats and displays test results
-
-### Project Structure
-
-```
-src/
-├── index.ts              # Main entry point and CLI
-├── types.ts              # TypeScript type definitions
-├── config.ts             # Configuration management
-├── discovery.ts          # Test file discovery
-├── runner.ts             # Test execution orchestration
-├── reporter.ts           # Result reporting and formatting
-├── cli.ts                # Command-line interface
-├── artifacts.ts          # Artifact management
-└── handlers/             # Language-specific handlers
-    ├── base.ts           # Abstract base handler
-    ├── shell.ts          # Shell script handler
-    ├── c.ts              # C program handler
-    ├── javascript.ts     # JavaScript handler
-    ├── typescript.ts     # TypeScript handler
-    └── index.ts          # Handler factory
-```
 
 ## 🧪 Development
 
@@ -628,67 +538,31 @@ bun --hot src/index.ts
 -   ESLint and Prettier configured
 -   Comprehensive JSDoc comments
 
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Make your changes following the coding standards
-4. Add tests for new functionality
-5. Commit your changes (`git commit -m 'Add amazing feature'`)
-6. Push to the branch (`git push origin feature/amazing-feature`)
-7. Open a Pull Request
-
-### Development Guidelines
-
--   Follow TypeScript best practices
--   Maintain test coverage
--   Update documentation for new features
--   Use descriptive commit messages
--   Ensure cross-platform compatibility
-
-## 📄 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 🔗 Links
-
--   [Bun Documentation](https://bun.sh/docs)
--   [TypeScript Handbook](https://www.typescriptlang.org/docs/)
--   [Issue Tracker](https://github.com/your-org/testme/issues)
 
 ## 💡 Tips and Best Practices
 
 ### Writing Effective Tests
 
-1. **Use descriptive names**: `user_authentication.tst.ts` vs `test1.tst.ts`
+1. **Use descriptive names**: `user_authentication.tst.ts` not `test1.tst.ts`
 2. **Keep tests focused**: One concept per test file
-3. **Use appropriate assertions**: Exit with code 0 for success, non-zero for failure
-4. **Include setup/cleanup**: Initialize test data, clean up afterward
-5. **Document test purpose**: Add comments explaining what each test validates
+3. **Exit with proper codes**: 0 for success, non-zero for failure
+4. **Document test purpose**: Add comments explaining what's being validated
 
 ### Performance Optimization
 
--   Use parallel execution for independent tests
--   Keep C compilation flags optimized but informative
--   Consider test ordering (quick tests first)
--   Clean artifacts regularly to save disk space
+-   Use parallel execution for independent tests (default behavior)
+-   Adjust worker count based on system resources: `tm -w 8`
+-   Clean artifacts regularly: `tm --clean`
 
 ### Troubleshooting
 
-**Tests not discovered?**
+| Problem | Solution |
+|---------|----------|
+| **Tests not discovered** | Check file extensions (`.tst.sh`, `.tst.c`, `.tst.js`, `.tst.ts`, `.tst.es`)<br>Use `--list` to see what's found<br>Check `enable: false` in config<br>Verify depth requirements |
+| **C compilation failing** | Check GCC/Clang is in PATH<br>Review `.testme/compile.log`<br>Use `-s` to see compile commands |
+| **Permission errors** | Make shell scripts executable: `chmod +x *.tst.sh`<br>Check directory permissions |
+| **Tests skipped** | Check skip script exit code<br>Verify `--depth` is sufficient<br>Run with `-v` for details |
 
--   Check file extensions match `.tst.sh`, `.tst.c`, `.tst.js`, `.tst.ts`
--   Verify files aren't in excluded directories
--   Use `--list` to see what tm finds
+---
 
-**C compilation failing?**
-
--   Ensure GCC or Clang is installed and in PATH
--   Check compiler flags in configuration
--   Review compilation logs in `.testme/compile.log`
-
-**Permission errors?**
-
--   Make sure shell scripts are executable (`chmod +x`)
--   Check directory permissions
--   Verify artifact directories can be created
+For detailed documentation, see `man tm` or the [Design Documentation](doc/DESIGN.md).

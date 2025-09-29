@@ -2,7 +2,7 @@
 
 ## Overview
 
-TestMe is a multi-language test runner built with Bun that discovers, compiles, and executes tests across shell, C, JavaScript, and TypeScript with configurable patterns and parallel execution. It provides a simple, consistent interface for running tests in embedded development environments.
+TestMe is a multi-language test runner built with Bun that discovers, compiles, and executes tests across shell, C, JavaScript, TypeScript, and Ejscript with configurable patterns and parallel execution. It provides a simple, consistent interface for running tests in embedded development environments.
 
 ## Architecture
 
@@ -53,7 +53,7 @@ TestMe is a multi-language test runner built with Bun that discovers, compiles, 
 
 ### Strategy Pattern - Test Handlers
 
-Each test type (Shell, C, JS, TS) implements the `TestHandler` interface:
+Each test type (Shell, C, JS, TS, ES) implements the `TestHandler` interface:
 
 ```typescript
 interface TestHandler {
@@ -250,6 +250,7 @@ const handler = this.createFreshHandler(testFile);
 | `handlers/shell.ts` | Shell script execution | Shebang detection, executable permissions |
 | `handlers/javascript.ts` | JavaScript test execution | Bun runtime execution |
 | `handlers/typescript.ts` | TypeScript test execution | Direct Bun TypeScript execution |
+| `handlers/ejscript.ts` | Ejscript test execution | Ejs runtime with module preloading |
 
 ### Utility Modules
 
@@ -264,7 +265,7 @@ const handler = this.createFreshHandler(testFile);
 ### Test Discovery Process
 
 1. **Recursive Directory Walking**: Starting from root, traverse all subdirectories
-2. **Extension Matching**: Files ending in `.tst.sh`, `.tst.c`, `.tst.js`, `.tst.ts`
+2. **Extension Matching**: Files ending in `.tst.sh`, `.tst.c`, `.tst.js`, `.tst.ts`, `.tst.es`
 3. **Pattern Filtering**: Apply include/exclude glob patterns
 4. **TestFile Creation**: Generate metadata including artifact directories
 
@@ -347,11 +348,15 @@ project/
 ```typescript
 type TestConfig = {
     enable?: boolean;            // Enable or disable tests in this directory
+    depth?: number;              // Minimum depth required to run tests (default: 0)
     compiler?: {
         c?: {
             compiler: string;    // 'gcc' or 'clang'
             flags: string[];     // Compilation flags
             libraries: string[]; // Libraries to link
+        },
+        es?: {
+            require?: string | string[];  // Modules to preload with --require
         }
     };
     execution?: {
@@ -369,11 +374,18 @@ type TestConfig = {
         exclude: string[];       // Exclude glob patterns
     };
     services?: {
-        setup: string;           // Setup command
-        cleanup: string;         // Cleanup command
-        setupTimeout: number;    // Setup timeout (ms)
-        cleanupTimeout: number;  // Cleanup timeout (ms)
-        delay: number;           // Delay after setup before running tests (ms)
+        skip?: string;           // Script to check if tests should run (0=run, non-zero=skip)
+        prep?: string;           // Prep command
+        setup?: string;          // Setup command
+        cleanup?: string;        // Cleanup command
+        skipTimeout?: number;    // Skip timeout (ms)
+        prepTimeout?: number;    // Prep timeout (ms)
+        setupTimeout?: number;   // Setup timeout (ms)
+        cleanupTimeout?: number; // Cleanup timeout (ms)
+        delay?: number;          // Delay after setup before running tests (ms)
+    };
+    env?: {
+        [key: string]: string;   // Environment variables with ${...} expansion
     };
 }
 ```
@@ -381,6 +393,55 @@ type TestConfig = {
 ## Directory-Level Test Control
 
 TestMe provides configuration options to control test execution at the directory level:
+
+### Skip Script
+
+The `services.skip` field allows conditional test execution based on runtime checks:
+
+```json5
+{
+    services: {
+        skip: "./check-requirements.sh",  // Script to determine if tests should run
+        skipTimeout: 30000
+    }
+}
+```
+
+**Behavior:**
+- **Exit code 0**: Tests are enabled and will run
+- **Non-zero exit code**: Tests are skipped
+- **Message output**: stdout or stderr from skip script is displayed in verbose mode
+- **Execution order**: Runs before prep and setup scripts
+- **Per-directory**: Each configuration group can have its own skip logic
+
+**Use Cases:**
+- Check for required dependencies or tools
+- Verify hardware availability (specific devices, sensors)
+- Check environment conditions (network connectivity, service availability)
+- Platform-specific test gating
+- License or feature flag checking
+
+### Test Depth Requirements
+
+The `depth` field allows tests to require a minimum depth level to run:
+
+```json5
+{
+    depth: 2  // Requires --depth 2 or higher to run these tests
+}
+```
+
+**Behavior:**
+- **Default**: Tests require depth 0 (run by default)
+- **CLI override**: Use `--depth N` to set current depth level
+- **Comparison**: Tests only run if `--depth N` >= config `depth`
+- **Use cases**: Mark integration tests, resource-intensive tests, or optional test suites
+
+**Use Cases:**
+- Integration tests that should only run in CI
+- Performance tests requiring special environment
+- Long-running test suites
+- Tests requiring external services or hardware
 
 ### Test Enable/Disable
 
@@ -423,7 +484,7 @@ The `services.delay` field provides time for setup services to initialize:
 - **Default**: No delay (`delay: 0`)
 - **Timing**: Delay applied after setup service starts successfully
 - **Verbose output**: Shows "⏳ Waiting {delay}ms for setup service to initialize..."
-- **Service lifecycle**: Setup → Verify running → Delay → Tests → Cleanup
+- **Service lifecycle**: Skip → Prep → Setup → Verify running → Delay → Tests → Cleanup
 
 **Use Cases:**
 - Database startup and connection establishment

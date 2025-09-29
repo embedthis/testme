@@ -2,31 +2,38 @@
     // Enable or disable tests in this directory
     enable: true, // Set to false to disable all tests in this directory
 
+    // Minimum depth required to run tests in this directory (default: 0)
+    // Use tm --depth N to run tests with depth <= N
+    depth: 0,
+
     // Compiler configuration for different languages
     compiler: {
         c: {
-            compiler: "gcc",
+            compiler: 'gcc',
             flags: [
-                "-std=c99",
-                "-Wall",
-                "-Wextra",
-                "-Wno-unused-parameter",
-                "-Wno-strict-prototypes",
-                "-I.",
-                "-I${../build/*/inc}",
-                "-L${../build/*/bin}",
-                "-I/usr/local/include",
-                "-std=c99",
-                "-Wl,-rpath,@executable_path/${../../build/*/bin}",
-                "-Wl,-rpath,@loader_path/${../../build/*/bin}",
-                "-O0",
-                "-g",
+                '-std=c99',
+                '-Wall',
+                '-Wextra',
+                '-Wno-unused-parameter',
+                '-Wno-strict-prototypes',
+                '-I.',
+                '-I${../build/*/inc}',
+                '-L${../build/*/bin}',
+                '-I/usr/local/include',
+                '-std=c99',
+                '-Wl,-rpath,@executable_path/${../../build/*/bin}',
+                '-Wl,-rpath,@loader_path/${../../build/*/bin}',
+                '-O0',
+                '-g',
             ],
             libraries: [
-                "m",
-                "pthread",
+                'm',
+                'pthread',
                 // '${../build/*/lib*.a}'
             ],
+        },
+        es: {
+            require: 'testme',
         },
     },
 
@@ -40,21 +47,23 @@
     // Output formatting options
     output: {
         verbose: false, // Show detailed output
-        format: "simple", // Output format: simple, detailed, json
+        format: 'simple', // Output format: simple, detailed, json
         colors: true, // Enable colored output
     },
 
     // File discovery patterns
     patterns: {
-        include: ["**/*.tst.sh", "**/*.tst.c", "**/*.tst.js", "**/*.tst.ts"],
-        exclude: ["**/node_modules/**", "**/.testme/**", "**/.*/**"],
+        include: ['**/*.tst.sh', '**/*.tst.c', '**/*.tst.js', '**/*.tst.ts', '**/*.tst.es'],
+        exclude: ['**/node_modules/**', '**/.testme/**', '**/.*/**'],
     },
 
     // Service management for test setup/teardown
     services: {
-        prep: "",
-        setup: "",
-        cleanup: "",
+        skip: '', // Script to check if tests should be skipped (0=run, non-zero=skip)
+        prep: '',
+        setup: '',
+        cleanup: '',
+        skipTimeout: 30000, // Skip script timeout in milliseconds
         prepTimeout: 30000, // Prep timeout in milliseconds
         setupTimeout: 30000, // Setup timeout in milliseconds
         cleanupTimeout: 10000, // Cleanup timeout in milliseconds
@@ -64,5 +73,6 @@
     // Environment variables to set for test execution
     env: {
         BIN: '${../build/*/bin}',
+        HTTP: 'http://localhost:4100',
     },
 }

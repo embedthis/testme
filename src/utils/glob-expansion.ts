@@ -58,6 +58,10 @@ export class GlobExpansion {
      @returns Promise resolving to the first expanded string
      */
     static async expandSingle(input: string, baseDir: string = process.cwd()): Promise<string> {
+        // If no ${...} pattern, return input as-is without expansion
+        if (!input.includes('${')) {
+            return input;
+        }
         const expanded = await this.expandString(input, baseDir);
         return expanded[0] || input;
     }

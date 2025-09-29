@@ -2,7 +2,7 @@ import { TestFile, TestResult, TestConfig, TestStatus, TestHandler, TestSuite, D
 import { TestDiscovery } from './discovery.ts';
 import { ArtifactManager } from './artifacts.ts';
 import { TestReporter } from './reporter.ts';
-import { createHandlers, ShellTestHandler, CTestHandler, JavaScriptTestHandler, TypeScriptTestHandler } from './handlers/index.ts';
+import { createHandlers, ShellTestHandler, CTestHandler, JavaScriptTestHandler, TypeScriptTestHandler, EjscriptTestHandler } from './handlers/index.ts';
 import { ConfigManager } from './config.ts';
 
 /*
@@ -202,6 +202,8 @@ export class TestRunner {
         return new JavaScriptTestHandler();
       case TestType.TypeScript:
         return new TypeScriptTestHandler();
+      case TestType.Ejscript:
+        return new EjscriptTestHandler();
       default:
         return undefined;
     }

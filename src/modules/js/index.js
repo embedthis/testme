@@ -1,6 +1,6 @@
 /**
- * testme - Testing utilities for JavaScript and TypeScript tests
- * Provides assertion functions, environment variable access, and test utilities
+    testme - Testing utilities for JavaScript and TypeScript tests
+    Provides assertion functions, environment variable access, and test utilities
  */
 
 let exitCode = 0;
@@ -43,10 +43,10 @@ export function getStack() {
 function treport(success, stack, message, received, expected) {
     let loc = `${stack.filename}:${stack.line}`;
     if (!message) {
-        message = `Test ${success ? "passed" : "failed"} at ${loc}`;
+        message = `Test ${success ? "passed" : "failed"}`;
     }
     if (success) {
-        console.log(`✓ ${message}`);
+        console.log(`✓ ${message} at ${loc}`);
     } else {
         if (expected === undefined && received === undefined) {
             console.error(`✗ ${message} at ${loc}`);
@@ -93,7 +93,6 @@ function tmatch(string, pattern, message = "") {
 }
 
 function tcontains(string, pattern, message = "") {
-    console.log(`STRING <${string}> PATTERN <${pattern}>`);
     treport(string.includes(pattern), getStack(), message, string, pattern);
 }
 

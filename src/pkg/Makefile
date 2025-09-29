@@ -1,7 +1,0 @@
-#
-#
-#
-all: 
-
-install:
-	bun link

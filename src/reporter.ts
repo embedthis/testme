@@ -138,7 +138,7 @@ export class TestReporter {
     const relativePath = this.getRelativePath(result.file.path);
 
     console.log(`\n${typeIcon}  ${relativePath}`);
-    console.log(`   Path:     ${result.file.path}`);
+    console.log(`   Path:     ${relativePath}`);
     console.log(`   Status:   ${status}`);
     console.log(`   Duration: ${duration}`);
 
@@ -148,12 +148,14 @@ export class TestReporter {
 
     if (result.output) {
       console.log('   Output:');
-      this.printIndented(result.output, '     ');
+      const convertedOutput = this.convertPathsToRelative(result.output);
+      this.printIndented(convertedOutput, '     ');
     }
 
     if (result.error) {
       console.log('   Error:');
-      this.printIndented(result.error, '     ');
+      const convertedError = this.convertPathsToRelative(result.error);
+      this.printIndented(convertedError, '     ');
     }
   }
 
@@ -203,6 +205,8 @@ export class TestReporter {
         return '🟨';
       case 'typescript':
         return '🔷';
+      case 'ejscript':
+        return '⚡';
       default:
         return '📄';
     }
@@ -280,6 +284,23 @@ export class TestReporter {
     }
 
     return relativePath;
+  }
+
+  /*
+   Converts absolute paths in text to relative paths
+   @param text Text containing potential absolute paths
+   @returns Text with absolute paths converted to relative paths
+   */
+  private convertPathsToRelative(text: string): string {
+    // Match absolute paths (starting with / on Unix or drive letter on Windows)
+    // Negative lookbehind to avoid matching URLs like http://
+    const pathRegex = /(?:^|[\s,(])(?<!\w:)(\/[^\s:,)]+)/g;
+
+    return text.replace(pathRegex, (match, path) => {
+      const prefix = match.substring(0, match.length - path.length);
+      const relativePath = this.getRelativePath(path);
+      return prefix + relativePath;
+    });
   }
 
 }

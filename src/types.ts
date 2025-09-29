@@ -27,6 +27,7 @@ export type TestResult = {
  */
 export type TestConfig = {
   enable?: boolean; // Enable or disable tests in this directory
+  depth?: number; // Minimum depth required to run tests in this directory (default: 0)
   compiler?: CompilerConfig;
   execution?: ExecutionConfig;
   output?: OutputConfig;
@@ -45,6 +46,9 @@ export type CompilerConfig = {
     flags: string[];
     target?: string;
     libraries?: string[];
+  };
+  es?: {
+    require?: string | string[];
   };
 }
 
@@ -85,9 +89,11 @@ export type PatternConfig = {
  Configuration for test setup and cleanup services
  */
 export type ServiceConfig = {
+  skip?: string;
   prep?: string;
   setup?: string;
   cleanup?: string;
+  skipTimeout?: number;
   prepTimeout?: number;
   setupTimeout?: number;
   cleanupTimeout?: number;
@@ -138,7 +144,8 @@ export enum TestType {
   Shell = 'shell',
   C = 'c',
   JavaScript = 'javascript',
-  TypeScript = 'typescript'
+  TypeScript = 'typescript',
+  Ejscript = 'ejscript'
 }
 
 /*

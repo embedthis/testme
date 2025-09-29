@@ -1,6 +1,8 @@
 _.log
 .*.bun-build
 .cache
+.claude
+.cursor
 .DS_Store
 .env
 .env.development.local
@@ -9,6 +11,7 @@ _.log
 .env.test.local
 .eslintcache
 .idea
+.testme
 *.lcov
 *.tgz
 *.tsbuildinfo
@@ -20,5 +23,3 @@ node_modules
 out
 report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 tm
-.claude
-.cursor

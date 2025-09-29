@@ -6,9 +6,9 @@ tm \- Multi-language test runner for embedded development
 [\fIOPTIONS\fR] [\fIPATTERNS\fR...]
 .SH DESCRIPTION
 .B tm
-is a multi-language test runner built with Bun that discovers, compiles, and executes tests across shell, C, JavaScript, and TypeScript with configurable patterns and parallel execution. It is designed for embedded development environments and provides a simple, consistent interface for running tests.
+is a multi-language test runner built with Bun that discovers, compiles, and executes tests across shell, C, JavaScript, TypeScript, and Ejscript with configurable patterns and parallel execution. It is designed for embedded development environments and provides a simple, consistent interface for running tests.
 
-TestMe discovers test files with specific extensions (\fB.tst.sh\fR, \fB.tst.c\fR, \fB.tst.js\fR, \fB.tst.ts\fR) and executes them according to their type. C tests are automatically compiled before execution, while script tests are run directly.
+TestMe discovers test files with specific extensions (\fB.tst.sh\fR, \fB.tst.c\fR, \fB.tst.js\fR, \fB.tst.ts\fR, \fB.tst.es\fR) and executes them according to their type. C tests are automatically compiled before execution, while script tests are run directly.
 
 By default, TestMe shows test names as they execute and displays a summary of results. Use \fB\-\-quiet\fR for silent operation with only exit codes, or \fB\-\-verbose\fR for detailed output with additional information.
 
@@ -27,7 +27,7 @@ Use specific configuration file instead of searching for testme.json5.
 Launch debugger for C tests. Uses GDB on Linux and Xcode on macOS.
 .TP
 .BR \-\-depth " " \fINUMBER\fR
-Set TESTME_DEPTH environment variable for tests. Used by test frameworks for nested execution control.
+Run tests with depth requirement <= NUMBER (default: 0). Tests with higher depth requirements in their configuration will be skipped. Sets TESTME_DEPTH environment variable for tests.
 .TP
 .BR \-h ", " \-\-help
 Show help message with usage information and examples.
@@ -66,13 +66,16 @@ Test patterns are glob-style expressions used to filter which tests to run:
 .B Base names
 "math", "test*" - Match base names across all test types (math.tst.c, math.tst.js, etc.)
 .TP
+.B Directory names
+"integration", "unit/api" - Match all tests in the specified directory or subdirectory
+.TP
 .B Path patterns
 "**/math*", "tests/*.tst.c" - Match files in subdirectories or specific paths
 
 If no patterns are provided, all discoverable tests are run.
 
 .SH TEST TYPES
-TestMe supports four types of test files:
+TestMe supports five types of test files:
 
 .TP
 .B .tst.sh
@@ -86,6 +89,9 @@ JavaScript tests. Executed directly with the Bun runtime.
 .TP
 .B .tst.ts
 TypeScript tests. Executed directly with Bun's TypeScript support.
+.TP
+.B .tst.es
+Ejscript tests. Executed with the ejs runtime. Can use \fBrequire\fR configuration to preload modules.
 
 .SH TESTING UTILITIES
 TestMe provides built-in testing helper functions for C, JavaScript, and TypeScript tests.
@@ -227,7 +233,7 @@ project/
 Configuration files support:
 
 .SS Compiler Settings
-Configure C compilation with custom compilers, flags, and libraries:
+Configure C compilation with custom compilers, flags, and libraries, and Ejscript module requirements:
 .nf
 {
     compiler: {
@@ -235,6 +241,9 @@ Configure C compilation with custom compilers, flags, and libraries:
             compiler: "gcc",
             flags: ["-std=c99", "-Wall", "-Wextra"],
             libraries: ["m", "pthread", "mylib"]
+        },
+        es: {
+            require: "testme"  // Modules to preload with --require
         }
     }
 }
@@ -276,23 +285,28 @@ Configure test discovery:
 .fi
 
 .SS Test Control Settings
-Configure whether tests are enabled and setup delays:
+Configure whether tests are enabled, minimum depth requirements, and setup delays:
 .nf
 {
     enable: true,              // Enable or disable tests in this directory
+    depth: 0,                  // Minimum depth required to run tests (default: 0)
 }
 .fi
 
 Set \fBenable: false\fR to disable all tests in a directory. Disabled directories are skipped during execution and excluded from \fB\-\-list\fR output. In verbose mode, disabled directories show a "🚫 Tests disabled" message.
 
+Set \fBdepth: N\fR to require \fB\-\-depth N\fR or higher to run tests in this directory. This is useful for marking integration or resource-intensive tests that should only run when explicitly requested. Tests with higher depth requirements than the current \fB\-\-depth\fR value are skipped.
+
 .SS Service Settings
-Configure prep, setup and cleanup commands:
+Configure skip, prep, setup and cleanup commands:
 .nf
 {
     services: {
+        skip: "check-requirements",  // Check if tests should run (0=run, non-zero=skip)
         prep: "make build",
         setup: "docker-compose up -d",
         cleanup: "docker-compose down",
+        skipTimeout: 30000,
         prepTimeout: 30000,
         setupTimeout: 30000,
         cleanupTimeout: 10000,
@@ -300,6 +314,8 @@ Configure prep, setup and cleanup commands:
     }
 }
 .fi
+
+The skip command runs first to determine if tests should be executed. Exit code 0 enables tests, non-zero skips them. The skip script can output a message (stdout or stderr) explaining why tests are skipped, displayed in verbose mode.
 
 The prep command runs once before all tests begin and waits for completion. The setup command starts a background service that runs during test execution. The \fBdelay\fR field specifies milliseconds to wait after the setup service starts before beginning test execution, allowing time for service initialization. The cleanup command runs after all tests complete to clean up resources.
 
@@ -466,7 +482,7 @@ Configuration file searched from current directory upward.
 .B .testme/
 Artifact directories created alongside test files for build outputs.
 .TP
-.B *.tst.sh, *.tst.c, *.tst.js, *.tst.ts
+.B *.tst.sh, *.tst.c, *.tst.js, *.tst.ts, *.tst.es
 Test files with recognized extensions.
 .TP
 .B testme.h
