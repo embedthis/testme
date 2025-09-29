@@ -15,8 +15,9 @@ test:
 install:
 	sudo cp tm /usr/local/bin/tm
 	sudo cp test/testme.h /usr/local/include/testme.h
-	sudo cp test/testme.js /usr/local/include/testme.js
+	sudo cp src/pkg/index.js /usr/local/include/testme.js
 	sudo cp doc/tm.1 /usr/local/share/man/man1
+	make -C src/pkg install
 
 tidy:
 	rm -f .*.bun-build

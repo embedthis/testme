@@ -59,13 +59,21 @@ class TestMeApp {
 
         // Execute each configuration group
         for (const [configDir, tests] of testGroups) {
-            console.log(`\n🧪 Running ${tests.length} test(s) in: ${relative(rootDir, configDir) || '.'}`);
-
             // Get configuration for this group
             const groupConfig = await ConfigManager.findConfig(configDir);
 
             // Apply CLI overrides to group config
             const mergedConfig = this.applyCliOverrides(groupConfig, options);
+
+            // Check if tests are disabled for this directory
+            if (mergedConfig.enable === false) {
+                if (mergedConfig.output?.verbose) {
+                    console.log(`\n🚫 Tests disabled in: ${relative(rootDir, configDir) || '.'}`);
+                }
+                continue;
+            }
+
+            console.log(`\n🧪 Running ${tests.length} test(s) in: ${relative(rootDir, configDir) || '.'}`);
 
             try {
                 // Run services for this configuration group

@@ -10,7 +10,8 @@ TestMe is a powerful, multi-language test runner built with Bun that can discove
 -   **Pattern Matching**: Filter tests using glob patterns
 -   **Parallel Execution**: Run tests concurrently for better performance
 -   **Artifact Management**: Organized build artifacts in `.testme` directories
--   **Hierarchical Configuration**: `testme.json` files with tree traversal lookup
+-   **Hierarchical Configuration**: `testme.json5` files with tree traversal lookup
+-   **Environment Variables**: Dynamic environment setup with glob expansion support
 -   **Multiple Output Formats**: Simple, detailed, and JSON reporting
 -   **Cross-platform**: Works on Windows, macOS, and Linux
 
@@ -113,53 +114,105 @@ fi
 
 ### C Tests (`.tst.c`)
 
-C programs that are compiled automatically before execution. Use assertions or exit codes to indicate test results.
+C programs that are compiled automatically before execution. Include `testme.h` for built-in testing utilities, or use standard assertions and exit codes.
 
 ```c
 // test_math.tst.c
-#include <stdio.h>
-#include <assert.h>
+#include "testme.h"
 
 int add(int a, int b) {
     return a + b;
 }
 
 int main() {
-    printf("Running C math tests...\\n");
+    tinfo("Running C math tests...\n");
 
-    assert(add(2, 3) == 5);
-    printf("✓ Addition test passed\\n");
+    // Test basic arithmetic
+    teq(add(2, 3), 5, "Addition test");
+    tneq(add(2, 3), 6, "Addition inequality test");
+    ttrue(add(5, 0) == 5, "Identity test");
+
+    // Test environment variable access
+    const char *binPath = tget("BIN", "/default/bin");
+    ttrue(binPath != NULL, "BIN environment variable available");
+
+    // Check if running in verbose mode
+    if (thas("TESTME_VERBOSE")) {
+        tinfo("Verbose mode enabled\n");
+    }
 
     return 0;
 }
 ```
 
+#### C Testing Functions (testme.h)
+
+- `teq(a, b, msg)` - Assert two values are equal
+- `tneq(a, b, msg)` - Assert two values are not equal
+- `ttrue(expr, msg)` - Assert expression is true
+- `tfalse(expr, msg)` - Assert expression is false
+- `tmatch(str, pattern, msg)` - Assert string matches pattern
+- `tcontains(str, substr, msg)` - Assert string contains substring
+- `tfail(msg)` - Fail test with message
+- `tget(key, default)` - Get environment variable with default
+- `tgeti(key, default)` - Get environment variable as integer
+- `thas(key)` - Check if environment variable exists
+- `tdepth()` - Get current test depth
+- `tinfo(...)`, `tdebug(...)` - Print informational messages
+
 ### JavaScript Tests (`.tst.js`)
 
-JavaScript tests executed with Bun runtime.
+JavaScript tests executed with Bun runtime. Import `testme.js` for built-in testing utilities, or use standard assertions.
 
 ```javascript
 // test_array.tst.js
-console.log("Running JavaScript tests...");
+import { teq, tneq, ttrue, tinfo, tget, thas } from "./testme.js";
+
+tinfo("Running JavaScript tests...");
 
 const arr = [1, 2, 3];
 const sum = arr.reduce((a, b) => a + b, 0);
 
-if (sum === 6) {
-    console.log("✓ Array sum test passed");
-} else {
-    console.error("✗ Array sum test failed");
-    process.exit(1);
+// Test using testme utilities
+teq(sum, 6, "Array sum test");
+tneq(sum, 0, "Array sum is not zero");
+ttrue(arr.length === 3, "Array has correct length");
+
+// Test environment variable access
+const binPath = tget("BIN", "/default/bin");
+ttrue(binPath !== null, "BIN environment variable available");
+
+// Check if running in verbose mode
+if (thas("TESTME_VERBOSE")) {
+    tinfo("Verbose mode enabled");
 }
 ```
 
+#### JavaScript Testing Functions (testme.js)
+
+- `teq(received, expected, msg)` - Assert two values are equal
+- `tneq(received, expected, msg)` - Assert two values are not equal
+- `ttrue(expr, msg)` - Assert expression is true
+- `tfalse(expr, msg)` - Assert expression is false
+- `tmatch(str, pattern, msg)` - Assert string matches regex pattern
+- `tcontains(str, substr, msg)` - Assert string contains substring
+- `tfail(msg)` - Fail test with message
+- `tget(key, default)` - Get environment variable with default
+- `thas(key)` - Check if environment variable exists (as number)
+- `tdepth()` - Get current test depth
+- `tverbose()` - Check if verbose mode is enabled
+- `tinfo(...)`, `tdebug(...)` - Print informational messages
+- `tassert(expr, msg)` - Alias for `ttrue`
+
 ### TypeScript Tests (`.tst.ts`)
 
-TypeScript tests executed with Bun runtime (includes automatic transpilation).
+TypeScript tests executed with Bun runtime (includes automatic transpilation). Import `testme.js` for built-in testing utilities.
 
 ```typescript
 // test_types.tst.ts
-console.log("Running TypeScript tests...");
+import { teq, ttrue, tinfo, tget } from "./testme.js";
+
+tinfo("Running TypeScript tests...");
 
 interface User {
     name: string;
@@ -168,12 +221,76 @@ interface User {
 
 const user: User = { name: "John", age: 30 };
 
-if (user.name === "John" && user.age === 30) {
-    console.log("✓ TypeScript interface test passed");
-} else {
-    console.error("✗ TypeScript interface test failed");
-    process.exit(1);
+// Test using testme utilities with TypeScript types
+teq(user.name, "John", "User name test");
+teq(user.age, 30, "User age test");
+ttrue(typeof user.name === "string", "Name is string type");
+ttrue(typeof user.age === "number", "Age is number type");
+
+// Test environment variable access with types
+const binPath: string | null = tget("BIN", "/default/bin");
+ttrue(binPath !== null, "BIN environment variable available");
+```
+
+**Note**: TypeScript tests use the same testing functions as JavaScript tests since both run on the Bun runtime with full TypeScript support.
+
+### Using Environment Variables in Tests
+
+Environment variables defined in `testme.json5` are automatically available to all tests:
+
+**Configuration (`testme.json5`):**
+```json
+{
+    "env": {
+        "BIN": "${../build/macosx-arm64-debug/bin}",
+        "TEST_DATA": "${./test-data}"
+    }
 }
+```
+
+**C Test with Environment Variables:**
+```c
+// test_integration.tst.c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+int main() {
+    const char* bin_path = getenv("BIN");
+    const char* test_data = getenv("TEST_DATA");
+
+    if (bin_path && test_data) {
+        printf("BIN directory: %s\n", bin_path);
+        printf("Test data: %s\n", test_data);
+        printf("✓ Environment variables available\n");
+        return 0;
+    } else {
+        printf("✗ Environment variables not set\n");
+        return 1;
+    }
+}
+```
+
+**Shell Test with Environment Variables:**
+```bash
+#!/bin/bash
+# test_paths.tst.sh
+
+echo "Checking environment variables..."
+
+if [ -d "$BIN" ]; then
+    echo "✓ BIN directory exists: $BIN"
+else
+    echo "✗ BIN directory not found: $BIN"
+    exit 1
+fi
+
+if [ -d "$TEST_DATA" ]; then
+    echo "✓ Test data directory exists: $TEST_DATA"
+else
+    echo "✗ Test data directory not found: $TEST_DATA"
+    exit 1
+fi
 ```
 
 ## 🎯 Usage
@@ -289,6 +406,11 @@ This enables:
         "prepTimeout": 30000,
         "setupTimeout": 30000,
         "cleanupTimeout": 10000
+    },
+    "env": {
+        "BIN": "${../build/*/bin}",
+        "LIB_PATH": "${../lib}",
+        "TEST_DATA": "${./test-data/*.json}"
     }
 }
 ```
@@ -325,6 +447,30 @@ This enables:
 -   `services.prepTimeout` - Prep command timeout in milliseconds (default: 30000)
 -   `services.setupTimeout` - Setup command timeout in milliseconds (default: 30000)
 -   `services.cleanupTimeout` - Cleanup command timeout in milliseconds (default: 10000)
+
+#### Environment Variables
+
+-   `env` - Object defining environment variables to set during test execution
+-   Environment variable values support `${...}` expansion using glob patterns
+-   Paths are resolved relative to the configuration file's directory
+-   Useful for providing dynamic paths to build artifacts, libraries, and test data
+
+**Examples:**
+```json
+{
+    "env": {
+        "BIN": "${../build/*/bin}",           // Expands to build directory path
+        "LIB_PATH": "${../lib}",              // Points to library directory
+        "TEST_DATA": "${./test-data/*.json}", // Expands to test data files
+        "API_URL": "http://localhost:8080"    // Static values work too
+    }
+}
+```
+
+Tests can access these variables using standard environment variable mechanisms:
+- C tests: `getenv("BIN")`
+- Shell tests: `$BIN` or `${BIN}`
+- JavaScript/TypeScript: `process.env.BIN`
 
 ## 📁 Artifact Management
 

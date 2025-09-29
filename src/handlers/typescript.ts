@@ -28,7 +28,7 @@ export class TypeScriptTestHandler extends BaseTestHandler {
             return await this.runCommand('bun', [file.path], {
                 cwd: file.directory,
                 timeout: config.execution?.timeout || 30000,
-                env: this.getTestEnvironment(config)
+                env: await this.getTestEnvironment(config)
             });
         });
 

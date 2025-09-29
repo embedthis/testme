@@ -1,0 +1,7 @@
+#
+#
+#
+all: 
+
+install:
+	bun link

@@ -346,6 +346,7 @@ project/
 **Configuration Structure:**
 ```typescript
 type TestConfig = {
+    enable?: boolean;            // Enable or disable tests in this directory
     compiler?: {
         c?: {
             compiler: string;    // 'gcc' or 'clang'
@@ -372,9 +373,69 @@ type TestConfig = {
         cleanup: string;         // Cleanup command
         setupTimeout: number;    // Setup timeout (ms)
         cleanupTimeout: number;  // Cleanup timeout (ms)
+        delay: number;           // Delay after setup before running tests (ms)
     };
 }
 ```
+
+## Directory-Level Test Control
+
+TestMe provides configuration options to control test execution at the directory level:
+
+### Test Enable/Disable
+
+The `enable` field allows tests to be disabled for specific directories:
+
+```json5
+{
+    enable: false  // Disables all tests in this directory
+}
+```
+
+**Behavior:**
+- **Default**: Tests are enabled (`enable: true`)
+- **Disabled directories**: Tests are skipped entirely during execution
+- **Verbose output**: Shows "🚫 Tests disabled in: <directory>" message when `--verbose` is used
+- **Silent operation**: No message shown in normal mode
+- **Discovery**: Disabled tests are filtered out from `--list` output
+
+**Use Cases:**
+- Temporarily disable flaky tests
+- Skip tests in development branches
+- Exclude tests that require specific hardware/environment
+- Selective testing during debugging
+
+### Service Initialization Delay
+
+The `services.delay` field provides time for setup services to initialize:
+
+```json5
+{
+    services: {
+        setup: './start-database.sh',
+        delay: 3000,  // Wait 3 seconds after setup before running tests
+        cleanup: './stop-database.sh'
+    }
+}
+```
+
+**Behavior:**
+- **Default**: No delay (`delay: 0`)
+- **Timing**: Delay applied after setup service starts successfully
+- **Verbose output**: Shows "⏳ Waiting {delay}ms for setup service to initialize..."
+- **Service lifecycle**: Setup → Verify running → Delay → Tests → Cleanup
+
+**Use Cases:**
+- Database startup and connection establishment
+- Web server initialization and port binding
+- Service mesh or container orchestration startup
+- Hardware initialization delays
+
+**Implementation Details:**
+- Delay occurs after the standard 1-second startup verification
+- Services that fail to start will not trigger the delay
+- Delay is per-configuration group, not global
+- Multiple directories can have different delay settings
 
 ## Error Handling Strategy
 

@@ -215,8 +215,41 @@ export class TestRunner {
       return;
     }
 
+    // Group tests by configuration directory and filter out disabled ones
+    const testGroups = new Map<string, TestFile[]>();
+    const enabledTests: TestFile[] = [];
+
+    for (const test of tests) {
+      // Find the nearest config directory for this test
+      const configResult = await ConfigManager.findConfigFile(test.directory);
+      const configDir = configResult.configDir || test.directory;
+
+      if (!testGroups.has(configDir)) {
+        testGroups.set(configDir, []);
+      }
+      testGroups.get(configDir)!.push(test);
+    }
+
+    // Check each configuration group for enable status
+    for (const [configDir, groupTests] of testGroups) {
+      const groupConfig = await ConfigManager.findConfig(configDir);
+
+      if (groupConfig.enable === false) {
+        if (config.output?.verbose) {
+          console.log(`🚫 Tests disabled in: ${configDir === options.rootDir ? '.' : configDir.replace(options.rootDir + '/', '')}`);
+        }
+      } else {
+        enabledTests.push(...groupTests);
+      }
+    }
+
+    if (!enabledTests.length) {
+      console.log('No enabled tests discovered');
+      return;
+    }
+
     // Create mock results for the reporter
-    const mockResults: TestResult[] = tests.map(test => ({
+    const mockResults: TestResult[] = enabledTests.map(test => ({
       file: test,
       status: TestStatus.Pending,
       duration: 0,

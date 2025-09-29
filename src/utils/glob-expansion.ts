@@ -52,6 +52,17 @@ export class GlobExpansion {
     }
 
     /*
+     Expands a single string and returns the first result (for environment variables)
+     @param input String potentially containing ${...} patterns
+     @param baseDir Base directory for relative path resolution
+     @returns Promise resolving to the first expanded string
+     */
+    static async expandSingle(input: string, baseDir: string = process.cwd()): Promise<string> {
+        const expanded = await this.expandString(input, baseDir);
+        return expanded[0] || input;
+    }
+
+    /*
      Extracts all ${...} patterns from a string
      @param input String to search for patterns
      @returns Array of extracted patterns (without ${} wrapper)

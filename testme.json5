@@ -1,4 +1,7 @@
 {
+    // Enable or disable tests in this directory
+    enable: true, // Set to false to disable all tests in this directory
+
     // Compiler configuration for different languages
     compiler: {
         c: {
@@ -49,9 +52,17 @@
 
     // Service management for test setup/teardown
     services: {
+        prep: "",
         setup: "",
         cleanup: "",
+        prepTimeout: 30000, // Prep timeout in milliseconds
         setupTimeout: 30000, // Setup timeout in milliseconds
         cleanupTimeout: 10000, // Cleanup timeout in milliseconds
+        delay: 0, // Delay in milliseconds after setup before running tests
+    },
+
+    // Environment variables to set for test execution
+    env: {
+        BIN: '${../build/*/bin}',
     },
 }

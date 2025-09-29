@@ -26,11 +26,13 @@ export type TestResult = {
  Main configuration for the test runner
  */
 export type TestConfig = {
+  enable?: boolean; // Enable or disable tests in this directory
   compiler?: CompilerConfig;
   execution?: ExecutionConfig;
   output?: OutputConfig;
   patterns?: PatternConfig;
   services?: ServiceConfig;
+  env?: EnvironmentConfig;
   configDir?: string; // Directory containing the config file
 }
 
@@ -89,6 +91,14 @@ export type ServiceConfig = {
   prepTimeout?: number;
   setupTimeout?: number;
   cleanupTimeout?: number;
+  delay?: number; // Delay in milliseconds after setup before running tests
+}
+
+/*
+ Configuration for environment variables to set during test execution
+ */
+export type EnvironmentConfig = {
+  [key: string]: string;
 }
 
 /*

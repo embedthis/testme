@@ -9,86 +9,92 @@ function tdepth() {
     return parseInt(tget("TESTME_DEPTH", "0"), 10);
 }
 
+function tget(key, def = null) {
+    let value = process.env[key];
+    if (value == null || value == "") {
+        value = def;
+    }
+    return value;
+}
+
+function thas(key) {
+    return tget(key) - 0;
+}
+
 function tverbose() {
     return Boolean(tget("TESTME_VERBOSE"));
 }
 
-function getStack() {
+export function getStack() {
     const error = new Error();
     const stack = error.stack?.split("\n") || [];
     // Skip this function and the calling test function to get the actual test line
     const caller = stack[3] || stack[2] || stack[1] || "unknown";
-    const match = caller.match(/at (?:.*\s+\()?([^:]+):(\d+):(\d+)\)?/);
+    const match = caller.match(/at (?:.*\s+\()?([^:w]+):(\d+)\)?/);
     if (match) {
         return {
             filename: match[1],
             line: match[2],
-            column: match[3],
         };
     }
-    return { filename: "unknown", line: "?", column: "?" };
+    return { filename: "unknown file", line: "unknown line" };
 }
 
-function ttrue(condition, message = "") {
-    if (condition) {
+function treport(success, stack, message, received, expected) {
+    let loc = `${stack.filename}:${stack.line}`;
+    if (!message) {
+        message = `Test ${success ? "passed" : "failed"} at ${loc}`;
+    }
+    if (success) {
         console.log(`✓ ${message}`);
     } else {
-        console.error(
-            `✗ ${message} at ${getStack().filename}:${getStack().line}`
-        );
+        if (expected === undefined && received === undefined) {
+            console.error(`✗ ${message} at ${loc}`);
+        } else {
+            console.error(
+                `✗ ${message} at ${loc}\nExpected: ${expected}\nReceived: ${received}`
+            );
+        }
         process.exit(1);
     }
+}
+
+function tassert(condition, message = "") {
+    treport(condition, getStack(), message);
+}
+function ttrue(condition, message = "") {
+    treport(condition, getStack(), message);
 }
 
 function tfalse(condition, message = "") {
-    ttrue(!condition, message);
+    treport(!condition, getStack(), message);
 }
 
 function tfail(message = "") {
-    console.error(`✗ ${message} at ${getStack().filename}:${getStack().line}`);
-    process.exit(1);
+    treport(false, getStack(), message);
 }
 
-// Assert that two values are equal
 function teq(received, expected, message = "") {
-    if (received === expected) {
-        console.log(`✓ ${message}`);
-    } else {
-        console.error(
-            `✗ ${message} at ${getStack().filename}:${getStack().line}` +
-                `\nExpected: ${expected}\nReceived: ${received}`
-        );
-        process.exit(1);
-    }
+    treport(received == expected, getStack(), message, received, expected);
 }
 
 function tneq(received, expected, message = "") {
-    ttrue(expected !== received, message);
+    treport(received != expected, getStack(), message, received, expected);
 }
 
 function tmatch(string, pattern, message = "") {
-    const regex = new RegExp(pattern);
-    if (regex.test(string)) {
-        console.log(`✓ ${message}`);
-    } else {
-        console.error(
-            `✗ ${message} at ${getStack().filename}:${getStack().line}` +
-                `\nPattern:  ${pattern}\nReceived: ${string}`
-        );
-        process.exit(1);
-    }
+    treport(
+        new RegExp(pattern).test(string),
+        getStack(),
+        message,
+        string,
+        pattern
+    );
 }
 
 function tcontains(string, pattern, message = "") {
-    if (string.includes(pattern)) {
-        console.log(`✓ ${message}`);
-    } else {
-        console.error(
-            `✗ ${message} at ${getStack().filename}:${getStack().line}` +
-                `\nPattern:  ${pattern}\nReceived: ${string}`
-        );
-        process.exit(1);
-    }
+    console.log(`STRING <${string}> PATTERN <${pattern}>`);
+    treport(string.includes(pattern), getStack(), message, string, pattern);
 }
 
 function tinfo(...args) {
@@ -129,12 +135,15 @@ process.on("unhandledRejection", (reason) => {
 
 // Export all functions for use in tests
 export {
+    tassert,
     tcontains,
     tdebug,
     tdepth,
     teq,
     tfalse,
     tfail,
+    tget,
+    thas,
     tinfo,
     tmatch,
     tneq,
@@ -146,12 +155,15 @@ export {
 
 // Default export with all functions
 export default {
+    tassert,
     tcontains,
     tdebug,
     tdepth,
     teq,
     tfalse,
     tfail,
+    tget,
+    thas,
     tinfo,
     tmatch,
     tneq,

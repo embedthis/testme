@@ -1,5 +1,6 @@
 import { TestConfig } from "./types.ts";
 import { relative } from "path";
+import { GlobExpansion } from "./utils/glob-expansion.ts";
 
 /*
  Manages setup and cleanup services for test execution
@@ -36,15 +37,12 @@ export class ServiceManager {
             // Parse command and arguments
             const [command, ...args] = this.parseCommand(prepCommand);
 
-            // Run prep in foreground with local PATH preference
+            // Run prep in foreground with proper environment
             const prepProcess = Bun.spawn([command, ...args], {
                 stdout: "pipe",
                 stderr: "pipe",
                 cwd: config.configDir, // Run in the directory containing testme.json5
-                env: {
-                    ...process.env,
-                    PATH: `.${process.platform === 'win32' ? ';' : ':'}${process.env.PATH}`
-                }
+                env: await this.getServiceEnvironment(config)
             });
 
             // Set up timeout
@@ -101,16 +99,13 @@ export class ServiceManager {
             // Parse command and arguments
             const [command, ...args] = this.parseCommand(setupCommand);
 
-            // Start the background process with local PATH preference
+            // Start the background process with proper environment
             this.setupProcess = Bun.spawn([command, ...args], {
                 stdout: "pipe",
                 stderr: "pipe",
                 stdin: "ignore",
                 cwd: config.configDir, // Run in the directory containing testme.json5
-                env: {
-                    ...process.env,
-                    PATH: `.${process.platform === 'win32' ? ';' : ':'}${process.env.PATH}`
-                }
+                env: await this.getServiceEnvironment(config)
             });
 
             this.isSetupRunning = true;
@@ -141,6 +136,19 @@ export class ServiceManager {
                 if (!timedOut) {
                     if (config.output?.verbose) {
                         console.log("✅ Setup service started successfully");
+                    }
+
+                    // Apply configured delay after setup starts
+                    const delay = config.services?.delay || 0;
+                    if (delay > 0) {
+                        if (config.output?.verbose) {
+                            console.log(`⏳ Waiting ${delay}ms for setup service to initialize...`);
+                        }
+                        await new Promise((resolve) => setTimeout(resolve, delay));
+
+                        if (config.output?.verbose) {
+                            console.log("✅ Setup initialization delay completed");
+                        }
                     }
 
                     // Set up cleanup on process exit
@@ -180,15 +188,12 @@ export class ServiceManager {
             // Parse command and arguments
             const [command, ...args] = this.parseCommand(cleanupCommand);
 
-            // Run cleanup in foreground with local PATH preference
+            // Run cleanup in foreground with proper environment
             const cleanupProcess = Bun.spawn([command, ...args], {
                 stdout: "pipe",
                 stderr: "pipe",
                 cwd: config.configDir, // Run in the directory containing testme.json5
-                env: {
-                    ...process.env,
-                    PATH: `.${process.platform === 'win32' ? ';' : ':'}${process.env.PATH}`
-                }
+                env: await this.getServiceEnvironment(config)
             });
 
             // Set up timeout
@@ -283,7 +288,15 @@ export class ServiceManager {
     private parseCommand(commandString: string): string[] {
         // Simple parsing - split on spaces (doesn't handle quoted arguments)
         // For more complex parsing, could use a proper shell parser
-        return commandString.trim().split(/\s+/);
+        const parts = commandString.trim().split(/\s+/);
+
+        // If the command doesn't contain path separators, prefix with ./ to ensure
+        // it's found in the current directory (Bun.spawn PATH resolution differs from shell)
+        if (parts.length > 0 && !parts[0].includes('/') && !parts[0].includes('\\')) {
+            parts[0] = `./${parts[0]}`;
+        }
+
+        return parts;
     }
 
     /*
@@ -341,5 +354,30 @@ export class ServiceManager {
      */
     private isQuietMode(config: TestConfig): boolean {
         return config.output?.quiet === true;
+    }
+
+    /*
+     Gets the environment variables for service execution including config env vars
+     @param config Configuration containing environment variables
+     @returns Environment object with expanded variables
+     */
+    private async getServiceEnvironment(config: TestConfig): Promise<Record<string, string>> {
+        const env = { ...process.env };
+
+        // Add local directory to PATH for service scripts
+        env.PATH = `.${process.platform === 'win32' ? ';' : ':'}${process.env.PATH}`;
+
+        // Add environment variables from configuration with expansion
+        if (config.env) {
+            const baseDir = config.configDir || process.cwd();
+
+            for (const [key, value] of Object.entries(config.env)) {
+                // Expand ${...} references in environment variable values
+                const expandedValue = await GlobExpansion.expandSingle(value, baseDir);
+                env[key] = expandedValue;
+            }
+        }
+
+        return env;
     }
 }

@@ -1,4 +1,5 @@
 import { TestFile, TestResult, TestConfig, TestStatus, TestHandler } from '../types.ts';
+import { GlobExpansion } from '../utils/glob-expansion.ts';
 
 /*
  Abstract base class for all test handlers
@@ -110,9 +111,9 @@ export abstract class BaseTestHandler implements TestHandler {
     /*
      Generates environment variables for test execution
      @param config Test configuration that may include verbose mode settings
-     @returns Environment variables object to pass to test processes
+     @returns Promise resolving to environment variables object to pass to test processes
      */
-    protected getTestEnvironment(config: TestConfig): Record<string, string> {
+    protected async getTestEnvironment(config: TestConfig): Promise<Record<string, string>> {
         const env: Record<string, string> = {};
 
         // Set TESTME_VERBOSE if verbose mode is enabled
@@ -123,6 +124,17 @@ export abstract class BaseTestHandler implements TestHandler {
         // Set TESTME_DEPTH if depth is specified
         if (config.execution?.depth !== undefined) {
             env.TESTME_DEPTH = config.execution.depth.toString();
+        }
+
+        // Add environment variables from configuration with expansion
+        if (config.env) {
+            const baseDir = config.configDir || process.cwd();
+
+            for (const [key, value] of Object.entries(config.env)) {
+                // Expand ${...} references in environment variable values
+                const expandedValue = await GlobExpansion.expandSingle(value, baseDir);
+                env[key] = expandedValue;
+            }
         }
 
         return env;

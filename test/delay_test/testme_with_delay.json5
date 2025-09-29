@@ -1,0 +1,10 @@
+{
+    services: {
+        setup: './mock_service.sh',
+        cleanup: './cleanup.sh',
+        delay: 2000  // 2 second delay after setup starts
+    },
+    output: {
+        verbose: true
+    }
+}

@@ -68,7 +68,7 @@ export class CTestHandler extends BaseTestHandler {
             return await this.runCommand(binaryPath, [], {
                 cwd: file.directory, // Always run test with CWD set to test directory
                 timeout: config.execution?.timeout || 30000,
-                env: this.getTestEnvironment(config)
+                env: await this.getTestEnvironment(config)
             });
         });
 
@@ -276,7 +276,7 @@ ${result.stderr}`;
             const resolvedLibraries = this.resolveRelativePaths(expandedLibraries, baseDir);
 
             // Create Xcode project configuration with proper flags and libraries
-            await this.artifactManager.createXcodeProject(file, resolvedFlags, resolvedLibraries);
+            await this.artifactManager.createXcodeProject(file, resolvedFlags, resolvedLibraries, config);
 
             const configFileName = `${testBaseName}.yml`;
             const configPath = this.artifactManager.getArtifactPath(file, configFileName);
@@ -420,7 +420,7 @@ To debug:
             const gdb = await this.runCommand('gdb', [binaryPath], {
                 cwd: file.directory, // Always run with CWD set to test directory
                 timeout: 0, // No timeout for interactive debugging
-                env: this.getTestEnvironment(config)
+                env: await this.getTestEnvironment(config)
             });
 
             const output = `GDB debugging session completed.

@@ -36,6 +36,7 @@ extern "C" {
 /*********************************** Defines **********************************/
 
 #define TM_MAX_BUFFER  4096
+#define TM_SHORT_NAP   5000
 
 /*********************************** Functions *********************************/
 
@@ -69,6 +70,51 @@ static void texit(int success) {
 }
 
 /**
+    Get an environment variable.
+    @param key The key to get.
+    @param def The default value.
+    @return The value of the environment variable.
+ */
+const char *tget(const char *key, const char *def)
+{
+    const char   *value;
+
+    if ((value = getenv(key)) != 0) {
+        return value;
+    } else {
+        return def;
+    }
+}
+
+
+/**
+    Get an environment variable as an integer.
+    @param key The key to get.
+    @param def The default value.
+    @return The value of the environment variable.
+ */
+int tgeti(const char *key, int def)
+{
+    const char   *value;
+
+    if ((value = getenv(key)) != 0) {
+        return atoi(value);
+    } else {
+        return def;
+    }
+}
+
+/**
+    Check if an environment variable exists.
+    @param key The key to check.
+    @return 1 if the environment variable exists, 0 otherwise.
+ */
+int thas(const char *key)
+{
+    return tgeti(key, 0);
+}
+
+/**
     Emit a pass/fail message based on the success of the test.
     @param success The success of the test.
     @param loc The location of the test.
@@ -83,6 +129,9 @@ static void treport(int success, const char *loc, const char *expected, const ch
         va_start(ap, fmt);
         vsnprintf(buf, sizeof(buf), fmt, ap);
         va_end(ap);
+        if (!success) {
+            snprintf(buf, sizeof(buf), "Test failed at %s: %s", loc, buf);
+        }
     } else {
         if (success) {
             snprintf(buf, sizeof(buf), "Test passed at %s", loc);
@@ -103,10 +152,10 @@ static void treport(int success, const char *loc, const char *expected, const ch
 /**
     Helper macro to handle optional format string
  */
-#define treportx(success, loc, expected, received, ...) \
+#define treportx(success, loc, received, expected, ...) \
     treport((int) (success), loc, expected, received, "" __VA_ARGS__)
 
-#define treportInt(success, loc, expected, received, ...) \
+#define treportInt(success, loc, received, expected, ...) \
     if (1) { \
         char ebuf[80], rbuf[80]; \
         snprintf(ebuf, sizeof(ebuf), "%d", expected); \
@@ -144,17 +193,27 @@ static void treport(int success, const char *loc, const char *expected, const ch
                                 treportx(((_s) == NULL && (_p) == NULL) || \
                                 ((_s) != NULL && (_p) != NULL && strcmp((char*) _s, (char*) _p) == 0), TM_LOC, p, s, __VA_ARGS__); \
                             } else
+#define tneq(a, b, ...)      if (1) { \
+                                int _r = (a) != (b); \
+                                treportInt(_r, TM_LOC, a, b, __VA_ARGS__); \
+                            } else
 #define ttrue(E, ...)       if (1) { \
                                 int _r = (E) != 0; \
                                 treportx(_r, TM_LOC, "true", _r ? "true" : "false", __VA_ARGS__); \
                             } else
+
+#define tgt(a)      if (1) { \
+
 
 // Legacy
 #define tinfo(...)          printf(__VA_ARGS__)
 #define tdebug(...)         printf(__VA_ARGS__)
 #define tskip(...)          printf(__VA_ARGS__)
 #define twrite(...)         printf(__VA_ARGS__)
-
+#define tassert(E, ...)     if (1) { \
+                                int _r = (E) != 0; \
+                                treportx(_r, TM_LOC, "true", _r ? "true" : "false", __VA_ARGS__); \
+                            } else
 #ifdef __cplusplus
 }
 #endif

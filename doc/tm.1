@@ -87,6 +87,94 @@ JavaScript tests. Executed directly with the Bun runtime.
 .B .tst.ts
 TypeScript tests. Executed directly with Bun's TypeScript support.
 
+.SH TESTING UTILITIES
+TestMe provides built-in testing helper functions for C, JavaScript, and TypeScript tests.
+
+.SS C Testing Functions (testme.h)
+Include \fBtestme.h\fR in C tests to access these assertion and utility functions:
+
+.TP
+.B teq(a, b, msg)
+Assert that two values are equal. Prints success message or fails with detailed output.
+.TP
+.B tneq(a, b, msg)
+Assert that two values are not equal.
+.TP
+.B ttrue(expr, msg)
+Assert that expression evaluates to true.
+.TP
+.B tfalse(expr, msg)
+Assert that expression evaluates to false.
+.TP
+.B tmatch(str, pattern, msg)
+Assert that string matches the given pattern.
+.TP
+.B tcontains(str, substr, msg)
+Assert that string contains the given substring.
+.TP
+.B tfail(msg)
+Immediately fail the test with the given message.
+.TP
+.B tget(key, default)
+Get environment variable value with fallback to default.
+.TP
+.B tgeti(key, default)
+Get environment variable as integer with fallback to default.
+.TP
+.B thas(key)
+Check if environment variable exists (returns 1 if exists, 0 otherwise).
+.TP
+.B tdepth()
+Get current test execution depth from TESTME_DEPTH environment variable.
+.TP
+.B tinfo(...), tdebug(...)
+Print informational messages (printf-style formatting).
+
+.SS JavaScript/TypeScript Testing Functions (testme.js)
+Import functions from \fBtestme.js\fR for JavaScript and TypeScript tests:
+
+.TP
+.B teq(received, expected, msg)
+Assert that received value equals expected value.
+.TP
+.B tneq(received, expected, msg)
+Assert that received value does not equal expected value.
+.TP
+.B ttrue(expr, msg)
+Assert that expression is truthy.
+.TP
+.B tfalse(expr, msg)
+Assert that expression is falsy.
+.TP
+.B tmatch(str, pattern, msg)
+Assert that string matches regex pattern.
+.TP
+.B tcontains(str, substr, msg)
+Assert that string contains substring.
+.TP
+.B tfail(msg)
+Immediately fail the test with message.
+.TP
+.B tget(key, default)
+Get environment variable with default fallback.
+.TP
+.B thas(key)
+Check if environment variable exists (returns numeric value).
+.TP
+.B tverbose()
+Check if verbose mode is enabled (returns boolean).
+.TP
+.B tdepth()
+Get current test execution depth.
+.TP
+.B tinfo(...), tdebug(...)
+Print informational messages.
+.TP
+.B tassert(expr, msg)
+Alias for ttrue() function.
+
+All testing functions automatically handle test failure by printing descriptive error messages with file locations and exiting with non-zero status codes.
+
 .SH WORKING DIRECTORY
 All tests execute with their working directory (CWD) set to the directory containing the test file. This ensures consistent behavior across all test types and allows tests to access relative files reliably.
 
@@ -187,6 +275,16 @@ Configure test discovery:
 }
 .fi
 
+.SS Test Control Settings
+Configure whether tests are enabled and setup delays:
+.nf
+{
+    enable: true,              // Enable or disable tests in this directory
+}
+.fi
+
+Set \fBenable: false\fR to disable all tests in a directory. Disabled directories are skipped during execution and excluded from \fB\-\-list\fR output. In verbose mode, disabled directories show a "🚫 Tests disabled" message.
+
 .SS Service Settings
 Configure prep, setup and cleanup commands:
 .nf
@@ -197,12 +295,38 @@ Configure prep, setup and cleanup commands:
         cleanup: "docker-compose down",
         prepTimeout: 30000,
         setupTimeout: 30000,
-        cleanupTimeout: 10000
+        cleanupTimeout: 10000,
+        delay: 3000                // Wait 3 seconds after setup before tests
     }
 }
 .fi
 
-The prep command runs once before all tests begin and waits for completion. The setup command starts a background service that runs during test execution. The cleanup command runs after all tests complete to clean up resources.
+The prep command runs once before all tests begin and waits for completion. The setup command starts a background service that runs during test execution. The \fBdelay\fR field specifies milliseconds to wait after the setup service starts before beginning test execution, allowing time for service initialization. The cleanup command runs after all tests complete to clean up resources.
+
+.SS Environment Variables
+Configure environment variables available to all tests during execution:
+.nf
+{
+    env: {
+        BIN: "${../build/*/bin}",           // Expands to build directory
+        LIB_PATH: "${../lib}",              // Points to library directory
+        TEST_DATA: "${./test-data/*.json}", // Expands to test data files
+        API_URL: "http://localhost:8080"    // Static values work too
+    }
+}
+.fi
+
+Environment variable values support \fB${...}\fR expansion using glob patterns. Paths are resolved relative to the configuration file's directory. This is useful for providing dynamic paths to build artifacts, libraries, and test data.
+
+Tests can access these variables using standard environment variable mechanisms:
+.IP \(bu 4
+C tests: \fBgetenv("BIN")\fR
+.IP \(bu 4
+Shell tests: \fB$BIN\fR or \fB${BIN}\fR
+.IP \(bu 4
+JavaScript/TypeScript: \fBprocess.env.BIN\fR
+
+Environment variables are automatically included in Xcode debugging projects when using \fB\-\-debug\fR mode.
 
 .SH ARTIFACTS
 C tests create build artifacts in \fB.testme\fR directories co-located with test files:
@@ -344,6 +468,12 @@ Artifact directories created alongside test files for build outputs.
 .TP
 .B *.tst.sh, *.tst.c, *.tst.js, *.tst.ts
 Test files with recognized extensions.
+.TP
+.B testme.h
+C testing utility header file with assertion and helper functions.
+.TP
+.B testme.js
+JavaScript/TypeScript testing utility module with assertion and helper functions.
 
 .SH DEBUGGING
 For C tests, TestMe provides integrated debugging support:

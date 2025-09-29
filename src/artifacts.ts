@@ -1,8 +1,9 @@
-import type { TestFile, ArtifactManager as IArtifactManager } from "./types.ts";
+import type { TestFile, ArtifactManager as IArtifactManager, TestConfig } from "./types.ts";
 import { join, basename, relative } from "path";
 import * as path from "path";
 import { mkdir, rmdir, readdir, unlink, stat } from "node:fs/promises";
 import { existsSync } from "node:fs";
+import { GlobExpansion } from "./utils/glob-expansion.ts";
 
 /*
  Manages build artifacts and temporary files for test execution
@@ -233,9 +234,10 @@ export class ArtifactManager implements IArtifactManager {
      @param testFile C test file to create project for
      @param expandedFlags Compiler flags with ${vars} already expanded
      @param expandedLibraries Library names with ${vars} already expanded
+     @param config Test configuration containing environment variables
      @returns Content of the project.yml file for xcodegen
      */
-    generateXcodeProjectConfig(testFile: TestFile, expandedFlags: string[], expandedLibraries: string[]): string {
+    async generateXcodeProjectConfig(testFile: TestFile, expandedFlags: string[], expandedLibraries: string[], config: TestConfig): Promise<string> {
         const testBaseName = basename(testFile.name, '.tst.c');
         const relativePath = relative(testFile.artifactDir, testFile.path);
         // Use absolute path for working directory - Xcode needs this to exist
@@ -260,6 +262,25 @@ export class ArtifactManager implements IArtifactManager {
             settingsBlock += '\n' + libraryFlags;
         }
 
+        // Generate environment variables for the scheme
+        let environmentVariables = '';
+        if (config.env && Object.keys(config.env).length > 0) {
+            const baseDir = config.configDir || testFile.directory;
+            const envVars: string[] = [];
+
+            for (const [key, value] of Object.entries(config.env)) {
+                // Expand ${...} references in environment variable values
+                const expandedValue = await GlobExpansion.expandSingle(value, baseDir);
+                envVars.push(`        ${key}: "${expandedValue}"`);
+            }
+
+            if (envVars.length > 0) {
+                environmentVariables = `
+      environmentVariables:
+${envVars.join('\n')}`;
+            }
+        }
+
         return `name: ${testBaseName}
 targets:
   ${testBaseName}:
@@ -276,7 +297,7 @@ schemes:
         ${testBaseName}: all
     run:
       config: Debug
-      customWorkingDirectory: ${testDirectoryPath}
+      customWorkingDirectory: ${testDirectoryPath}${environmentVariables}
 `;
     }
 
@@ -285,12 +306,13 @@ schemes:
      @param testFile C test file to create project for
      @param expandedFlags Compiler flags with ${vars} already expanded
      @param expandedLibraries Library names with ${vars} already expanded
+     @param config Test configuration containing environment variables
      @throws Error if project creation fails
      */
-    async createXcodeProject(testFile: TestFile, expandedFlags: string[], expandedLibraries: string[]): Promise<void> {
+    async createXcodeProject(testFile: TestFile, expandedFlags: string[], expandedLibraries: string[], config: TestConfig): Promise<void> {
         try {
             const testBaseName = basename(testFile.name, '.tst.c');
-            const projectConfigContent = this.generateXcodeProjectConfig(testFile, expandedFlags, expandedLibraries);
+            const projectConfigContent = await this.generateXcodeProjectConfig(testFile, expandedFlags, expandedLibraries, config);
             const configFileName = `${testBaseName}.yml`;
 
             // Write the project configuration file
@@ -346,20 +368,50 @@ schemes:
         const settings: string[] = [];
         const headerSearchPaths: string[] = [];
         const librarySearchPaths: string[] = [];
+        const runpathSearchPaths: string[] = [];
         const otherCFlags: string[] = [];
 
         for (const flag of flags) {
             if (flag.startsWith('-I')) {
                 const path = flag.substring(2);
                 if (path && path !== '.') {
+                    // Build-time paths need to be relative to artifact directory (where Xcode builds)
                     const relativePath = this.makePathRelativeIfLocal(path, testFile.artifactDir);
                     headerSearchPaths.push(`"${relativePath}"`);
                 }
             } else if (flag.startsWith('-L')) {
                 const path = flag.substring(2);
                 if (path) {
+                    // Build-time paths need to be relative to artifact directory (where Xcode builds)
                     const relativePath = this.makePathRelativeIfLocal(path, testFile.artifactDir);
                     librarySearchPaths.push(`"${relativePath}"`);
+                }
+            } else if (flag.startsWith('-Wl,-rpath,')) {
+                // Handle rpath flags: -Wl,-rpath,/path/to/libs
+                const rpathValue = flag.substring(11); // Remove '-Wl,-rpath,'
+                if (rpathValue) {
+                    // Handle @executable_path and @loader_path relative paths
+                    let processedPath = rpathValue;
+                    if (rpathValue.startsWith('@executable_path/') || rpathValue.startsWith('@loader_path/')) {
+                        // Extract the relative part after @executable_path/ or @loader_path/
+                        const pathPrefix = rpathValue.startsWith('@executable_path/') ? '@executable_path/' : '@loader_path/';
+                        const relativePart = rpathValue.substring(pathPrefix.length);
+
+                        // The relative part (e.g., "../../build/*/bin") is from executable location to target
+                        // Executable is in test/.testme/socket/, target is at some path
+                        // We need to convert this to be relative from test directory instead
+
+                        // First, resolve what the target absolute path would be
+                        const executableDir = testFile.artifactDir; // e.g., /Users/mob/c/r/test/.testme/socket
+                        const targetPath = path.resolve(executableDir, relativePart);
+
+                        // Now make it relative to the test directory (working directory)
+                        processedPath = path.relative(testFile.directory, targetPath);
+                    }
+
+                    // Runtime paths need to be relative to test directory (working directory)
+                    const relativePath = this.makePathRelativeIfLocal(processedPath, testFile.directory);
+                    runpathSearchPaths.push(`"${relativePath}"`);
                 }
             } else if (flag.startsWith('-std=')) {
                 // Map C standard to Xcode setting
@@ -381,6 +433,10 @@ schemes:
         }
 
         // Add header search paths
+        // Always include the test directory itself for header searches
+        const testDirFromArtifact = this.makePathRelativeIfLocal(testFile.directory, testFile.artifactDir);
+        headerSearchPaths.unshift(`"${testDirFromArtifact}"`);
+
         if (headerSearchPaths.length > 0) {
             settings.push(`HEADER_SEARCH_PATHS: [${headerSearchPaths.join(', ')}]`);
         }
@@ -388,6 +444,11 @@ schemes:
         // Add library search paths
         if (librarySearchPaths.length > 0) {
             settings.push(`LIBRARY_SEARCH_PATHS: [${librarySearchPaths.join(', ')}]`);
+        }
+
+        // Add runtime library search paths (rpath)
+        if (runpathSearchPaths.length > 0) {
+            settings.push(`LD_RUNPATH_SEARCH_PATHS: [${runpathSearchPaths.join(', ')}]`);
         }
 
         // Add other C flags
@@ -415,12 +476,7 @@ schemes:
 
         const settings: string[] = [];
 
-        // Add library search paths first - let Xcode find .a or .dylib as appropriate
-        if (librarySearchPaths.length > 0) {
-            const cleanPaths = [...new Set(librarySearchPaths.map(path => path.replace(/['"]/g, '')))];
-            const quotedPaths = cleanPaths.map(path => `"${path}"`);
-            settings.push(`LIBRARY_SEARCH_PATHS: [${quotedPaths.join(', ')}]`);
-        }
+        // Note: LIBRARY_SEARCH_PATHS is now handled in processCompilerFlagsForXcode() from -L flags
 
         // Use -l flags for all libraries - let Xcode find .a or .dylib automatically
         const libFlags = libraries.map(lib => {
@@ -433,12 +489,7 @@ schemes:
             settings.push(`OTHER_LDFLAGS: "${libFlags}"`);
         }
 
-        // Add rpath settings for runtime library loading
-        if (librarySearchPaths.length > 0) {
-            const cleanPaths = [...new Set(librarySearchPaths.map(path => path.replace(/['"]/g, '')))];
-            const quotedRpaths = cleanPaths.map(path => `"${path}"`);
-            settings.push(`LD_RUNPATH_SEARCH_PATHS: [${quotedRpaths.join(', ')}]`);
-        }
+        // Note: LD_RUNPATH_SEARCH_PATHS is now handled in processCompilerFlagsForXcode() from rpath flags
 
         return settings.map(setting => `      ${setting}`).join('\n');
     }

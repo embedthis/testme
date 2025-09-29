@@ -13,6 +13,7 @@ export class ConfigManager {
 
     // Default configuration values used as fallback
     private static readonly DEFAULT_CONFIG: TestConfig = {
+        enable: true, // Tests are enabled by default
         compiler: {
             c: {
                 compiler: 'gcc',
@@ -39,7 +40,8 @@ export class ConfigManager {
             cleanup: '',
             prepTimeout: 30000,
             setupTimeout: 30000,
-            cleanupTimeout: 10000
+            cleanupTimeout: 10000,
+            delay: 0 // No delay by default
         }
     };
 
@@ -94,6 +96,7 @@ export class ConfigManager {
      */
     private static mergeWithDefaults(userConfig: Partial<TestConfig> | null, configDir: string | null): TestConfig {
         const baseConfig = userConfig ? {
+            enable: userConfig.enable !== undefined ? userConfig.enable : this.DEFAULT_CONFIG.enable,
             compiler: {
                 ...this.DEFAULT_CONFIG.compiler,
                 ...userConfig.compiler
@@ -113,7 +116,8 @@ export class ConfigManager {
             services: {
                 ...this.DEFAULT_CONFIG.services,
                 ...userConfig.services
-            }
+            },
+            env: userConfig.env // Include environment variables from user config
         } : { ...this.DEFAULT_CONFIG };
 
         // Add config directory to the configuration

@@ -2,7 +2,7 @@
     pkg.tst.js - JavaScript test file using testme.js
  */
 
-import { tcontains, ttrue, tfalse, tmatch, teq, tneq } from "./testme.js";
+import { tcontains, ttrue, tfalse, tmatch, teq, tneq } from "testme";
 
 console.log("Running JavaScript array tests...");
 
