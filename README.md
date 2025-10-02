@@ -51,11 +51,6 @@ TestMe is a powerful, multi-language test runner built with Bun that can discove
     make
     ```
 
-4. Install the project:
-    ```bash
-    make install
-    ```
-
 ## 🚀 Quick Start
 
 1. **Create test files** with the appropriate extensions:
@@ -254,19 +249,19 @@ Filter tests using various pattern types:
 
 ### Common Options
 
-| Option | Description |
-|--------|-------------|
-| `-l, --list` | List discovered tests without running |
-| `-v, --verbose` | Show detailed output |
-| `-q, --quiet` | Silent mode (exit codes only) |
-| `-c, --config <FILE>` | Use specific config file |
-| `--clean` | Remove all `.testme` artifacts |
-| `-d, --debug` | Launch debugger (GDB/Xcode) |
-| `-k, --keep` | Keep artifacts after tests |
-| `--depth <N>` | Run tests requiring depth ≤ N |
-| `-w, --workers <N>` | Set parallel workers |
-| `-s, --show` | Display C compile commands |
-| `--step` | Run tests one at a time with prompts |
+| Option                | Description                           |
+| --------------------- | ------------------------------------- |
+| `-l, --list`          | List discovered tests without running |
+| `-v, --verbose`       | Show detailed output                  |
+| `-q, --quiet`         | Silent mode (exit codes only)         |
+| `-c, --config <FILE>` | Use specific config file              |
+| `--clean`             | Remove all `.testme` artifacts        |
+| `-d, --debug`         | Launch debugger (GDB/Xcode)           |
+| `-k, --keep`          | Keep artifacts after tests            |
+| `--depth <N>`         | Run tests requiring depth ≤ N         |
+| `-w, --workers <N>`   | Set parallel workers                  |
+| `-s, --show`          | Display C compile commands            |
+| `--step`              | Run tests one at a time with prompts  |
 
 ### Usage Examples
 
@@ -427,6 +422,7 @@ This enables:
 ```
 
 **Accessing Environment Variables:**
+
 -   C tests: `getenv("BIN")` or use `tget("BIN", default)` from testme.h
 -   Shell tests: `$BIN` or `${BIN}`
 -   JavaScript/TypeScript: `process.env.BIN` or use `tget("BIN", default)` from testme.js
@@ -502,7 +498,6 @@ Machine-readable output for integration with other tools:
 }
 ```
 
-
 ## 🧪 Development
 
 ### Building
@@ -538,7 +533,6 @@ bun --hot src/index.ts
 -   ESLint and Prettier configured
 -   Comprehensive JSDoc comments
 
-
 ## 💡 Tips and Best Practices
 
 ### Writing Effective Tests
@@ -556,12 +550,12 @@ bun --hot src/index.ts
 
 ### Troubleshooting
 
-| Problem | Solution |
-|---------|----------|
-| **Tests not discovered** | Check file extensions (`.tst.sh`, `.tst.c`, `.tst.js`, `.tst.ts`, `.tst.es`)<br>Use `--list` to see what's found<br>Check `enable: false` in config<br>Verify depth requirements |
-| **C compilation failing** | Check GCC/Clang is in PATH<br>Review `.testme/compile.log`<br>Use `-s` to see compile commands |
-| **Permission errors** | Make shell scripts executable: `chmod +x *.tst.sh`<br>Check directory permissions |
-| **Tests skipped** | Check skip script exit code<br>Verify `--depth` is sufficient<br>Run with `-v` for details |
+| Problem                   | Solution                                                                                                                                                                         |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Tests not discovered**  | Check file extensions (`.tst.sh`, `.tst.c`, `.tst.js`, `.tst.ts`, `.tst.es`)<br>Use `--list` to see what's found<br>Check `enable: false` in config<br>Verify depth requirements |
+| **C compilation failing** | Check GCC/Clang is in PATH<br>Review `.testme/compile.log`<br>Use `-s` to see compile commands                                                                                   |
+| **Permission errors**     | Make shell scripts executable: `chmod +x *.tst.sh`<br>Check directory permissions                                                                                                |
+| **Tests skipped**         | Check skip script exit code<br>Verify `--depth` is sufficient<br>Run with `-v` for details                                                                                       |
 
 ---
 
