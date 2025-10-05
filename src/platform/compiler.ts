@@ -167,19 +167,32 @@ export class CompilerManager {
             case CompilerType.GCC:
             case CompilerType.MinGW:
                 return [
-                    "-std=c99",     // C99 standard
-                    "-Wall",        // Enable all warnings
-                    "-Wextra",      // Enable extra warnings
-                    "-O0",          // No optimization (for debugging)
-                    "-g"            // Generate debug info
+                    "-std=c99",         // C99 standard
+                    "-Wall",            // Enable all warnings
+                    "-Wextra",          // Enable extra warnings
+                    "-Wno-unused-parameter", // Disable unused parameter warnings
+                    "-Wno-strict-prototypes", // Disable strict prototype warnings
+                    "-O0",              // No optimization (for debugging)
+                    "-g",               // Generate debug info
+                    "-I.",              // Include current directory
+                    "-I/usr/local/include", // Include /usr/local
+                    "-L/usr/local/lib", // Library path /usr/local
+                    "-I/opt/homebrew/include", // Include Homebrew (macOS)
+                    "-L/opt/homebrew/lib"  // Library path Homebrew (macOS)
                 ];
             case CompilerType.Clang:
                 return [
-                    "-std=c99",     // C99 standard
-                    "-Wall",        // Enable all warnings
-                    "-Wextra",      // Enable extra warnings
-                    "-O0",          // No optimization (for debugging)
-                    "-g"            // Generate debug info
+                    "-std=c99",         // C99 standard
+                    "-Wall",            // Enable all warnings
+                    "-Wextra",          // Enable extra warnings
+                    "-Wno-unused-parameter", // Disable unused parameter warnings
+                    "-O0",              // No optimization (for debugging)
+                    "-g",               // Generate debug info
+                    "-I.",              // Include current directory
+                    "-I/usr/local/include", // Include /usr/local
+                    "-L/usr/local/lib", // Library path /usr/local
+                    "-I/opt/homebrew/include", // Include Homebrew (macOS)
+                    "-L/opt/homebrew/lib"  // Library path Homebrew (macOS)
                 ];
             default:
                 return ["-std=c99", "-Wall"];

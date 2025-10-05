@@ -21,13 +21,14 @@ TestMe is a production-ready, cross-platform multi-language test runner with nat
 ## Current Focus
 
 ### Documentation Polish
-- [ ] Review and update all documentation for consistency
-- [ ] Ensure all special variables are documented in all relevant places
-- [ ] Add more usage examples to README
-- [ ] Create a CONTRIBUTING.md guide
+- [x] Review and update all documentation for consistency
+- [x] Ensure all special variables are documented in all relevant places (added ${OS}, ${ARCH}, ${CC})
+- [x] Add more usage examples to README (added Common Use Cases section)
+- [x] Create a CONTRIBUTING.md guide
 
 ### Code Quality
-- [ ] Review TypeScript strict mode compliance
+- [x] Review TypeScript strict mode compliance (tsconfig.json created, ~50 type errors identified)
+- [ ] Fix TypeScript strict mode errors (type-only imports, override modifiers, strict nulls)
 - [ ] Ensure consistent error handling patterns
 - [ ] Add more inline documentation where needed
 - [ ] Review and optimize performance bottlenecks

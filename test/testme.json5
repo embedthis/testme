@@ -16,40 +16,23 @@
      */
     compiler: {
         c: {
-            compiler: 'default',  // Auto-detect best compiler. Use 'gcc', 'clang', or path to override
+            compiler: 'default', // Auto-detect best compiler. Use 'gcc', 'clang', or path to override
 
             /*
                 GCC-specific flags (Unix/Linux/MinGW)
-                Default flags are automatically added: -std=c99 -Wall -Wextra -O0 -g
+                Default flags are automatically added: -std=c99 -Wall -Wextra -Wno-unused-parameter -Wno-strict-prototypes -O0 -g -I. -I/usr/local/include -L/usr/local/lib -I/opt/homebrew/include -L/opt/homebrew/lib
              */
             gcc: {
-                flags: [
-                    '-Wno-unused-parameter',
-                    '-Wno-strict-prototypes',
-                    '-I.',
-                    '-I..',
-                    '-I${../build/${PLATFORM}-${PROFILE}/inc',
-                    '-L${../build/${PLATFORM}-${PROFILE}/bin',
-                    '-I/usr/local/include',
-                    '-Wl,-rpath,@executable_path/${CONFIGDIR}/../build/${PLATFORM}-${PROFILE}/bin',
-                ],
+                flags: ['-I..'],
                 libraries: ['m', 'pthread'],
             },
 
             /*
                 Clang-specific flags (macOS/Unix)
-                Default flags are automatically added: -std=c99 -Wall -Wextra -O0 -g
+                Default flags are automatically added: -std=c99 -Wall -Wextra -Wno-unused-parameter -Wno-strict-prototypes -O0 -g -I. -I/usr/local/include -L/usr/local/lib -I/opt/homebrew/include -L/opt/homebrew/lib
             */
             clang: {
-                flags: [
-                    '-Wno-unused-parameter',
-                    '-I.',
-                    '-I..',
-                    '-I${../build/${PLATFORM}-${PROFILE}/inc',
-                    '-L${../build/${PLATFORM}-${PROFILE}/bin',
-                    '-I/usr/local/include',
-                    '-Wl,-rpath,@executable_path/${CONFIGDIR}/../build/${PLATFORM}-${PROFILE}/bin',
-                ],
+                flags: ['-I..'],
                 libraries: ['m', 'pthread'],
             },
 
@@ -58,7 +41,7 @@
                 Default flags are automatically added: /std:c11 /W4 /Od /Zi /nologo
             */
             msvc: {
-                flags: ['/I.', '/I..', '/I${../build/${PLATFORM}-${PROFILE}/inc'],
+                flags: ['/I.', '/I..'],
                 libraries: [],
             },
         },

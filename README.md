@@ -56,9 +56,9 @@ TestMe is a powerful, multi-language test runner built with Bun that can discove
     make
     ```
 
-4. Install the project:
+4. Install the project (on MacOS/Linux only):
     ```bash
-    make install
+    sudo make install
     ```
 
 ### Windows Installation
@@ -444,7 +444,16 @@ This enables:
         "colors": true
     },
     "patterns": {
-        "include": ["**/*.tst.sh", "**/*.tst.c", "**/*.tst.js", "**/*.tst.ts", "**/*.tst.es"],
+        "include": [
+            "**/*.tst.sh",
+            "**/*.tst.c",
+            "**/*.tst.js",
+            "**/*.tst.ts",
+            "**/*.tst.es",
+            "**/*.tst.ps1",
+            "**/*.tst.bat",
+            "**/*.tst.cmd"
+        ],
         "exclude": ["**/node_modules/**", "**/.testme/**", "**/.*/**"]
     },
     "services": {
@@ -485,13 +494,12 @@ TestMe automatically detects and configures the appropriate C compiler for your 
 
 **Default Flags (automatically applied):**
 
--   **GCC/Clang**: `-std=c99 -Wall -Wextra -O0 -g`
+-   **GCC/Clang**: `-std=c99 -Wall -Wextra -Wno-unused-parameter -Wno-strict-prototypes -O0 -g -I. -I/usr/local/include -L/usr/local/lib -I/opt/homebrew/include -L/opt/homebrew/lib`
 -   **MSVC**: `/std:c11 /W4 /Od /Zi /nologo`
 
 **Configuration Options:**
 
--   `compiler.c.compiler` - C compiler path (optional, auto-detects if not specified)
--   `compiler.c.flags` - Common flags for all compilers (merged with defaults)
+-   `compiler.c.compiler` - C compiler path (optional, use 'default' to auto-detect, or specify 'gcc', 'clang', or full path)
 -   `compiler.c.gcc.flags` - GCC-specific flags (merged with GCC defaults)
 -   `compiler.c.gcc.libraries` - GCC-specific libraries (e.g., `['m', 'pthread']`)
 -   `compiler.c.clang.flags` - Clang-specific flags (merged with Clang defaults)
@@ -499,28 +507,45 @@ TestMe automatically detects and configures the appropriate C compiler for your 
 -   `compiler.c.msvc.flags` - MSVC-specific flags (merged with MSVC defaults)
 -   `compiler.c.msvc.libraries` - MSVC-specific libraries
 
+**Variable Expansion:**
+
+Environment variables in compiler flags and paths support `${...}` expansion:
+
+-   `${PLATFORM}` - Current platform (e.g., macosx-arm64, linux-x64, win-x64)
+-   `${OS}` - Operating system (macosx, linux, windows)
+-   `${ARCH}` - CPU architecture (arm64, x64, x86)
+-   `${PROFILE}` - Build profile (debug, release, dev, prod, etc.)
+-   `${CC}` - Compiler name (gcc, clang, msvc)
+-   `${CONFIGDIR}` - Directory containing the testme.json5 file
+-   `${TESTDIR}` - Relative path from executable to test file directory
+-   `${pattern}` - Glob patterns (e.g., `${../build/*/bin}` expands to matching paths)
+
 **Example:**
 
 ```json5
 {
     compiler: {
         c: {
-            // Auto-detect compiler (leave blank)
-            // Default flags are: -std=c99 -Wall -Wextra -O0 -g (GCC/Clang)
-            //                or: /std:c11 /W4 /Od /Zi /nologo (MSVC)
+            compiler: 'default', // Auto-detect best compiler
 
             gcc: {
                 flags: [
-                    '-I${../build/*/inc}', // Include paths
-                    '-L${../build/*/bin}', // Library paths
-                    '-Wl,-rpath,@executable_path/${../build/*/bin}', // Runtime paths
+                    '-I${../build/${PLATFORM}-${PROFILE}/inc}',
+                    '-L${../build/${PLATFORM}-${PROFILE}/bin}',
+                    '-Wl,-rpath,@executable_path/${CONFIGDIR}/../build/${PLATFORM}-${PROFILE}/bin',
+                ],
+                libraries: ['m', 'pthread'],
+            },
+            clang: {
+                flags: [
+                    '-I${../build/${PLATFORM}-${PROFILE}/inc}',
+                    '-L${../build/${PLATFORM}-${PROFILE}/bin}',
+                    '-Wl,-rpath,@executable_path/${CONFIGDIR}/../build/${PLATFORM}-${PROFILE}/bin',
                 ],
                 libraries: ['m', 'pthread'],
             },
             msvc: {
-                flags: [
-                    '/I${../build/*/inc}', // Include paths
-                ],
+                flags: ['/I${../build/${PLATFORM}-${PROFILE}/inc}'],
                 libraries: [],
             },
         },
@@ -586,6 +611,99 @@ TestMe automatically detects and configures the appropriate C compiler for your 
 -   C tests: `getenv("BIN")` or use `tget("BIN", default)` from testme.h
 -   Shell tests: `$BIN` or `${BIN}`
 -   JavaScript/TypeScript: `process.env.BIN` or use `tget("BIN", default)` from testme.js
+
+## 📚 Common Use Cases
+
+### Testing a Multi-Platform C Project
+
+```json5
+{
+    compiler: {
+        c: {
+            gcc: {
+                flags: [
+                    '-I${../include}',
+                    '-L${../build/${PLATFORM}-${PROFILE}/lib}',
+                    '-Wl,-rpath,@executable_path/${CONFIGDIR}/../build/${PLATFORM}-${PROFILE}/lib'
+                ],
+                libraries: ['mylib', 'm', 'pthread']
+            },
+            msvc: {
+                flags: [
+                    '/I${../include}',
+                    '/LIBPATH:${../build/${PLATFORM}-${PROFILE}/lib}'
+                ],
+                libraries: ['mylib']
+            }
+        }
+    },
+    env: {
+        MY_LIB_PATH: '${../build/${PLATFORM}-${PROFILE}/lib}'
+    }
+}
+```
+
+### Running Tests with Docker Services
+
+```json5
+{
+    services: {
+        prep: 'docker-compose build',
+        setup: 'docker-compose up -d',
+        cleanup: 'docker-compose down',
+        delay: 5000  // Wait 5 seconds for services to start
+    },
+    env: {
+        DATABASE_URL: 'postgresql://localhost:5432/testdb',
+        REDIS_URL: 'redis://localhost:6379'
+    }
+}
+```
+
+### Conditional Test Execution
+
+```json5
+{
+    services: {
+        skip: './check-requirements.sh'  // Exit 0 to run, non-zero to skip
+    }
+}
+```
+
+check-requirements.sh:
+```bash
+#!/bin/bash
+# Skip tests if required tools are missing
+if ! command -v docker &> /dev/null; then
+    echo "Docker not found - skipping integration tests"
+    exit 1
+fi
+exit 0
+```
+
+### Organizing Tests by Depth
+
+Root testme.json5 (quick unit tests):
+```json5
+{
+    depth: 0,
+    execution: { timeout: 5000 }
+}
+```
+
+integration/testme.json5 (slow integration tests):
+```json5
+{
+    depth: 1,
+    execution: { timeout: 60000 },
+    services: {
+        setup: './start-services.sh',
+        cleanup: './stop-services.sh'
+    }
+}
+```
+
+Run with: `tm --depth 1` to include integration tests, or just `tm` for unit tests only.
 
 ## 📁 Artifact Management
 

@@ -2,6 +2,37 @@
 
 ## 2025-10-05
 
+### Compiler Defaults
+- **DEV**: Added default compiler flags for GCC/Clang
+  - Added `-Wno-unused-parameter` to suppress unused parameter warnings
+  - Added `-Wno-strict-prototypes` to suppress strict prototype warnings
+  - Added `-I.` to include current directory by default
+  - Added `-I/usr/local/include` and `-L/usr/local/lib` for standard Unix paths
+  - Added `-I/opt/homebrew/include` and `-L/opt/homebrew/lib` for Homebrew (macOS)
+- **CHORE**: Cleaned up redundant flags from all testme.json5 configuration files
+
+### Documentation
+- **DOC**: Added logo to README.md
+- **DOC**: Updated README with complete special variable documentation (${OS}, ${ARCH}, ${CC}, ${TESTDIR})
+- **DOC**: Added "Common Use Cases" section to README with practical examples:
+  - Multi-platform C project configuration
+  - Docker service integration
+  - Conditional test execution
+  - Test organization by depth
+- **DOC**: Updated compiler configuration documentation to reflect per-compiler sections
+- **DOC**: Documented variable expansion system comprehensively
+- **DOC**: Created comprehensive CONTRIBUTING.md guide with:
+  - Development workflow and setup instructions
+  - Coding standards and style guidelines
+  - Testing guidelines and best practices
+  - Commit message conventions
+  - Pull request process and templates
+  - Guide for adding new features
+
+### Code Quality
+- **CHORE**: Added tsconfig.json with strict TypeScript checking enabled
+- **CHORE**: Identified ~50 type errors to fix (type-only imports, override modifiers, strict nulls)
+
 ### Features
 - **DEV**: Added special variable support for build configuration
   - Added `${TESTDIR}` - Relative path from executable to test directory

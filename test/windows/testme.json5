@@ -1,0 +1,12 @@
+{
+    /*
+        Windows-specific tests
+        These tests should only run on Windows platform
+     */
+    enable: true,
+
+    // Skip these tests if not on Windows
+    services: {
+        skip: './skip-if-not-windows.sh'
+    }
+}
