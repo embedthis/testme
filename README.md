@@ -8,7 +8,7 @@ TestMe is a powerful, multi-language test runner built with [Bun](https://bun.sh
 
 ## 🚀 Features
 
--   **Multi-language Support**: Shell (`.tst.sh`), PowerShell (`.tst.ps1`), Batch (`.tst.bat`, `.tst.cmd`), C (`.tst.c`), JavaScript (`.tst.js`), TypeScript (`.tst.ts`), Ejscript (`.tst.es`)
+-   **Multi-language Support**: Shell (`.tst.sh`), PowerShell (`.tst.ps1`), Batch (`.tst.bat`, `.tst.cmd`), C (`.tst.c`), JavaScript (`.tst.js`), TypeScript (`.tst.ts`), Python (`.tst.py`), Go (`.tst.go`), Ejscript (`.tst.es`)
 -   **Automatic Compilation**: C programs are compiled automatically with platform-appropriate compilers (GCC/Clang/MSVC)
 -   **Cross-platform**: Full support for Windows, macOS, and Linux with native test types for each platform
 -   **Recursive Discovery**: Finds test files at any depth in directory trees
@@ -367,6 +367,66 @@ ttrue(binPath !== null, 'BIN environment variable available')
 ```
 
 **Note**: TypeScript tests use the same testing functions as JavaScript tests since both run on the Bun runtime with full TypeScript support.
+
+### Python Tests (`.tst.py`)
+
+Python tests executed with the Python runtime. Exit code 0 indicates success.
+
+```python
+#!/usr/bin/env python3
+# test_example.tst.py
+
+import sys
+
+def test_math():
+    result = 2 + 2
+    assert result == 4, "Math test failed"
+    print("✓ Math test passed")
+
+if __name__ == "__main__":
+    try:
+        test_math()
+        sys.exit(0)  # Success
+    except AssertionError as e:
+        print(f"✗ {e}")
+        sys.exit(1)  # Failure
+```
+
+### Go Tests (`.tst.go`)
+
+Go programs that are compiled and executed automatically. Exit code 0 indicates success.
+
+```go
+// test_math.tst.go
+package main
+
+import (
+    "fmt"
+    "os"
+)
+
+func add(a, b int) int {
+    return a + b
+}
+
+func main() {
+    // Test basic arithmetic
+    if add(2, 3) != 5 {
+        fmt.Println("✗ Addition test failed")
+        os.Exit(1)
+    }
+    fmt.Println("✓ Addition test passed")
+
+    // Test identity
+    if add(5, 0) != 5 {
+        fmt.Println("✗ Identity test failed")
+        os.Exit(1)
+    }
+    fmt.Println("✓ Identity test passed")
+
+    os.Exit(0)
+}
+```
 
 ## 🎯 Usage
 

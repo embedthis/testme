@@ -1,6 +1,6 @@
-# TestMe - Testing Framework (TestMe)
+# TestMe - Multi-Language Test Runner
 
-TestMe is a simple, multi-language test runner built with Bun that discovers, compiles, and executes tests across shell, C, JavaScript, TypeScript, and Ejscript with configurable patterns and parallel execution.
+TestMe is a powerful, multi-language test runner built with Bun that discovers, compiles, and executes tests across shell, PowerShell, Batch, C, JavaScript, TypeScript, Python, Go, and Ejscript with configurable patterns and parallel execution.
 
 ## Development Commands
 
@@ -27,7 +27,7 @@ To build the TestMe app, run:
 make build
 ```
 
-This will build a binary `./testme` in the current directory.
+This will build a binary `dist/tm` (or `dist/tm.exe` on Windows).
 
 To run tests, run:
 
@@ -42,14 +42,14 @@ make clean
 
 ```bash
 # Test discovery functionality
-testme --list
+tm --list
 
-# Run sample tests (from tests/ directory)
-testme
+# Run sample tests (from test/ directory)
+tm
 
 # Test specific patterns
-testme "*.tst.sh"
-testme "*.tst.c"
+tm "*.tst.sh"
+tm "*.tst.c"
 ```
 
 ## Architecture Overview
@@ -65,7 +65,7 @@ testme "*.tst.c"
 
 #### Test Handler Strategy Pattern
 
-Each test type (Shell, C, JS, TS, ES) implements the `TestHandler` type:
+Each test type (Shell, PowerShell, Batch, C, JS, TS, Python, Go, ES) implements the `TestHandler` type:
 
 -   `canHandle()` - Determines if handler processes a test file
 -   `execute()` - Runs the test and returns `TestResult`
@@ -129,7 +129,7 @@ All core types are defined here as `type` aliases (not interfaces):
 #### Test Discovery Process (`src/discovery.ts`)
 
 -   Recursively walks directory trees starting from current working directory
--   Filters files by extension patterns (`.tst.sh`, `.tst.c`, `.tst.js`, `.tst.ts`, `.tst.es`)
+-   Filters files by extension patterns (`.tst.sh`, `.tst.ps1`, `.tst.bat`, `.tst.cmd`, `.tst.c`, `.tst.js`, `.tst.ts`, `.tst.py`, `.tst.go`, `.tst.es`)
 -   Supports pattern matching:
     -   File patterns: `*.tst.c`
     -   Base names: `math` (matches math.tst.c, math.tst.js, etc.)
@@ -140,9 +140,13 @@ All core types are defined here as `type` aliases (not interfaces):
 
 #### Language-Specific Execution
 
--   **Shell** (`handlers/shell.ts`): Detects shebang, makes executable, runs directly
--   **C** (`handlers/c.ts`): Compiles with gcc/clang to `.testme/binary`, then executes
+-   **Shell** (`handlers/shell.ts`): Detects shebang, makes executable, runs directly (bash, sh, zsh)
+-   **PowerShell** (`handlers/shell.ts`): Executes `.tst.ps1` files with PowerShell on Windows
+-   **Batch** (`handlers/shell.ts`): Executes `.tst.bat` and `.tst.cmd` files on Windows
+-   **C** (`handlers/c.ts`): Compiles with gcc/clang/msvc to `.testme/binary`, then executes
 -   **JS/TS** (`handlers/javascript.ts`, `handlers/typescript.ts`): Direct execution via Bun runtime
+-   **Python** (`handlers/python.ts`): Executes with python runtime
+-   **Go** (`handlers/go.ts`): Compiles and executes with go runtime
 -   **Ejscript** (`handlers/ejscript.ts`): Executes with ejs runtime, supports `--require` for module preloading
 
 #### Test Orchestration (`src/runner.ts` and `src/index.ts`)
@@ -181,7 +185,7 @@ The configuration file uses this hierarchy:
 -   30-second timeout per test
 -   Parallel execution with max 4 concurrent tests
 -   Simple colored output format
--   Discovers all `.tst.*` files (sh, c, js, ts, es), excludes node_modules/.testme/hidden dirs
+-   Discovers all `.tst.*` files (sh, ps1, bat, cmd, c, js, ts, py, go, es), excludes node_modules/.testme/hidden dirs
 -   Tests enabled by default with depth requirement of 0
 
 ### Key Features
@@ -219,10 +223,14 @@ The configuration file uses this hierarchy:
 
 Test files must use these specific extensions:
 
--   `.tst.sh` - Shell script tests
+-   `.tst.sh` - Shell script tests (bash, sh, zsh)
+-   `.tst.ps1` - PowerShell script tests (Windows)
+-   `.tst.bat`, `.tst.cmd` - Batch script tests (Windows)
 -   `.tst.c` - C program tests
 -   `.tst.js` - JavaScript tests (Bun runtime)
 -   `.tst.ts` - TypeScript tests (Bun runtime)
+-   `.tst.py` - Python script tests
+-   `.tst.go` - Go program tests
 -   `.tst.es` - Ejscript tests (ejs runtime)
 
 Exit code 0 indicates test success, non-zero indicates failure.
@@ -304,6 +312,33 @@ Services are managed per configuration group:
 -   Setup processes run in background and are killed on exit or during cleanup
 -   Skip scripts can output messages (stdout/stderr) that are displayed in verbose mode
 -   Service timeouts are configurable independently (skip, prep, setup, cleanup)
+
+## Installation and Distribution
+
+### NPM Package Installation
+
+TestMe is distributed as an npm package (`@embedthis/testme`) that:
+-   Builds the `tm` binary during postinstall using `bin/install.sh` wrapper
+-   Installs binary to `/usr/local/bin/tm` (Unix) or `C:\Windows\System32\tm.exe` (Windows)
+-   Installs `testme.h` C header to `/usr/local/include/testme.h` (or Windows equivalent)
+-   Installs man page to `/usr/local/share/man/man1/tm.1` (Unix only)
+-   Installs Ejscript `testme.mod` to `~/.ejs/testme.mod` and `/usr/local/lib/testme/testme.mod` if `ejsc` is found
+
+The installation script (`bin/install.mjs`) supports both Bun and Node.js runtimes via the `bin/install.sh` wrapper.
+
+### Building for Distribution
+
+```bash
+# Build binary
+bun run build              # Creates dist/tm or dist/tm.exe
+
+# Test installation locally
+npm pack                   # Creates tarball
+npm install -g testme-*.tgz
+
+# Publish to npm
+npm publish
+```
 
 # Important Notes
 

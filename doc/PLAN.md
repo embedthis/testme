@@ -4,8 +4,8 @@
 
 TestMe is a production-ready, cross-platform multi-language test runner with native support for Windows, macOS, and Linux. Core features are complete and well-documented.
 
-**Version**: 0.7.0+
-**Last Updated**: 2025-10-05
+**Version**: 0.8.0+
+**Last Updated**: 2025-10-06
 
 ## Recently Completed
 
@@ -119,12 +119,15 @@ More powerful test selection:
 
 Make TestMe easily installable:
 
--   [x] npm/bun package publication - Completed (installs/npm/)
+-   [x] npm/bun package publication - Completed (@embedthis/testme)
 -   [x] Homebrew formula (macOS) - Completed (installs/homebrew/)
 -   [x] winget package (Windows) - Completed (installs/winget/)
 -   [x] chocolatey package (Windows) - Completed (installs/chocolatey/)
 -   [x] apt packages (Linux) - Completed (installs/apt/)
--   [ ] Publish packages to respective registries
+-   [x] NPM package installation scripts - Completed (bin/install.sh, bin/install.mjs)
+-   [x] Automatic binary installation to system paths - Completed
+-   [x] Support file installation (testme.h, man page, testme.mod) - Completed
+-   [ ] Publish packages to respective registries (npm, homebrew, winget, chocolatey, apt)
 -   [ ] yum/rpm packages (RHEL/Fedora)
 
 ### 2. Language Extensions
@@ -146,8 +149,8 @@ Support additional languages:
 
 Help users create tests:
 
--   [ ] `tm init` command to create testme.json5
--   [ ] `tm new <name>` to scaffold test files
+-   [x] `tm --init` command to create testme.json5 - Completed
+-   [x] `tm --new <name>` to scaffold test files - Completed
 
 ## Technical Debt
 
@@ -207,4 +210,22 @@ See CONTRIBUTING.md (TODO) for detailed guidelines.
 
 ---
 
-**Next Review**: 2025-10-12
+## Recent Work (2025-10-06)
+
+### NPM Package Installation System
+
+Completed full npm package installation infrastructure:
+
+-   ✅ Created `bin/install.sh` wrapper script supporting both Bun and Node.js runtimes
+-   ✅ Implemented `bin/install.mjs` ES module installation script with:
+    -   Platform detection (Windows vs Unix)
+    -   Binary building with correct extension (.exe on Windows)
+    -   Binary installation to `/usr/local/bin/tm` (Unix) or `C:\Windows\System32\tm.exe` (Windows)
+    -   `testme.h` header installation to system include directories
+    -   Man page installation to `/usr/local/share/man/man1/tm.1` (Unix only)
+    -   Ejscript `testme.mod` installation to `~/.ejs/testme.mod` and `/usr/local/lib/testme/testme.mod` (if `ejsc` found)
+-   ✅ Updated package.json with correct files array (excluding pre-built binary)
+-   ✅ Configured postinstall hook to run installation script
+-   ✅ Updated documentation (CLAUDE.md) with installation process details
+
+**Next Review**: 2025-10-13

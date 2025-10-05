@@ -2,7 +2,7 @@
 
 ## Overview
 
-TestMe is a multi-language test runner built with Bun that discovers, compiles, and executes tests across shell, C, JavaScript, TypeScript, and Ejscript with configurable patterns and parallel execution. It provides a simple, consistent interface for running tests in embedded development environments.
+TestMe is a multi-language test runner built with Bun that discovers, compiles, and executes tests across shell, PowerShell, Batch, C, JavaScript, TypeScript, Python, Go, and Ejscript with configurable patterns and parallel execution. It provides a simple, consistent interface for running tests in embedded and cross-platform development environments.
 
 ## Architecture
 
@@ -53,7 +53,7 @@ TestMe is a multi-language test runner built with Bun that discovers, compiles, 
 
 ### Strategy Pattern - Test Handlers
 
-Each test type (Shell, C, JS, TS, ES) implements the `TestHandler` interface:
+Each test type (Shell, PowerShell, Batch, C, JS, TS, Python, Go, ES) implements the `TestHandler` interface:
 
 ```typescript
 interface TestHandler {
@@ -247,9 +247,11 @@ const handler = this.createFreshHandler(testFile);
 |--------|---------------|--------------|
 | `handlers/base.ts` | Common handler functionality | Command execution, timing, error handling |
 | `handlers/c.ts` | C test compilation and execution | GCC/Clang compilation, debugging support |
-| `handlers/shell.ts` | Shell script execution | Shebang detection, executable permissions |
+| `handlers/shell.ts` | Shell/PowerShell/Batch script execution | Shebang detection, platform-specific shell selection, executable permissions |
 | `handlers/javascript.ts` | JavaScript test execution | Bun runtime execution |
 | `handlers/typescript.ts` | TypeScript test execution | Direct Bun TypeScript execution |
+| `handlers/python.ts` | Python test execution | Python runtime execution |
+| `handlers/go.ts` | Go test execution | Go compilation and execution |
 | `handlers/ejscript.ts` | Ejscript test execution | Ejs runtime with module preloading |
 
 ### Utility Modules
@@ -265,7 +267,7 @@ const handler = this.createFreshHandler(testFile);
 ### Test Discovery Process
 
 1. **Recursive Directory Walking**: Starting from root, traverse all subdirectories
-2. **Extension Matching**: Files ending in `.tst.sh`, `.tst.c`, `.tst.js`, `.tst.ts`, `.tst.es`
+2. **Extension Matching**: Files ending in `.tst.sh`, `.tst.ps1`, `.tst.bat`, `.tst.cmd`, `.tst.c`, `.tst.js`, `.tst.ts`, `.tst.py`, `.tst.go`, `.tst.es`
 3. **Pattern Filtering**: Apply include/exclude glob patterns
 4. **TestFile Creation**: Generate metadata including artifact directories
 
@@ -467,6 +469,8 @@ TestMe supports platform-specific test types alongside cross-platform ones:
 | C | `.tst.c` | ✅ | ✅ | ✅ | MSVC/GCC/Clang |
 | JavaScript | `.tst.js` | ✅ | ✅ | ✅ | Bun |
 | TypeScript | `.tst.ts` | ✅ | ✅ | ✅ | Bun |
+| Python | `.tst.py` | ✅ | ✅ | ✅ | python |
+| Go | `.tst.go` | ✅ | ✅ | ✅ | go |
 | Ejscript | `.tst.es` | ✅ | ✅ | ✅ | ejs |
 
 ¹ Requires Git for Windows installation
@@ -823,8 +827,72 @@ export class PythonTestHandler extends BaseTestHandler {
 3. **Caching Layer**: Cache compilation results
 4. **Resource Pooling**: Reuse compilation processes
 
+## NPM Package Distribution
+
+TestMe is distributed as an npm package (`@embedthis/testme`) with automatic installation:
+
+### Installation Process
+
+The package uses a dual-runtime wrapper approach to support both Bun and Node.js:
+
+1. **Wrapper Script** (`bin/install.sh`): POSIX-compliant shell script that:
+   - Detects if Bun is available, uses it preferentially
+   - Falls back to Node.js if Bun is not found
+   - Executes the main installation script
+
+2. **Installation Script** (`bin/install.mjs`): ES module that:
+   - Checks for Bun availability (required for building)
+   - Builds the `tm` binary using `bun build --compile`
+   - Platform detection and appropriate binary naming (`.exe` on Windows)
+   - Installs binary to system locations:
+     - Unix: `/usr/local/bin/tm`
+     - Windows: `C:\Windows\System32\tm.exe`
+   - Installs support files:
+     - C header: `/usr/local/include/testme.h` (or Windows equivalent)
+     - Man page: `/usr/local/share/man/man1/tm.1` (Unix only)
+     - Ejscript module: `~/.ejs/testme.mod` and `/usr/local/lib/testme/testme.mod` (if `ejsc` found)
+
+### Package Configuration
+
+Key `package.json` settings:
+
+```json
+{
+  "name": "@embedthis/testme",
+  "bin": {
+    "tm": "./dist/tm"
+  },
+  "scripts": {
+    "postinstall": "sh bin/install.sh"
+  },
+  "files": [
+    "bin/install.sh",
+    "bin/install.mjs",
+    "src/**/*.ts",
+    "src/**/*.js",
+    "src/**/*.d.ts",
+    "src/modules/es/testme.mod",
+    "test/testme.h",
+    "doc/tm.1",
+    "testme.ts"
+  ]
+}
+```
+
+**Note:** The `dist/tm` binary is NOT included in the package files - it's built during postinstall. This ensures cross-platform compatibility and reduces package size.
+
+### Installation Workflow
+
+1. User runs: `npm install -g @embedthis/testme` or `bun install -g @embedthis/testme`
+2. npm/bun downloads package (without pre-built binary)
+3. Postinstall hook runs `bin/install.sh`
+4. Wrapper detects runtime and executes `bin/install.mjs`
+5. Installation script builds binary for current platform
+6. Binary and support files installed to system paths
+7. npm/bun links binary to user's PATH via the `bin` field
+
 ## Conclusion
 
-TestMe's architecture emphasizes simplicity, safety, and extensibility. The strategy pattern for handlers, fresh instance creation for parallel safety, and hierarchical configuration provide a robust foundation for multi-language testing in embedded development environments.
+TestMe's architecture emphasizes simplicity, safety, and extensibility. The strategy pattern for handlers, fresh instance creation for parallel safety, and hierarchical configuration provide a robust foundation for multi-language testing in embedded and cross-platform development environments.
 
-The key architectural decisions - batched parallel execution, isolated artifact management, and fresh handler instances - successfully resolve the inherent challenges of concurrent test execution while maintaining simplicity and performance.
+The key architectural decisions - batched parallel execution, isolated artifact management, fresh handler instances, and platform abstraction layer - successfully resolve the inherent challenges of concurrent test execution while maintaining simplicity, performance, and cross-platform compatibility.
