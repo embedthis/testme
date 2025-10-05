@@ -238,7 +238,7 @@ export class CTestHandler extends BaseTestHandler {
             }
 
             return await this.runCommand(compilerConfig.compiler, args, {
-                cwd: file.artifactDir, // Use unique artifact directory to avoid parallel compilation conflicts
+                cwd: baseDir, // Compile from config directory so relative paths in flags work correctly
                 timeout: 60000, // 1 minute for compilation
                 env
             });
