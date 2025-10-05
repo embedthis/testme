@@ -8,6 +8,9 @@ import {
 import { BaseTestHandler } from "./base.ts";
 import { ArtifactManager } from "../artifacts.ts";
 import { GlobExpansion } from "../utils/glob-expansion.ts";
+import { CompilerManager, CompilerType } from "../platform/compiler.ts";
+import { PermissionManager } from "../platform/permissions.ts";
+import { PlatformDetector } from "../platform/detector.ts";
 import { basename, resolve, isAbsolute } from "path";
 
 /*
@@ -130,61 +133,114 @@ export class CTestHandler extends BaseTestHandler {
         error?: string;
     }> {
         const { result, duration } = await this.measureExecution(async () => {
-            const compiler = config.compiler?.c?.compiler || "gcc";
-            const rawFlags = config.compiler?.c?.flags || [
-                "-std=c99",
-                "-Wall",
-                "-Wextra",
-            ];
-            const rawLibraries = config.compiler?.c?.libraries || [];
             const binaryPath = this.getBinaryPath(file);
-
-            // Use config directory as base for glob expansion if available, otherwise use test file directory
             const baseDir = config.configDir || file.directory;
 
+            // Get compiler configuration (auto-detect if not specified)
+            const compilerConfig = await CompilerManager.getDefaultCompilerConfig(
+                config.compiler?.c?.compiler
+            );
+
+            // Get compiler-specific or default flags and libraries
+            let userFlags: string[] = [];
+            let rawLibraries: string[] = [];
+
+            // Select flags based on detected compiler type
+            const cConfig = config.compiler?.c;
+            if (cConfig) {
+                // Try compiler-specific config first
+                if (compilerConfig.type === CompilerType.MSVC && cConfig.msvc) {
+                    userFlags = cConfig.msvc.flags || [];
+                    rawLibraries = cConfig.msvc.libraries || [];
+                } else if (compilerConfig.type === CompilerType.GCC && cConfig.gcc) {
+                    userFlags = cConfig.gcc.flags || [];
+                    rawLibraries = cConfig.gcc.libraries || [];
+                } else if (compilerConfig.type === CompilerType.Clang && cConfig.clang) {
+                    userFlags = cConfig.clang.flags || [];
+                    rawLibraries = cConfig.clang.libraries || [];
+                } else {
+                    // Fall back to default flags
+                    userFlags = cConfig.flags || [];
+                    rawLibraries = cConfig.libraries || [];
+                }
+            }
+
+            // Merge compiler defaults with user flags (defaults first, then user overrides)
+            let flags = [...compilerConfig.flags, ...userFlags];
+
+            // Create special variables for expansion
+            const specialVars = GlobExpansion.createSpecialVariables(
+                file.artifactDir,
+                file.directory,
+                config.configDir,
+                compilerConfig.compiler,
+                config.profile
+            );
+
             // Expand ${...} references in flags and libraries
-            const expandedFlags = await GlobExpansion.expandArray(
-                rawFlags,
-                baseDir
-            );
-            const expandedLibraries = await GlobExpansion.expandArray(
-                rawLibraries,
-                baseDir
-            );
+            const expandedFlags = await GlobExpansion.expandArray(flags, baseDir, specialVars);
+            const expandedLibraries = await GlobExpansion.expandArray(rawLibraries, baseDir, specialVars);
 
             // Convert relative paths to absolute paths since we compile from artifact directory
-            const flags = this.resolveRelativePaths(expandedFlags, baseDir);
-            const libraries = this.resolveRelativePaths(
-                expandedLibraries,
-                baseDir
+            flags = this.resolveRelativePaths(expandedFlags, baseDir);
+            const libraries = this.resolveRelativePaths(expandedLibraries, baseDir);
+
+            // Process libraries based on compiler type
+            const libraryFlags = CompilerManager.processLibraries(
+                libraries,
+                compilerConfig.type
             );
 
-            const libraryFlags = this.processLibraries(libraries);
+            // Build compiler arguments based on compiler type
+            const args: string[] = [];
 
-            const args = [
-                ...flags,
-                "-I",
-                file.directory, // Add test file directory to include path since we compile from artifact dir
-                "-o",
-                binaryPath,
-                file.path, // Already absolute path, so works from any cwd
-                ...libraryFlags,
-            ];
+            if (compilerConfig.type === CompilerType.MSVC) {
+                // MSVC syntax: cl.exe [flags] /Fe:output.exe input.c [/link libraries]
+                args.push(...flags);
+                args.push(`/I${file.directory}`); // Include test directory
+                args.push(`/Fe:${binaryPath}`);
+                args.push(file.path);
+
+                if (libraryFlags.length > 0) {
+                    args.push("/link");
+                    args.push(...libraryFlags);
+                }
+            } else {
+                // GCC/Clang/MinGW syntax: gcc [flags] -I dir -o output input.c [libraries]
+                args.push(...flags);
+                args.push("-I", file.directory);
+                args.push("-o", binaryPath);
+                args.push(file.path);
+                args.push(...libraryFlags);
+            }
 
             // Display config and compile command if showCommands is enabled
             if (config.execution?.showCommands) {
-                // Display the configuration being used
                 console.log(`📄 Config used for ${file.name}:`);
                 console.log(this.formatConfig(config));
-
-                // Display the compile command
-                const command = `${compiler} ${args.join(" ")}`;
-                console.log(`📋 Compile command: ${command}`);
+                console.log(`🔧 Compiler: ${compilerConfig.compiler} (${compilerConfig.type})`);
+                console.log(`📋 Compile command: ${compilerConfig.compiler} ${args.join(" ")}`);
             }
 
-            return await this.runCommand(compiler, args, {
+            // Build environment for MSVC if needed
+            let env = undefined;
+            if (compilerConfig.type === CompilerType.MSVC && compilerConfig.env) {
+                env = { ...process.env };
+                if (compilerConfig.env.PATH) {
+                    env.PATH = `${compilerConfig.env.PATH};${process.env.PATH}`;
+                }
+                if (compilerConfig.env.INCLUDE) {
+                    env.INCLUDE = compilerConfig.env.INCLUDE;
+                }
+                if (compilerConfig.env.LIB) {
+                    env.LIB = compilerConfig.env.LIB;
+                }
+            }
+
+            return await this.runCommand(compilerConfig.compiler, args, {
                 cwd: file.artifactDir, // Use unique artifact directory to avoid parallel compilation conflicts
                 timeout: 60000, // 1 minute for compilation
+                env
             });
         });
 
@@ -216,25 +272,12 @@ ${result.stderr}`;
     /*
      Gets the path where the compiled binary should be stored
      @param file C test file
-     @returns Path to compiled binary in artifact directory
+     @returns Path to compiled binary in artifact directory (with .exe on Windows)
      */
     private getBinaryPath(file: TestFile): string {
         const baseName = basename(file.name, ".tst.c");
-        return this.artifactManager.getArtifactPath(file, baseName);
-    }
-
-    /*
-     Processes library names and converts them to linker flags
-     Handles both bare names (e.g., "m") and lib-prefixed names (e.g., "libm")
-     @param libraries Array of library names from configuration
-     @returns Array of linker flags (e.g., ["-lm", "-lpthread"])
-     */
-    private processLibraries(libraries: string[]): string[] {
-        return libraries.map((lib) => {
-            // Remove "lib" prefix if present, then add "-l" prefix
-            const libName = lib.startsWith("lib") ? lib.slice(3) : lib;
-            return `-l${libName}`;
-        });
+        const binaryName = PermissionManager.addBinaryExtension(baseName);
+        return this.artifactManager.getArtifactPath(file, binaryName);
     }
 
     /*
@@ -278,17 +321,21 @@ ${result.stderr}`;
         config: TestConfig,
         compileDuration: number
     ): Promise<TestResult> {
-        const platform = process.platform;
-
         try {
-            if (platform === "darwin") {
+            if (PlatformDetector.isMacOS()) {
                 return await this.launchXcodeDebugger(
                     file,
                     config,
                     compileDuration
                 );
-            } else if (platform === "linux") {
+            } else if (PlatformDetector.isLinux()) {
                 return await this.launchGdbDebugger(
+                    file,
+                    config,
+                    compileDuration
+                );
+            } else if (PlatformDetector.isWindows()) {
+                return await this.launchWindowsDebugger(
                     file,
                     config,
                     compileDuration
@@ -299,7 +346,7 @@ ${result.stderr}`;
                     TestStatus.Error,
                     compileDuration,
                     "",
-                    `Debug mode not supported on platform: ${platform}`
+                    `Debug mode not supported on platform: ${process.platform}`
                 );
             }
         } catch (error) {
@@ -330,6 +377,9 @@ ${result.stderr}`;
         try {
             // Get expanded flags and libraries (same as used for compilation)
             const baseDir = config.configDir || file.directory;
+            const compilerConfig = await CompilerManager.getDefaultCompilerConfig(
+                config.compiler?.c?.compiler
+            );
             const rawFlags = config.compiler?.c?.flags || [
                 "-std=c99",
                 "-Wall",
@@ -337,14 +387,25 @@ ${result.stderr}`;
             ];
             const rawLibraries = config.compiler?.c?.libraries || [];
 
+            // Create special variables for expansion
+            const specialVars = GlobExpansion.createSpecialVariables(
+                file.artifactDir,
+                file.directory,
+                config.configDir,
+                compilerConfig.compiler,
+                config.profile
+            );
+
             // Expand ${...} references in flags and libraries
             const expandedFlags = await GlobExpansion.expandArray(
                 rawFlags,
-                baseDir
+                baseDir,
+                specialVars
             );
             const expandedLibraries = await GlobExpansion.expandArray(
                 rawLibraries,
-                baseDir
+                baseDir,
+                specialVars
             );
 
             // Convert relative paths to absolute paths for Xcode project
@@ -544,6 +605,122 @@ ${gdb.stdout}`;
     }
 
     /*
+     Launches Windows debugger (VS Code or Visual Studio)
+     @param file C test file to debug
+     @param config Test execution configuration
+     @param compileDuration Duration of compilation phase
+     @returns Promise resolving to test results
+     */
+    private async launchWindowsDebugger(
+        file: TestFile,
+        config: TestConfig,
+        compileDuration: number
+    ): Promise<TestResult> {
+        const binaryPath = this.getBinaryPath(file);
+
+        try {
+            // Try to create VS Code launch configuration
+            const vscodeConfigCreated = await this.createVSCodeDebugConfig(file, config);
+
+            if (vscodeConfigCreated) {
+                console.log("🛠️  VS Code debug configuration created");
+                console.log(`📁 Open this folder in VS Code: ${file.directory}`);
+                console.log("📋 Press F5 in VS Code to start debugging");
+
+                const output = `VS Code debug configuration created successfully.
+Location: ${file.directory}\\.vscode\\launch.json
+Binary: ${binaryPath}
+
+To debug:
+1. Open this folder in VS Code
+2. Open the test file: ${file.name}
+3. Set breakpoints in your code
+4. Press F5 (or Run > Start Debugging)
+5. The debugger will stop at breakpoints
+
+Note: Make sure you have the C/C++ extension installed in VS Code.`;
+
+                return this.createTestResult(
+                    file,
+                    TestStatus.Passed,
+                    compileDuration,
+                    output
+                );
+            } else {
+                throw new Error("Could not create VS Code debug configuration");
+            }
+        } catch (error) {
+            throw new Error(`Windows debugger setup failed: ${error}`);
+        }
+    }
+
+    /*
+     Creates VS Code debug configuration for C test
+     @param file C test file
+     @param config Test execution configuration
+     @returns Promise resolving to true if successful
+     */
+    private async createVSCodeDebugConfig(
+        file: TestFile,
+        config: TestConfig
+    ): Promise<boolean> {
+        try {
+            const vscodeDir = resolve(file.directory, ".vscode");
+            const launchJsonPath = resolve(vscodeDir, "launch.json");
+
+            // Create .vscode directory if it doesn't exist
+            await Bun.$`mkdir -p ${vscodeDir}`.quiet();
+
+            const binaryPath = this.getBinaryPath(file);
+
+            // Determine debugger type based on available compiler
+            const compilerConfig = await CompilerManager.getDefaultCompilerConfig(
+                config.compiler?.c?.compiler
+            );
+
+            let debuggerType = "cppvsdbg"; // Default for MSVC
+            if (compilerConfig.type === CompilerType.MinGW || compilerConfig.type === CompilerType.GCC) {
+                debuggerType = "cppdbg"; // For MinGW/GCC (uses GDB)
+            }
+
+            const launchConfig = {
+                version: "0.2.0",
+                configurations: [
+                    {
+                        name: `Debug ${file.name}`,
+                        type: debuggerType,
+                        request: "launch",
+                        program: binaryPath,
+                        args: [],
+                        stopAtEntry: false,
+                        cwd: file.directory,
+                        environment: [],
+                        externalConsole: false,
+                        MIMode: debuggerType === "cppdbg" ? "gdb" : undefined,
+                        miDebuggerPath: debuggerType === "cppdbg" ? "gdb.exe" : undefined,
+                        setupCommands: debuggerType === "cppdbg" ? [
+                            {
+                                description: "Enable pretty-printing for gdb",
+                                text: "-enable-pretty-printing",
+                                ignoreFailures: true
+                            }
+                        ] : undefined,
+                        preLaunchTask: undefined
+                    }
+                ]
+            };
+
+            // Write launch.json
+            await Bun.write(launchJsonPath, JSON.stringify(launchConfig, null, 4));
+
+            return true;
+        } catch (error) {
+            console.warn(`Warning: Could not create VS Code config: ${error}`);
+            return false;
+        }
+    }
+
+    /*
      Resolves relative paths to absolute paths based on a base directory
      @param flags Array of compiler flags that may contain relative paths
      @param baseDir Base directory to resolve relative paths from
@@ -553,13 +730,14 @@ ${gdb.stdout}`;
         return flags.map((flag) => {
             // Check if this is an include or library path flag that starts with a relative path
             if (
-                (flag.startsWith("-I") || flag.startsWith("-L")) &&
+                (flag.startsWith("-I") || flag.startsWith("-L") || flag.startsWith("/I")) &&
                 flag.length > 2
             ) {
-                const path = flag.substring(2);
+                const pathStart = flag.startsWith("/I") ? 2 : 2;
+                const path = flag.substring(pathStart);
                 if (!isAbsolute(path)) {
                     const resolvedPath = resolve(baseDir, path);
-                    return flag.substring(0, 2) + resolvedPath;
+                    return flag.substring(0, pathStart) + resolvedPath;
                 }
             }
             return flag;

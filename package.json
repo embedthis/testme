@@ -1,47 +1,54 @@
 {
-    "name": "testme",
-    "version": "0.7.0",
-    "description": "Multi-language test runner for shell, C, JavaScript, and TypeScript tests",
-    "main": "src/pkg/testme.js",
-    "module": "src/pkg/testme.js",
-    "types": "src/pkg/testme.d.ts",
-    "type": "module",
-    "private": false,
-    "bin": {
-        "tm": "./src/index.ts"
-    },
-    "exports": {
-        ".": {
-            "import": "./src/pkg/testme.js",
-            "types": "./src/pkg/testme.d.ts"
-        }
-    },
-    "scripts": {
-        "start": "bun run src/index.ts",
-        "compile": "bun build src/index.ts --outdir ./dist --target bun",
-        "build": "bun build ./testme.ts --compile --outfile tm",
-        "test": "bun test",
-        "clean": "rm -rf dist .testme"
-    },
-    "devDependencies": {
-        "@types/bun": "latest",
-        "bun-types": "latest"
-    },
-    "peerDependencies": {
-        "typescript": "^5"
-    },
-    "keywords": [
-        "test",
-        "testing",
-        "test-runner",
-        "c",
-        "javascript",
-        "typescript",
-        "shell",
-        "bun"
-    ],
-    "dependencies": {
-        "glob": "^11.0.3",
-        "json5": "^2.2.3"
+  "name": "testme",
+  "version": "0.7.0",
+  "description": "Multi-language test runner for shell, C, JavaScript, and TypeScript tests",
+  "main": "src/pkg/testme.js",
+  "module": "src/pkg/testme.js",
+  "types": "src/pkg/testme.d.ts",
+  "type": "module",
+  "private": false,
+  "bin": {
+    "tm": "./src/index.ts"
+  },
+  "exports": {
+    ".": {
+      "import": "./src/pkg/testme.js",
+      "types": "./src/pkg/testme.d.ts"
     }
+  },
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "build": "bun build ./testme.ts --compile --outfile tm",
+    "build:win": "bun build ./testme.ts --compile --outfile tm.exe",
+    "build:unix": "bun build ./testme.ts --compile --outfile tm",
+    "test": "bun test",
+    "clean": "node -e \"require('fs').rmSync('dist', {recursive: true, force: true}); require('fs').rmSync('.testme', {recursive: true, force: true})\"",
+    "clean:win": "if exist tm.exe del tm.exe && for /f %i in ('dir /b /a .*.bun-build 2^>nul') do del %i",
+    "clean:unix": "rm -rf dist .testme tm"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "bun-types": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "keywords": [
+    "test",
+    "testing",
+    "test-runner",
+    "c",
+    "javascript",
+    "typescript",
+    "shell",
+    "powershell",
+    "batch",
+    "windows",
+    "cross-platform",
+    "bun"
+  ],
+  "dependencies": {
+    "glob": "^11.0.3",
+    "json5": "^2.2.3"
+  }
 }

@@ -136,6 +136,16 @@ export class CliParser {
                     }
                     break;
 
+                case "--profile":
+                case "-p":
+                    if (i + 1 < args.length) {
+                        options.profile = args[i + 1]!;
+                        i += 2;
+                    } else {
+                        throw new Error(`${arg} requires a profile name`);
+                    }
+                    break;
+
                 default:
                     if (arg.startsWith("-")) {
                         throw new Error(`Unknown option: ${arg}`);
@@ -180,6 +190,7 @@ OPTIONS:
     -h, --help             Show this help message
     -k, --keep             Keep .testme artifacts after running tests
     -l, --list             List discovered tests without running them
+    -p, --profile <NAME>   Set build profile (overrides config and env.PROFILE)
     -q, --quiet            Run silently with no output, only exit codes
     -s, --show             Display the C compile command used
         --step             Run tests one at a time with prompts (forces serial mode)
@@ -205,10 +216,14 @@ EXAMPLES:
     tm --quiet                 # Run silently with no output, only exit codes
 
 SUPPORTED TEST TYPES:
-    *.tst.sh    Shell script tests
-    *.tst.c     C program tests (compiled automatically)
+    *.tst.sh    Shell script tests (bash/zsh/fish)
+    *.tst.ps1   PowerShell script tests (Windows)
+    *.tst.bat   Batch script tests (Windows)
+    *.tst.cmd   Command script tests (Windows)
+    *.tst.c     C program tests (compiled with gcc/clang/MSVC)
     *.tst.js    JavaScript tests (run with Bun)
     *.tst.ts    TypeScript tests (run with Bun)
+    *.tst.es    Ejscript tests (run with ejs)
 
 CONFIGURATION:
     tm looks for testme.json configuration files starting from the current

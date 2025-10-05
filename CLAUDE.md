@@ -169,16 +169,19 @@ The configuration file uses this hierarchy:
 ### Key Features
 
 **Environment Variables:**
+
 -   Values support `${...}` patterns for glob expansion
 -   Paths resolved relative to config file directory
 -   Example: `BIN: "${../build/*/bin}"` expands to actual build path
 
 **Test Control:**
+
 -   Set `enable: false` to disable tests in a directory
 -   Set `depth: N` to require `--depth N` or higher to run tests
 -   Skip script can dynamically determine if tests should run
 
 **Service Lifecycle:**
+
 -   Skip → Prep → Setup → Tests → Cleanup
 -   Skip: exit 0=run, non-zero=skip (can output message)
 -   Prep: runs once, waits for completion
@@ -261,6 +264,7 @@ When committing changes, use the following format:
 ### Path Handling in Reporter
 
 The reporter converts absolute paths in output to relative paths (`reporter.ts:convertPathsToRelative()`):
+
 -   Uses regex to find absolute paths in test output
 -   Excludes URLs (http://, https://) via negative lookbehind
 -   Converts paths relative to invocation directory for cleaner output
@@ -268,6 +272,7 @@ The reporter converts absolute paths in output to relative paths (`reporter.ts:c
 ### Environment Variable Expansion
 
 The `GlobExpansion` utility (`utils/glob-expansion.ts`) handles `${...}` patterns:
+
 -   Expands glob patterns in environment variable values
 -   Resolves paths relative to config directory
 -   Only processes values containing `${` to avoid breaking URLs and other values
@@ -276,14 +281,17 @@ The `GlobExpansion` utility (`utils/glob-expansion.ts`) handles `${...}` pattern
 ### Service Management
 
 Services are managed per configuration group:
+
 -   Each config directory gets its own service lifecycle
 -   Setup processes run in background and are killed on exit or during cleanup
 -   Skip scripts can output messages (stdout/stderr) that are displayed in verbose mode
 -   Service timeouts are configurable independently (skip, prep, setup, cleanup)
 
 # Important Notes
-- Always format the code using an indent of 4 spaces
-- Text inside comments should be indented by 4 spaces
-- Update the DESIGN.md and man page whenever impactful changes are made to the code
-- When writing code, format using prettier with tab stops set to 4 spaces
-- All code is sufficiently commented with JSDoc-style comments
+
+-   Always format the code using an indent of 4 spaces
+-   Text inside comments should be indented by 4 spaces
+-   Update the DESIGN.md and man page whenever impactful changes are made to the code
+-   When writing code, format using prettier with tab stops set to 4 spaces
+-   All code is sufficiently commented with JSDoc-style comments
+-   Tests in subdirectories need to have unique names to avoid conflicts with tests in the parent or sibling directories.

@@ -1,0 +1,16 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug math.tst.c",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "C:\\Users\\mob\\testme\\test\\windows\\.testme\\math\\math.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "C:\\Users\\mob\\testme\\test\\windows",
+            "environment": [],
+            "externalConsole": false
+        }
+    ]
+}

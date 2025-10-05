@@ -16,8 +16,8 @@ export class ConfigManager {
         enable: true, // Tests are enabled by default
         compiler: {
             c: {
-                compiler: 'gcc',
-                flags: ['-std=c99', '-Wall', '-Wextra'],
+                // No compiler specified - auto-detect based on platform
+                // No flags specified - use compiler defaults from CompilerManager
             }
         },
         execution: {
@@ -31,7 +31,7 @@ export class ConfigManager {
             colors: true
         },
         patterns: {
-            include: ['**/*.tst.sh', '**/*.tst.c', '**/*.tst.js', '**/*.tst.ts'],
+            include: ['**/*.tst.sh', '**/*.tst.ps1', '**/*.tst.bat', '**/*.tst.cmd', '**/*.tst.c', '**/*.tst.js', '**/*.tst.ts', '**/*.tst.es'],
             exclude: ['**/node_modules/**', '**/.testme/**', '**/.*/**']
         },
         services: {
@@ -99,7 +99,11 @@ export class ConfigManager {
             enable: userConfig.enable !== undefined ? userConfig.enable : this.DEFAULT_CONFIG.enable,
             compiler: {
                 ...this.DEFAULT_CONFIG.compiler,
-                ...userConfig.compiler
+                ...userConfig.compiler,
+                c: {
+                    ...this.DEFAULT_CONFIG.compiler?.c,
+                    ...userConfig.compiler?.c
+                }
             },
             execution: {
                 ...this.DEFAULT_CONFIG.execution,

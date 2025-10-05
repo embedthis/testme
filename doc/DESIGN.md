@@ -283,12 +283,40 @@ type TestFile = {
 
 ### C Test Compilation Pipeline
 
+#### Cross-Platform Compiler Support
+
+TestMe automatically detects and configures the appropriate C compiler for the platform:
+
+**Platform-Specific Compiler Detection:**
+- **Windows**: MSVC (via vswhere.exe + manual search), MinGW, or Clang
+- **macOS**: Clang or GCC
+- **Linux**: GCC or Clang
+
+**Default Compiler Flags (automatically applied):**
+- **GCC/Clang**: `-std=c99 -Wall -Wextra -O0 -g`
+- **MSVC**: `/std:c11 /W4 /Od /Zi /nologo`
+
+**Flag Merging**: User-specified flags are merged with defaults:
+```typescript
+// Defaults applied first, then user flags (user flags can override)
+let flags = [...compilerConfig.flags, ...userFlags];
+```
+
+**Compiler-Specific Configuration**: Users can provide compiler-specific flags:
+- `compiler.c.gcc.flags` - Merged with GCC defaults
+- `compiler.c.clang.flags` - Merged with Clang defaults
+- `compiler.c.msvc.flags` - Merged with MSVC defaults
+
+#### Compilation Pipeline Steps
+
 1. **Artifact Directory Creation**: Ensure `.testme` directory exists
-2. **Glob Expansion**: Resolve `${...}` patterns in compiler flags
-3. **Path Resolution**: Convert relative paths to absolute for artifact directory compilation
-4. **Compilation**: Execute GCC/Clang with resolved flags and paths from artifact directory
-5. **Execution**: Run compiled binary with working directory set to test directory
-6. **Cleanup**: Remove artifacts unless `--keep` specified
+2. **Compiler Detection**: Auto-detect platform-appropriate compiler
+3. **Flag Selection**: Choose compiler-specific config and merge with defaults
+4. **Glob Expansion**: Resolve `${...}` patterns in compiler flags
+5. **Path Resolution**: Convert relative paths to absolute for artifact directory compilation
+6. **Compilation**: Execute compiler with resolved flags and paths from artifact directory
+7. **Execution**: Run compiled binary with working directory set to test directory
+8. **Cleanup**: Remove artifacts unless `--keep` specified
 
 ```typescript
 // Compilation: Uses artifact directory to avoid conflicts
@@ -303,6 +331,172 @@ return await this.runCommand(binaryPath, [], {
     timeout: config.execution?.timeout || 30000
 });
 ```
+
+### Platform Abstraction Layer
+
+TestMe implements a comprehensive cross-platform abstraction layer in `src/platform/` that enables native support for Windows, macOS, and Linux without requiring emulation layers like WSL.
+
+#### Platform Detection (`src/platform/detector.ts`)
+
+Provides automatic detection of:
+
+**Operating System:**
+- Windows 10/11
+- macOS (Darwin)
+- Linux distributions
+
+**CPU Architecture:**
+- x64 (x86_64, AMD64)
+- ARM64 (AArch64)
+- x86 (i386, i686)
+- ARM (ARM32)
+
+**C Compilers:**
+- **Windows**: MSVC (via vswhere.exe), MinGW-w64, LLVM/Clang
+- **macOS**: Clang (Xcode), GCC (Homebrew)
+- **Linux**: GCC, Clang
+
+**Shell Interpreters:**
+- **Windows**: PowerShell, cmd.exe, Git Bash
+- **Unix**: bash, zsh, fish, sh
+
+**Debuggers:**
+- **Windows**: VS Code (cppvsdbg for MSVC, cppdbg for GCC/MinGW)
+- **macOS**: Xcode, LLDB
+- **Linux**: GDB
+
+#### Process Management (`src/platform/process.ts`)
+
+Unified interface for cross-platform process operations:
+
+**Process Termination:**
+```typescript
+// Windows: taskkill /PID <pid> /T /F
+// Unix: kill -TERM <pid> → kill -KILL <pid>
+await ProcessManager.killProcess(pid, graceful);
+```
+
+**Features:**
+- Graceful vs forceful termination
+- Process tree termination (including child processes)
+- Process status checking
+- Platform-appropriate timeout handling
+
+#### File Permissions (`src/platform/permissions.ts`)
+
+Handles platform differences in executable file handling:
+
+**Windows:**
+- Extension-based execution (`.exe`, `.bat`, `.cmd`, `.ps1`)
+- No chmod equivalent
+- Automatic binary naming with `.exe` extension
+
+**Unix:**
+- Permission bits via `chmod +x`
+- Shebang line detection
+- No file extension required
+
+**Binary Path Resolution:**
+```typescript
+// Automatically adds .exe on Windows
+const binaryPath = PermissionManager.getBinaryPath(basePath);
+// Windows: path/to/test.exe
+// Unix: path/to/test
+```
+
+#### Shell Execution (`src/platform/shell.ts`)
+
+Cross-platform shell detection and execution:
+
+**Shell Priority:**
+- **Windows**: PowerShell → cmd → Git Bash
+- **macOS**: zsh → bash → sh
+- **Linux**: bash → sh → dash
+
+**Shell-Specific Execution:**
+```typescript
+// PowerShell: powershell.exe -ExecutionPolicy Bypass -File script.ps1
+// Batch: cmd.exe /c call script.bat
+// Bash: bash script.sh
+```
+
+**Extension Mapping:**
+- `.ps1` → PowerShell
+- `.bat`, `.cmd` → cmd.exe
+- `.sh` → bash/zsh/sh
+
+#### Compiler Abstraction (`src/platform/compiler.ts`)
+
+Unified C compiler interface with automatic flag translation:
+
+**Compiler Detection Priority:**
+- **Windows**: MSVC → MinGW → Clang
+- **macOS**: Clang → GCC
+- **Linux**: GCC → Clang
+
+**Automatic Flag Translation:**
+| GCC/Clang | MSVC | Purpose |
+|-----------|------|---------|
+| `-Wall` | `/W4` | Warning level |
+| `-std=c99` | `/std:c11` | Language standard |
+| `-I<path>` | `/I<path>` | Include directory |
+| `-L<path>` | `/LIBPATH:<path>` | Library directory |
+| `-D<def>` | `/D<def>` | Preprocessor define |
+| `-o <file>` | `/Fe:<file>` | Output file |
+| `-g` | `/Zi` | Debug information |
+| `-O0` | `/Od` | Optimization level |
+
+**Default Compiler Configurations:**
+```typescript
+// GCC/Clang defaults
+const gccDefaults = ['-std=c99', '-Wall', '-Wextra', '-O0', '-g'];
+
+// MSVC defaults
+const msvcDefaults = ['/std:c11', '/W4', '/Od', '/Zi', '/nologo'];
+```
+
+### Cross-Platform Test Types
+
+TestMe supports platform-specific test types alongside cross-platform ones:
+
+| Test Type | Extension | Windows | macOS | Linux | Executor |
+|-----------|-----------|---------|-------|-------|----------|
+| Shell | `.tst.sh` | Git Bash¹ | ✅ | ✅ | bash/zsh/sh |
+| PowerShell | `.tst.ps1` | ✅ | pwsh² | pwsh² | powershell.exe |
+| Batch | `.tst.bat`, `.tst.cmd` | ✅ | ❌ | ❌ | cmd.exe |
+| C | `.tst.c` | ✅ | ✅ | ✅ | MSVC/GCC/Clang |
+| JavaScript | `.tst.js` | ✅ | ✅ | ✅ | Bun |
+| TypeScript | `.tst.ts` | ✅ | ✅ | ✅ | Bun |
+| Ejscript | `.tst.es` | ✅ | ✅ | ✅ | ejs |
+
+¹ Requires Git for Windows installation
+² Requires PowerShell Core installation
+
+### Platform-Specific Features
+
+#### Windows
+- Binary extension: `.exe` automatically appended
+- PATH separator: `;` (semicolon)
+- Process termination: `taskkill /PID <pid> /T /F`
+- File executability: Extension-based (`.exe`, `.bat`, `.cmd`, `.ps1`)
+- Default compiler: MSVC (Visual Studio)
+- Debugger: VS Code with cppvsdbg (MSVC) or cppdbg (MinGW/Clang)
+
+#### macOS
+- Binary extension: None
+- PATH separator: `:` (colon)
+- Process termination: `kill -TERM <pid>` then `kill -KILL <pid>`
+- File executability: Permission bits via `chmod +x`
+- Default compiler: Clang (Xcode)
+- Debugger: Xcode with lldb
+
+#### Linux
+- Binary extension: None
+- PATH separator: `:` (colon)
+- Process termination: `kill -TERM <pid>` then `kill -KILL <pid>`
+- File executability: Permission bits via `chmod +x`
+- Default compiler: GCC
+- Debugger: GDB
 
 ### Parallel Execution Safety
 
@@ -351,9 +545,21 @@ type TestConfig = {
     depth?: number;              // Minimum depth required to run tests (default: 0)
     compiler?: {
         c?: {
-            compiler: string;    // 'gcc' or 'clang'
-            flags: string[];     // Compilation flags
-            libraries: string[]; // Libraries to link
+            compiler?: string;   // Optional: compiler path (auto-detects if not specified)
+            flags?: string[];    // Common flags for all compilers (merged with defaults)
+            libraries?: string[];
+            gcc?: {              // GCC-specific configuration
+                flags?: string[];     // Merged with defaults: -std=c99 -Wall -Wextra -O0 -g
+                libraries?: string[]; // e.g., ['m', 'pthread']
+            };
+            clang?: {            // Clang-specific configuration
+                flags?: string[];     // Merged with defaults: -std=c99 -Wall -Wextra -O0 -g
+                libraries?: string[];
+            };
+            msvc?: {             // MSVC-specific configuration (Windows)
+                flags?: string[];     // Merged with defaults: /std:c11 /W4 /Od /Zi /nologo
+                libraries?: string[];
+            };
         },
         es?: {
             require?: string | string[];  // Modules to preload with --require

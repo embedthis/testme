@@ -195,6 +195,8 @@ export class TestRunner {
   private createFreshHandler(testFile: TestFile): TestHandler | undefined {
     switch (testFile.type) {
       case TestType.Shell:
+      case TestType.PowerShell:
+      case TestType.Batch:
         return new ShellTestHandler();
       case TestType.C:
         return new CTestHandler();

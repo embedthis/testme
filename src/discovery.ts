@@ -10,6 +10,9 @@ export class TestDiscovery {
     // Mapping of file extensions to test types
     private static readonly TEST_EXTENSIONS = {
         '.tst.sh': TestType.Shell,
+        '.tst.ps1': TestType.PowerShell,
+        '.tst.bat': TestType.Batch,
+        '.tst.cmd': TestType.Batch,
         '.tst.c': TestType.C,
         '.tst.js': TestType.JavaScript,
         '.tst.ts': TestType.TypeScript,
@@ -159,32 +162,45 @@ export class TestDiscovery {
 
                 // Check if pattern matches a directory component (relative to rootDir)
                 const relativePath = test.directory.startsWith(rootDir)
-                    ? test.directory.slice(rootDir.length).replace(/^\//, '')
+                    ? test.directory.slice(rootDir.length).replace(/^[\/\\]/, '')
                     : test.directory;
-                const directoryParts = relativePath.split('/').filter(p => p.length > 0);
+                const directoryParts = relativePath.split(/[\/\\]/).filter(p => p.length > 0);
                 if (directoryParts.includes(pattern)) {
                     return true;
                 }
 
                 // If pattern contains a path separator, check if the path ends with the pattern
-                if (pattern.includes('/')) {
-                    if (test.path.endsWith(pattern)) {
+                if (pattern.includes('/') || pattern.includes('\\')) {
+                    // Normalize both pattern and paths to use forward slashes for comparison
+                    const normalizedPattern = pattern.replace(/\\/g, '/');
+                    const normalizedPath = test.path.replace(/\\/g, '/');
+                    const normalizedDir = test.directory.replace(/\\/g, '/');
+
+                    if (normalizedPath.endsWith(normalizedPattern)) {
                         return true;
                     }
                     // Also try matching with the test extension removed from the path
-                    const pathWithoutExt = test.path.slice(0, -test.extension.length);
-                    if (pathWithoutExt.endsWith(pattern)) {
+                    const pathWithoutExt = normalizedPath.slice(0, -test.extension.length);
+                    if (pathWithoutExt.endsWith(normalizedPattern)) {
                         return true;
                     }
                     // Check if pattern is a directory prefix (test directory contains the pattern)
-                    const normalizedPattern = pattern.endsWith('/') ? pattern : pattern + '/';
-                    if (test.path.includes('/' + normalizedPattern) || test.path.includes(normalizedPattern)) {
+                    const patternWithSlash = normalizedPattern.endsWith('/') ? normalizedPattern : normalizedPattern + '/';
+                    if (normalizedPath.includes('/' + patternWithSlash) || normalizedPath.includes(patternWithSlash) ||
+                        normalizedDir.includes('/' + patternWithSlash) || normalizedDir.includes(patternWithSlash)) {
                         return true;
                     }
                 }
 
-                // Match against full path, full filename, or base name
-                return this.matchesGlob(test.path, pattern) ||
+                // For glob patterns, match against relative path with normalized separators
+                const relativeFilePath = test.path.startsWith(rootDir)
+                    ? test.path.slice(rootDir.length).replace(/^[\/\\]/, '')
+                    : test.path;
+                const normalizedRelativePath = relativeFilePath.replace(/\\/g, '/');
+                const normalizedPattern = pattern.replace(/\\/g, '/');
+
+                // Match against relative path, full filename, or base name
+                return this.matchesGlob(normalizedRelativePath, normalizedPattern) ||
                        this.matchesGlob(test.name, pattern) ||
                        this.matchesGlob(baseName, pattern);
             });
@@ -210,15 +226,75 @@ export class TestDiscovery {
     /*
      Simple glob pattern matching
      @param text Text to match against
-     @param pattern Glob pattern (supports * and ?)
+     @param pattern Glob pattern (supports *, **, and ?)
      @returns true if text matches pattern
      */
     private static matchesGlob(text: string, pattern: string): boolean {
-        // Simple glob matching - convert glob to regex
+        // Simple manual glob matching without complex regex
+        // Split pattern into segments
+        const patternParts = pattern.split('/');
+        const textParts = text.split('/');
+
+        return this.matchGlobParts(textParts, patternParts);
+    }
+
+    /*
+     Recursively matches glob pattern parts against text parts
+     @param textParts Text split by /
+     @param patternParts Pattern split by /
+     @returns true if match
+     */
+    private static matchGlobParts(textParts: string[], patternParts: string[]): boolean {
+        // Base case: both empty = match
+        if (patternParts.length === 0 && textParts.length === 0) {
+            return true;
+        }
+
+        // Pattern empty but text remains = no match
+        if (patternParts.length === 0) {
+            return false;
+        }
+
+        const [patternHead, ...patternTail] = patternParts;
+
+        // Handle ** (matches zero or more path segments)
+        if (patternHead === '**') {
+            // Try matching with ** consuming 0, 1, 2, ... segments
+            for (let i = 0; i <= textParts.length; i++) {
+                if (this.matchGlobParts(textParts.slice(i), patternTail)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // Text empty but pattern remains (and it's not **) = no match
+        if (textParts.length === 0) {
+            return false;
+        }
+
+        const [textHead, ...textTail] = textParts;
+
+        // Match current segment
+        if (this.matchSegment(textHead, patternHead)) {
+            return this.matchGlobParts(textTail, patternTail);
+        }
+
+        return false;
+    }
+
+    /*
+     Matches a single path segment with * and ? wildcards
+     @param text Text segment
+     @param pattern Pattern segment
+     @returns true if match
+     */
+    private static matchSegment(text: string, pattern: string): boolean {
+        // Convert glob pattern to regex for single segment
         const regexPattern = pattern
-            .replace(/\./g, '\\.')
-            .replace(/\*/g, '.*')
-            .replace(/\?/g, '.');
+            .replace(/[.+^${}()|[\]\\]/g, '\\$&') // Escape regex special chars
+            .replace(/\*/g, '.*') // * matches anything
+            .replace(/\?/g, '.'); // ? matches single char
 
         const regex = new RegExp(`^${regexPattern}$`, 'i');
         return regex.test(text);

@@ -1,0 +1,8 @@
+{
+    /*
+        Portable unit tests - these tests don't require special build artifacts
+        They inherit compiler settings from parent test/testme.json5
+     */
+    enable: true,
+    depth: 0,
+}

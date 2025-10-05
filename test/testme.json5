@@ -1,0 +1,117 @@
+{
+    /*
+        Enable or disable tests in this directory
+        Set to false to disable all tests in this directory
+     */
+    enable: true,
+
+    /*
+        Minimum depth required to run tests in this directory (default: 0)
+        Use tm --depth N to run tests with depth <= N
+     */
+    depth: 0,
+
+    /*
+         Compiler configuration for different languages
+     */
+    compiler: {
+        c: {
+            compiler: 'default',  // Auto-detect best compiler. Use 'gcc', 'clang', or path to override
+
+            /*
+                GCC-specific flags (Unix/Linux/MinGW)
+                Default flags are automatically added: -std=c99 -Wall -Wextra -O0 -g
+             */
+            gcc: {
+                flags: [
+                    '-Wno-unused-parameter',
+                    '-Wno-strict-prototypes',
+                    '-I.',
+                    '-I..',
+                    '-I${../build/${PLATFORM}-${PROFILE}/inc',
+                    '-L${../build/${PLATFORM}-${PROFILE}/bin',
+                    '-I/usr/local/include',
+                    '-Wl,-rpath,@executable_path/${CONFIGDIR}/../build/${PLATFORM}-${PROFILE}/bin',
+                ],
+                libraries: ['m', 'pthread'],
+            },
+
+            /*
+                Clang-specific flags (macOS/Unix)
+                Default flags are automatically added: -std=c99 -Wall -Wextra -O0 -g
+            */
+            clang: {
+                flags: [
+                    '-Wno-unused-parameter',
+                    '-I.',
+                    '-I..',
+                    '-I${../build/${PLATFORM}-${PROFILE}/inc',
+                    '-L${../build/${PLATFORM}-${PROFILE}/bin',
+                    '-I/usr/local/include',
+                    '-Wl,-rpath,@executable_path/${CONFIGDIR}/../build/${PLATFORM}-${PROFILE}/bin',
+                ],
+                libraries: ['m', 'pthread'],
+            },
+
+            /*
+                MSVC-specific flags (Windows)
+                Default flags are automatically added: /std:c11 /W4 /Od /Zi /nologo
+            */
+            msvc: {
+                flags: ['/I.', '/I..', '/I${../build/${PLATFORM}-${PROFILE}/inc'],
+                libraries: [],
+            },
+        },
+        es: {
+            require: 'testme',
+        },
+    },
+
+    // Test execution settings
+    execution: {
+        timeout: 30000, // Timeout per test in milliseconds
+        parallel: true, // Run tests in parallel
+        workers: 4, // Number of parallel workers
+    },
+
+    // Output formatting options
+    output: {
+        verbose: false, // Show detailed output
+        format: 'simple', // Output format: simple, detailed, json
+        colors: true, // Enable colored output
+    },
+
+    // File discovery patterns
+    patterns: {
+        include: [
+            '**/*.tst.sh',
+            '**/*.tst.ps1',
+            '**/*.tst.bat',
+            '**/*.tst.cmd',
+            '**/*.tst.c',
+            '**/*.tst.js',
+            '**/*.tst.ts',
+            '**/*.tst.es',
+        ],
+        exclude: ['**/node_modules/**', '**/.testme/**', '**/.*/**'],
+    },
+
+    // Service management for test setup/teardown
+    services: {
+        skip: '', // Script to check if tests should be skipped (0=run, non-zero=skip)
+        prep: '', // Script to run once before all tests begin (waits for completion)
+        setup: '', // Script to start background service during test execution, runs before tests
+        cleanup: '', // Script to run after all tests complete for cleanup
+        skipTimeout: 30000, // Skip script timeout in milliseconds
+        prepTimeout: 30000, // Prep timeout in milliseconds
+        setupTimeout: 30000, // Setup timeout in milliseconds
+        cleanupTimeout: 10000, // Cleanup timeout in milliseconds
+        delay: 0, // Delay in milliseconds after setup before running tests
+    },
+
+    // Environment variables to set for test execution
+    env: {
+        BIN: '${../build/${PLATFORM}-${PROFILE}/bin}',
+        HTTP: 'http://localhost:4100',
+    },
+}

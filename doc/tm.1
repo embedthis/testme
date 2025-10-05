@@ -38,6 +38,9 @@ Keep .testme artifact directories after running tests. Useful for debugging comp
 .BR \-l ", " \-\-list
 List discovered tests without running them. Shows all test files that would be executed.
 .TP
+.BR \-p ", " \-\-profile " " \fINAME\fR
+Set build profile (overrides configuration and PROFILE environment variable). Used in ${PROFILE} variable expansion for platform-specific build paths.
+.TP
 .BR \-q ", " \-\-quiet
 Run silently with no output, only exit codes. Useful for scripting and automation.
 .TP
@@ -334,6 +337,51 @@ Configure environment variables available to all tests during execution:
 
 Environment variable values support \fB${...}\fR expansion using glob patterns. Paths are resolved relative to the configuration file's directory. This is useful for providing dynamic paths to build artifacts, libraries, and test data.
 
+.SS Special Variables
+TestMe provides special variables that can be used in compiler flags, library paths, and environment variables:
+
+.TP
+.B ${TESTDIR}
+Relative path from compiled executable to test file directory (e.g., "../..")
+.TP
+.B ${CONFIGDIR}
+Relative path from compiled executable to testme.json5 directory
+.TP
+.B ${OS}
+Operating system: "macosx", "linux", "windows"
+.TP
+.B ${ARCH}
+CPU architecture: "arm64", "x64", "x86"
+.TP
+.B ${PLATFORM}
+Combined OS-ARCH: "macosx-arm64", "linux-x64", "windows-x64"
+.TP
+.B ${CC}
+Compiler name: "gcc", "clang", "msvc"
+.TP
+.B ${PROFILE}
+Build profile from \fB\-\-profile\fR option, config file, PROFILE environment variable, or default "debug"
+
+Example usage in compiler configuration:
+.nf
+{
+    profile: "dev",  // Can be overridden by --profile or env.PROFILE
+    compiler: {
+        c: {
+            clang: {
+                flags: [
+                    "-I${CONFIGDIR}/../build/${PLATFORM}-${PROFILE}/inc",
+                    "-L${CONFIGDIR}/../build/${PLATFORM}-${PROFILE}/bin",
+                    "-Wl,-rpath,@executable_path/${CONFIGDIR}/../build/${PLATFORM}-${PROFILE}/bin"
+                ]
+            }
+        }
+    }
+}
+.fi
+
+These variables ensure correct paths regardless of test nesting level and support platform-specific build configurations.
+
 Tests can access these variables using standard environment variable mechanisms:
 .IP \(bu 4
 C tests: \fBgetenv("BIN")\fR
@@ -398,6 +446,9 @@ Set to "1" when verbose mode is enabled. Tests can check this for detailed outpu
 .TP
 .B TESTME_DEPTH
 Set to the value provided by \fB\-\-depth\fR option. Used for nested test execution control.
+.TP
+.B PROFILE
+Read as the default build profile if not specified in config or via \fB\-\-profile\fR. Used in ${PROFILE} variable expansion.
 .TP
 .B TMPDIR
 Set to /tmp/claude/ for temporary file operations in sandboxed environments.
@@ -473,6 +524,14 @@ Use custom configuration:
 .TP
 Change directory before running:
 .B tm --chdir /path/to/tests
+
+.TP
+Run with specific build profile:
+.B tm --profile release
+
+.TP
+Run with profile from environment:
+.B PROFILE=prod tm
 
 .SH FILES
 .TP

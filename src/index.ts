@@ -226,6 +226,10 @@ class TestMeApp {
             };
         }
 
+        if (options.profile !== undefined) {
+            mergedConfig.profile = options.profile;
+        }
+
         return mergedConfig;
     }
 

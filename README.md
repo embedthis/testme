@@ -4,8 +4,9 @@ TestMe is a powerful, multi-language test runner built with Bun that can discove
 
 ## 🚀 Features
 
--   **Multi-language Support**: Shell (`.tst.sh`), C (`.tst.c`), JavaScript (`.tst.js`), TypeScript (`.tst.ts`), Ejscript (`.tst.es`)
--   **Automatic Compilation**: C programs are compiled automatically before execution
+-   **Multi-language Support**: Shell (`.tst.sh`), PowerShell (`.tst.ps1`), Batch (`.tst.bat`, `.tst.cmd`), C (`.tst.c`), JavaScript (`.tst.js`), TypeScript (`.tst.ts`), Ejscript (`.tst.es`)
+-   **Automatic Compilation**: C programs are compiled automatically with platform-appropriate compilers (GCC/Clang/MSVC)
+-   **Cross-platform**: Full support for Windows, macOS, and Linux with native test types for each platform
 -   **Recursive Discovery**: Finds test files at any depth in directory trees
 -   **Pattern Matching**: Filter tests using glob patterns, file names, or directory names
 -   **Parallel Execution**: Run tests concurrently for better performance
@@ -14,7 +15,7 @@ TestMe is a powerful, multi-language test runner built with Bun that can discove
 -   **Environment Variables**: Dynamic environment setup with glob expansion support
 -   **Test Control**: Skip scripts, depth requirements, and enable/disable flags
 -   **Multiple Output Formats**: Simple, detailed, and JSON reporting
--   **Cross-platform**: Works on Windows, macOS, and Linux
+-   **Integrated Debugging**: GDB on Linux, Xcode on macOS, VS Code on Windows
 
 ## 📋 Table of Contents
 
@@ -32,9 +33,11 @@ TestMe is a powerful, multi-language test runner built with Bun that can discove
 ### Prerequisites
 
 -   [Bun](https://bun.sh) - JavaScript runtime (required)
--   GCC or Clang - C compiler (for C tests)
+-   C compiler (for C tests):
+    - **macOS/Linux**: GCC or Clang
+    - **Windows**: MSVC (Visual Studio), MinGW-w64, or LLVM/Clang
 
-### Local Installation
+### Unix/Linux/macOS Installation
 
 1. Clone or download the tm project
 2. Install dependencies:
@@ -45,11 +48,70 @@ TestMe is a powerful, multi-language test runner built with Bun that can discove
 
     ```bash
     bun run build
-
-    or
-
+    # or
     make
     ```
+
+4. Install the project:
+    ```bash
+    make install
+    ```
+
+### Windows Installation
+
+#### 1. Install Bun
+
+```powershell
+powershell -c "irm bun.sh/install.ps1 | iex"
+```
+
+Verify installation:
+```powershell
+bun --version
+```
+
+#### 2. Install a C Compiler (Optional)
+
+Choose one:
+
+**Visual Studio (Recommended):**
+- Download [Visual Studio 2022 Community](https://visualstudio.microsoft.com/) (free)
+- Select "Desktop development with C++" during installation
+- Run tests from "Developer Command Prompt for VS 2022"
+
+**MinGW-w64:**
+```powershell
+winget install mingw-w64
+```
+
+**LLVM/Clang:**
+```powershell
+winget install LLVM.LLVM
+```
+
+#### 3. Build and Install
+
+```powershell
+# Install dependencies
+bun install
+
+# Build
+bun run build
+
+# Install to user directory (optional)
+make install
+# or copy manually
+copy tm.exe $env:USERPROFILE\.local\bin\
+```
+
+#### 4. Add to PATH (if needed)
+
+```powershell
+$binPath = "$env:USERPROFILE\.local\bin"
+$env:PATH += ";$binPath"
+
+# To make permanent, edit via System Properties > Environment Variables
+```
 
 ## 🚀 Quick Start
 
@@ -87,7 +149,7 @@ TestMe is a powerful, multi-language test runner built with Bun that can discove
 
 ## 📝 Test File Types
 
-TestMe supports five test file types. All tests should exit with code 0 for success, non-zero for failure.
+TestMe supports multiple test file types across platforms. All tests should exit with code 0 for success, non-zero for failure.
 
 ### Shell Tests (`.tst.sh`)
 
@@ -106,6 +168,43 @@ else
     echo "✗ Math test failed"
     exit 1
 fi
+```
+
+### PowerShell Tests (`.tst.ps1`) - Windows
+
+PowerShell script tests for Windows environments.
+
+```powershell
+# test_example.tst.ps1
+Write-Host "Running PowerShell test..."
+
+$result = 2 + 2
+if ($result -eq 4) {
+    Write-Host "✓ Math test passed"
+    exit 0
+} else {
+    Write-Host "✗ Math test failed"
+    exit 1
+}
+```
+
+### Batch Tests (`.tst.bat`, `.tst.cmd`) - Windows
+
+Windows batch script tests.
+
+```batch
+@echo off
+REM test_example.tst.bat
+
+echo Running batch test...
+set /a result=2+2
+if %result% == 4 (
+    echo Test passed
+    exit /b 0
+) else (
+    echo Test failed
+    exit /b 1
+)
 ```
 
 ### C Tests (`.tst.c`)
@@ -249,19 +348,19 @@ Filter tests using various pattern types:
 
 ### Common Options
 
-| Option                | Description                           |
-| --------------------- | ------------------------------------- |
-| `-l, --list`          | List discovered tests without running |
-| `-v, --verbose`       | Show detailed output                  |
-| `-q, --quiet`         | Silent mode (exit codes only)         |
-| `-c, --config <FILE>` | Use specific config file              |
-| `--clean`             | Remove all `.testme` artifacts        |
-| `-d, --debug`         | Launch debugger (GDB/Xcode)           |
-| `-k, --keep`          | Keep artifacts after tests            |
-| `--depth <N>`         | Run tests requiring depth ≤ N         |
-| `-w, --workers <N>`   | Set parallel workers                  |
-| `-s, --show`          | Display C compile commands            |
-| `--step`              | Run tests one at a time with prompts  |
+| Option | Description |
+|--------|-------------|
+| `-l, --list` | List discovered tests without running |
+| `-v, --verbose` | Show detailed output |
+| `-q, --quiet` | Silent mode (exit codes only) |
+| `-c, --config <FILE>` | Use specific config file |
+| `--clean` | Remove all `.testme` artifacts |
+| `-d, --debug` | Launch debugger (GDB/Xcode) |
+| `-k, --keep` | Keep artifacts after tests |
+| `--depth <N>` | Run tests requiring depth ≤ N |
+| `-w, --workers <N>` | Set parallel workers |
+| `-s, --show` | Display C compile commands |
+| `--step` | Run tests one at a time with prompts |
 
 ### Usage Examples
 
@@ -368,8 +467,59 @@ This enables:
 
 #### Compiler Settings
 
--   `compiler.c.compiler` - C compiler command (default: "gcc")
--   `compiler.c.flags` - Compiler flags array (default: ["-std=c99", "-Wall", "-Wextra"])
+##### C Compiler Configuration
+
+TestMe automatically detects and configures the appropriate C compiler for your platform:
+- **Windows**: MSVC (Visual Studio), MinGW, or Clang
+- **macOS**: Clang or GCC
+- **Linux**: GCC or Clang
+
+**Default Flags (automatically applied):**
+
+- **GCC/Clang**: `-std=c99 -Wall -Wextra -O0 -g`
+- **MSVC**: `/std:c11 /W4 /Od /Zi /nologo`
+
+**Configuration Options:**
+
+-   `compiler.c.compiler` - C compiler path (optional, auto-detects if not specified)
+-   `compiler.c.flags` - Common flags for all compilers (merged with defaults)
+-   `compiler.c.gcc.flags` - GCC-specific flags (merged with GCC defaults)
+-   `compiler.c.gcc.libraries` - GCC-specific libraries (e.g., `['m', 'pthread']`)
+-   `compiler.c.clang.flags` - Clang-specific flags (merged with Clang defaults)
+-   `compiler.c.clang.libraries` - Clang-specific libraries
+-   `compiler.c.msvc.flags` - MSVC-specific flags (merged with MSVC defaults)
+-   `compiler.c.msvc.libraries` - MSVC-specific libraries
+
+**Example:**
+```json5
+{
+    compiler: {
+        c: {
+            // Auto-detect compiler (leave blank)
+            // Default flags are: -std=c99 -Wall -Wextra -O0 -g (GCC/Clang)
+            //                or: /std:c11 /W4 /Od /Zi /nologo (MSVC)
+
+            gcc: {
+                flags: [
+                    '-I${../build/*/inc}',              // Include paths
+                    '-L${../build/*/bin}',              // Library paths
+                    '-Wl,-rpath,@executable_path/${../build/*/bin}'  // Runtime paths
+                ],
+                libraries: ['m', 'pthread']
+            },
+            msvc: {
+                flags: [
+                    '/I${../build/*/inc}'               // Include paths
+                ],
+                libraries: []
+            }
+        }
+    }
+}
+```
+
+##### Ejscript Compiler Configuration
+
 -   `compiler.es.require` - Ejscript modules to preload with `--require` (string or array)
 
 #### Execution Settings
@@ -422,7 +572,6 @@ This enables:
 ```
 
 **Accessing Environment Variables:**
-
 -   C tests: `getenv("BIN")` or use `tget("BIN", default)` from testme.h
 -   Shell tests: `$BIN` or `${BIN}`
 -   JavaScript/TypeScript: `process.env.BIN` or use `tget("BIN", default)` from testme.js
@@ -498,6 +647,7 @@ Machine-readable output for integration with other tools:
 }
 ```
 
+
 ## 🧪 Development
 
 ### Building
@@ -533,6 +683,7 @@ bun --hot src/index.ts
 -   ESLint and Prettier configured
 -   Comprehensive JSDoc comments
 
+
 ## 💡 Tips and Best Practices
 
 ### Writing Effective Tests
@@ -550,12 +701,22 @@ bun --hot src/index.ts
 
 ### Troubleshooting
 
-| Problem                   | Solution                                                                                                                                                                         |
-| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Tests not discovered**  | Check file extensions (`.tst.sh`, `.tst.c`, `.tst.js`, `.tst.ts`, `.tst.es`)<br>Use `--list` to see what's found<br>Check `enable: false` in config<br>Verify depth requirements |
-| **C compilation failing** | Check GCC/Clang is in PATH<br>Review `.testme/compile.log`<br>Use `-s` to see compile commands                                                                                   |
-| **Permission errors**     | Make shell scripts executable: `chmod +x *.tst.sh`<br>Check directory permissions                                                                                                |
-| **Tests skipped**         | Check skip script exit code<br>Verify `--depth` is sufficient<br>Run with `-v` for details                                                                                       |
+| Problem | Solution |
+|---------|----------|
+| **Tests not discovered** | Check file extensions (`.tst.sh`, `.tst.c`, `.tst.js`, `.tst.ts`, `.tst.es`)<br>Use `--list` to see what's found<br>Check `enable: false` in config<br>Verify depth requirements |
+| **C compilation failing** | Check GCC/Clang is in PATH<br>Review `.testme/compile.log`<br>Use `-s` to see compile commands |
+| **Permission errors** | Make shell scripts executable: `chmod +x *.tst.sh`<br>Check directory permissions |
+| **Tests skipped** | Check skip script exit code<br>Verify `--depth` is sufficient<br>Run with `-v` for details |
+
+### Windows-Specific Issues
+
+| Problem | Solution |
+|---------|----------|
+| **`tm` not recognized** | Add `%USERPROFILE%\.local\bin` to PATH<br>Or run from installation directory |
+| **PowerShell execution policy** | TestMe uses `-ExecutionPolicy Bypass` automatically<br>Or set: `Set-ExecutionPolicy RemoteSigned -Scope CurrentUser` |
+| **Compiler not found** | Run from "Developer Command Prompt for VS 2022"<br>Or add compiler to PATH manually |
+| **MSVC vs GCC flags** | Check `testme.json5` compiler config<br>MSVC: `/W4 /std:c11`<br>GCC/MinGW: `-std=c99 -Wall -Wextra` |
+| **Shell tests fail on Windows** | Install Git for Windows (includes bash)<br>Or convert to `.tst.ps1` or `.tst.bat` |
 
 ---
 

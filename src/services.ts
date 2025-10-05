@@ -1,6 +1,7 @@
 import { TestConfig } from "./types.ts";
-import { relative } from "path";
+import { relative, delimiter } from "path";
 import { GlobExpansion } from "./utils/glob-expansion.ts";
+import { ProcessManager } from "./platform/process.ts";
 
 /*
  Manages setup and cleanup services for test execution
@@ -305,21 +306,10 @@ export class ServiceManager {
             return;
         }
 
-        // Note: killSetup doesn't have access to config, so always show stopping message
-
         try {
-            // Kill the process group to ensure all subprocesses are terminated
+            // Kill the process using platform-appropriate method
             if (this.setupProcess.pid) {
-                // Kill process group (negative PID kills the group)
-                await Bun.$`kill -TERM ${this.setupProcess.pid}`.quiet();
-
-                // Give it a moment to terminate gracefully
-                await new Promise((resolve) => setTimeout(resolve, 2000));
-
-                // Force kill if still running
-                if (!this.setupProcess.killed) {
-                    await Bun.$`kill -KILL ${this.setupProcess.pid}`.quiet();
-                }
+                await ProcessManager.killProcess(this.setupProcess.pid, true);
             } else {
                 // Fallback: just kill the main process
                 this.setupProcess.kill();
@@ -327,7 +317,6 @@ export class ServiceManager {
 
             this.isSetupRunning = false;
             this.setupProcess = null;
-            // Note: killSetup doesn't have access to config, so always show stopped message
         } catch (error) {
             console.warn(`⚠️  Error stopping setup service: ${error}`);
             this.isSetupRunning = false;
@@ -432,7 +421,7 @@ export class ServiceManager {
         const env = { ...process.env };
 
         // Add local directory to PATH for service scripts
-        env.PATH = `.${process.platform === 'win32' ? ';' : ':'}${process.env.PATH}`;
+        env.PATH = `.${delimiter}${process.env.PATH}`;
 
         // Add environment variables from configuration with expansion
         if (config.env) {

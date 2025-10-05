@@ -28,6 +28,7 @@ export type TestResult = {
 export type TestConfig = {
   enable?: boolean; // Enable or disable tests in this directory
   depth?: number; // Minimum depth required to run tests in this directory (default: 0)
+  profile?: string; // Build profile (dev, prod, debug, release, etc.) - defaults to env.PROFILE or 'debug'
   compiler?: CompilerConfig;
   execution?: ExecutionConfig;
   output?: OutputConfig;
@@ -42,10 +43,21 @@ export type TestConfig = {
  */
 export type CompilerConfig = {
   c?: {
-    compiler: string;
-    flags: string[];
-    target?: string;
+    compiler?: string; // Optional: auto-detect if not specified
+    flags?: string[]; // Default flags for all compilers
     libraries?: string[];
+    gcc?: {
+      flags?: string[];
+      libraries?: string[];
+    };
+    clang?: {
+      flags?: string[];
+      libraries?: string[];
+    };
+    msvc?: {
+      flags?: string[];
+      libraries?: string[];
+    };
   };
   es?: {
     require?: string | string[];
@@ -126,6 +138,7 @@ export type CliOptions = {
   quiet: boolean;
   show: boolean;
   workers?: number;
+  profile?: string;
 }
 
 /*
@@ -142,6 +155,8 @@ export type TestSuite = {
  */
 export enum TestType {
   Shell = 'shell',
+  PowerShell = 'powershell',
+  Batch = 'batch',
   C = 'c',
   JavaScript = 'javascript',
   TypeScript = 'typescript',

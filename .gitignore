@@ -1,6 +1,7 @@
 _.log
 .*.bun-build
 .cache
+.cdrc
 .claude
 .cursor
 .DS_Store
@@ -21,5 +22,4 @@ dist
 logs
 node_modules
 out
-report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 tm
