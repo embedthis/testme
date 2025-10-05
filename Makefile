@@ -3,16 +3,14 @@ all: build tidy
 prep:
 	bun install
 
-run:
-	bun run ./testme.ts
-
 build:
 	bun build ./testme.ts --compile --outfile tm
 
-test:
-	bun run test
+test: build
+	tm
 
 install:
+	echo Installing
 	sudo mkdir -p /usr/local/lib/testme
 	sudo cp tm /usr/local/bin/tm
 	sudo cp test/testme.h /usr/local/include/testme.h
@@ -26,3 +24,4 @@ tidy:
 clean: tidy
 	rm -f tm
 
+.PHONY: prep run build test install tidy clean

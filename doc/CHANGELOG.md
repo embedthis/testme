@@ -32,16 +32,33 @@
 ### Code Quality
 - **CHORE**: Added tsconfig.json with strict TypeScript checking enabled
 - **CHORE**: Identified ~50 type errors to fix (type-only imports, override modifiers, strict nulls)
+- **DOC**: Added comprehensive inline documentation to core modules:
+  - TestRunner (src/runner.ts) - Architecture, execution flow, and responsibilities
+  - ConfigManager (src/config.ts) - Hierarchical config system, discovery, merging
+  - TestDiscovery (src/discovery.ts) - Test discovery engine, pattern matching modes
 
 ### Test Infrastructure
-- **TEST**: Fixed all unit test failures - all tests now passing
+- **TEST**: Fixed all unit test failures - all tests now passing (26/26 tests pass)
 - **TEST**: Added skip script for Windows-specific tests (test/windows/skip-if-not-windows.sh)
 - **TEST**: Fixed CRLF line ending issues in portable shell tests
 - **TEST**: Fixed import path in portable/glob-expansion.tst.ts
 - **TEST**: Added environment variables to portable/testme.json5
 - **TEST**: Linked testme package for JavaScript/TypeScript tests in test directory
+- **TEST**: Added comprehensive special variable expansion test (test/portable/special-vars.tst.ts)
+  - Tests ${PLATFORM}, ${OS}, ${ARCH}, ${CC}, ${PROFILE}, ${CONFIGDIR}, ${TESTDIR}
+  - Tests combined variable expansion
+  - Tests array expansion
+  - Validates all special variable types
 
 ### Features
+- **DEV**: Added test generation commands for easier project setup:
+  - `tm --init` - Creates testme.json5 configuration file with sensible defaults
+  - `tm --new <name>` - Scaffolds test files with templates
+  - Supports C (.tst.c), Shell (.tst.sh), JavaScript (.tst.js), TypeScript (.tst.ts)
+  - Auto-detects test type from extension (e.g., `tm --new math.c` creates math.tst.c)
+  - Includes helpful templates and next-step instructions
+  - Updated CLI usage text with new commands and examples
+  - Updated man page (doc/tm.1) with new options and examples section
 - **DEV**: Added special variable support for build configuration
   - Added `${TESTDIR}` - Relative path from executable to test directory
   - Added `${CONFIGDIR}` - Relative path from executable to config directory

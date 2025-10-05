@@ -24,6 +24,7 @@ export class CliParser {
             version: false,
             quiet: false,
             show: false,
+            init: false,
         };
 
         let i = 0;
@@ -146,6 +147,20 @@ export class CliParser {
                     }
                     break;
 
+                case "--init":
+                    options.init = true;
+                    i++;
+                    break;
+
+                case "--new":
+                    if (i + 1 < args.length) {
+                        options.new = args[i + 1]!;
+                        i += 2;
+                    } else {
+                        throw new Error(`${arg} requires a test name`);
+                    }
+                    break;
+
                 default:
                     if (arg.startsWith("-")) {
                         throw new Error(`Unknown option: ${arg}`);
@@ -188,8 +203,10 @@ OPTIONS:
     -d, --debug            Launch debugger (GDB on Linux, Xcode on macOS)
         --depth <NUMBER>   Run tests with depth requirement <= NUMBER (default: 0)
     -h, --help             Show this help message
+        --init             Create testme.json5 configuration file in current directory
     -k, --keep             Keep .testme artifacts after running tests
     -l, --list             List discovered tests without running them
+        --new <NAME>       Create new test file from template (e.g., --new math.c)
     -p, --profile <NAME>   Set build profile (overrides config and env.PROFILE)
     -q, --quiet            Run silently with no output, only exit codes
     -s, --show             Display the C compile command used
@@ -199,6 +216,13 @@ OPTIONS:
     -w, --workers <NUMBER> Number of parallel workers (overrides config)
 
 EXAMPLES:
+    # Getting Started
+    tm --init                  # Create testme.json5 configuration file
+    tm --new math.c            # Create math.tst.c from template
+    tm --new api.js            # Create api.tst.js from template
+    tm --new test.sh           # Create test.tst.sh from template
+
+    # Running Tests
     tm                         # Run all tests in current directory tree
     tm "*.tst.c"               # Run only C tests
     tm "math"                  # Run math.tst.c, math.tst.js, etc.

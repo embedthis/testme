@@ -3,8 +3,36 @@ import { join, dirname, basename, extname } from 'path';
 import { readdir, stat } from 'node:fs/promises';
 
 /*
- Handles discovery of test files in directory trees
- Supports pattern matching and filtering
+ TestDiscovery - Test file discovery engine
+
+ Responsibilities:
+ - Recursively walks directory trees to find test files
+ - Identifies test types by file extension
+ - Filters tests by include/exclude patterns
+ - Supports multiple pattern matching modes
+ - Creates TestFile objects with metadata
+
+ Supported Test Types:
+ - Shell (.tst.sh)
+ - PowerShell (.tst.ps1)
+ - Batch (.tst.bat, .tst.cmd)
+ - C (.tst.c)
+ - JavaScript (.tst.js)
+ - TypeScript (.tst.ts)
+ - Ejscript (.tst.es)
+
+ Pattern Matching Modes:
+ 1. Extension: "*.tst.c" matches all C tests
+ 2. Base name: "math" matches math.tst.c, math.tst.js, etc.
+ 3. Directory: "integration" matches all tests in integration/
+ 4. Path suffix: "test/math.tst.c" matches specific test
+ 5. Glob: "**​/api*" for complex patterns
+
+ Exclusions:
+ - node_modules directories
+ - .testme artifact directories
+ - Hidden directories (.star-slash)
+ - Custom exclusion patterns
  */
 export class TestDiscovery {
     // Mapping of file extensions to test types

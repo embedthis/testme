@@ -7,6 +7,234 @@ import { ServiceManager } from "./services.ts";
 import { TestDiscovery } from "./discovery.ts";
 import type { TestConfig, TestFile } from "./types.ts";
 import { resolve, dirname, relative, join } from "path";
+import { writeFile } from "fs/promises";
+import { existsSync } from "fs";
+
+/*
+ Handles --init command to create testme.json5 configuration file
+ Creates a default configuration with common settings
+ */
+async function handleInit(): Promise<void> {
+    const configPath = join(process.cwd(), "testme.json5");
+
+    // Check if file already exists
+    if (existsSync(configPath)) {
+        console.error("❌ Error: testme.json5 already exists in current directory");
+        process.exit(1);
+    }
+
+    const defaultConfig = `{
+    /*
+        TestMe Configuration
+        See https://github.com/embedthis/testme for documentation
+     */
+
+    // Enable or disable tests in this directory
+    enable: true,
+
+    // Minimum depth required to run tests (use tm --depth N)
+    depth: 0,
+
+    // Compiler configuration for different languages
+    compiler: {
+        c: {
+            compiler: 'default',  // Auto-detect best compiler
+
+            // GCC-specific flags (Unix/Linux/MinGW)
+            gcc: {
+                flags: ['-I..'],
+                libraries: ['m', 'pthread'],
+            },
+
+            // Clang-specific flags (macOS/Unix)
+            clang: {
+                flags: ['-I..'],
+                libraries: ['m', 'pthread'],
+            },
+
+            // MSVC-specific flags (Windows)
+            msvc: {
+                flags: ['/I..'],
+                libraries: [],
+            },
+        },
+        es: {
+            require: 'testme',
+        },
+    },
+
+    // Test execution settings
+    execution: {
+        timeout: 30000,     // Timeout per test in milliseconds
+        parallel: true,     // Run tests in parallel
+        workers: 4,         // Number of parallel workers
+    },
+
+    // Output formatting options
+    output: {
+        verbose: false,     // Show detailed output
+        format: 'simple',   // Output format: simple, detailed, json
+        colors: true,       // Enable colored output
+    },
+
+    // File discovery patterns
+    patterns: {
+        include: [
+            '**/*.tst.sh',
+            '**/*.tst.ps1',
+            '**/*.tst.bat',
+            '**/*.tst.cmd',
+            '**/*.tst.c',
+            '**/*.tst.js',
+            '**/*.tst.ts',
+            '**/*.tst.es',
+        ],
+        exclude: ['**/node_modules/**', '**/.testme/**', '**/.*/**'],
+    },
+
+    // Service management for test setup/teardown
+    services: {
+        skip: '',           // Script to check if tests should be skipped
+        prep: '',           // Script to run once before all tests
+        setup: '',          // Background service to start before tests
+        cleanup: '',        // Script to run after all tests
+        delay: 0,           // Delay in ms after setup before running tests
+    },
+
+    // Environment variables for test execution
+    env: {
+        // Example: BIN: '\${../build/\${PLATFORM}-\${PROFILE}/bin}',
+    },
+}
+`;
+
+    await writeFile(configPath, defaultConfig, "utf-8");
+    console.log("✓ Created testme.json5");
+    console.log("\nNext steps:");
+    console.log("  1. Edit testme.json5 to configure your test environment");
+    console.log("  2. Create test files with .tst.* extension (e.g., math.tst.c)");
+    console.log("  3. Run tests with: tm");
+}
+
+/*
+ Handles --new <name> command to scaffold a test file
+ Creates a template test file for the specified type
+ */
+async function handleNew(name: string): Promise<void> {
+    // Detect test type from extension if provided, default to .tst.c
+    let extension = ".tst.c";
+    let baseName = name;
+
+    if (name.includes(".tst.")) {
+        // Full name with extension provided
+        baseName = name.substring(0, name.indexOf(".tst."));
+        extension = name.substring(name.indexOf(".tst."));
+    } else if (name.includes(".")) {
+        // Some extension provided, use it
+        const ext = name.substring(name.lastIndexOf("."));
+        baseName = name.substring(0, name.lastIndexOf("."));
+        extension = ".tst" + ext;
+    }
+
+    const filePath = join(process.cwd(), baseName + extension);
+
+    // Check if file already exists
+    if (existsSync(filePath)) {
+        console.error(`❌ Error: ${baseName}${extension} already exists`);
+        process.exit(1);
+    }
+
+    let template = "";
+
+    // Generate template based on file type
+    if (extension === ".tst.c") {
+        template = `#include "testme.h"
+
+/*
+    ${baseName} - Test file
+ */
+
+int main() {
+    // Test assertions
+    teq(1, 1, "1 should equal 1");
+    ttrue(1 == 1, "1 should equal 1");
+
+    // Add your tests here
+
+    return 0;  // 0 = success, non-zero = failure
+}
+`;
+    } else if (extension === ".tst.sh") {
+        template = `#!/bin/bash
+#
+# ${baseName} - Shell test
+#
+
+# Simple test
+if [ 1 -eq 1 ]; then
+    echo "✓ Test passed"
+    exit 0
+else
+    echo "✗ Test failed"
+    exit 1
+fi
+`;
+    } else if (extension === ".tst.js") {
+        template = `/*
+    ${baseName} - JavaScript test
+ */
+
+import { teq, ttrue, tfalse } from "testme";
+
+function test() {
+    teq(1, 1, "1 should equal 1");
+    ttrue(1 === 1, "1 should equal 1");
+
+    // Add your tests here
+}
+
+try {
+    test();
+    console.log("✓ All tests passed");
+} catch (error) {
+    console.error("✗ Test failed:", error.message);
+    process.exit(1);
+}
+`;
+    } else if (extension === ".tst.ts") {
+        template = `/*
+    ${baseName} - TypeScript test
+ */
+
+import { teq, ttrue, tfalse } from "testme";
+
+function test(): void {
+    teq(1, 1, "1 should equal 1");
+    ttrue(1 === 1, "1 should equal 1");
+
+    // Add your tests here
+}
+
+try {
+    test();
+    console.log("✓ All tests passed");
+} catch (error) {
+    console.error("✗ Test failed:", (error as Error).message);
+    process.exit(1);
+}
+`;
+    } else {
+        template = `// ${baseName} test file
+// Add your test code here
+`;
+    }
+
+    await writeFile(filePath, template, "utf-8");
+    console.log(`✓ Created ${baseName}${extension}`);
+    console.log("\nNext steps:");
+    console.log(`  1. Edit ${baseName}${extension} to add your tests`);
+    console.log("  2. Run tests with: tm");
+}
 
 class TestMeApp {
     private runner: TestRunner;
@@ -260,6 +488,18 @@ class TestMeApp {
             // Handle version option
             if (options.version) {
                 console.log("tm version 1.0.0");
+                return 0;
+            }
+
+            // Handle init option - create testme.json5
+            if (options.init) {
+                await handleInit();
+                return 0;
+            }
+
+            // Handle new option - scaffold test file
+            if (options.new) {
+                await handleNew(options.new);
                 return 0;
             }
 

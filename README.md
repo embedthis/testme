@@ -123,6 +123,21 @@ $env:PATH += ";$binPath"
 
 ## 🚀 Quick Start
 
+### Initialize a New Project
+
+```bash
+# Create a testme.json5 configuration file
+tm --init
+
+# Create test files from templates
+tm --new math.c        # Creates math.tst.c
+tm --new api.js        # Creates api.tst.js
+tm --new test.sh       # Creates test.tst.sh
+tm --new types.ts      # Creates types.tst.ts
+```
+
+### Manual Setup
+
 1. **Create test files** with the appropriate extensions:
 
     ```bash

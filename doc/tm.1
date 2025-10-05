@@ -32,11 +32,17 @@ Run tests with depth requirement <= NUMBER (default: 0). Tests with higher depth
 .BR \-h ", " \-\-help
 Show help message with usage information and examples.
 .TP
+.BR \-\-init
+Create testme.json5 configuration file in the current directory with sensible defaults. Exits with error if file already exists.
+.TP
 .BR \-k ", " \-\-keep
 Keep .testme artifact directories after running tests. Useful for debugging compilation issues.
 .TP
 .BR \-l ", " \-\-list
 List discovered tests without running them. Shows all test files that would be executed.
+.TP
+.BR \-\-new " " \fINAME\fR
+Create new test file from template. Auto-detects test type from extension (e.g., \fB\-\-new math.c\fR creates math.tst.c). Supports C, Shell, JavaScript, and TypeScript templates.
 .TP
 .BR \-p ", " \-\-profile " " \fINAME\fR
 Set build profile (overrides configuration and PROFILE environment variable). Used in ${PROFILE} variable expansion for platform-specific build paths.
@@ -465,6 +471,24 @@ One or more tests failed, had errors, or compilation failed.
 Invalid command line arguments or configuration errors.
 
 .SH EXAMPLES
+.SS Getting Started
+.TP
+Create testme.json5 configuration file:
+.B tm --init
+
+.TP
+Create a C test file from template:
+.B tm --new math.c
+
+.TP
+Create a JavaScript test file:
+.B tm --new api.js
+
+.TP
+Create a Shell test file:
+.B tm --new test.sh
+
+.SS Running Tests
 .TP
 Run all tests (shows test names as they execute):
 .B tm

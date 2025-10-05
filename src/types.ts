@@ -139,6 +139,8 @@ export type CliOptions = {
   show: boolean;
   workers?: number;
   profile?: string;
+  init: boolean;
+  new?: string;
 }
 
 /*

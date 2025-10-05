@@ -4,8 +4,32 @@ import { readdir, stat } from 'fs/promises';
 import JSON5 from 'json5';
 
 /*
- Manages configuration loading and merging with defaults
- Supports hierarchical configuration file discovery
+ ConfigManager - Hierarchical configuration management
+
+ Responsibilities:
+ - Loads testme.json5 configuration files
+ - Walks directory tree to find nearest config file
+ - Merges configurations with intelligent defaults
+ - Supports CLI argument overrides
+ - Provides configuration inheritance
+
+ Configuration Discovery:
+ 1. Starts from test file directory
+ 2. Walks up directory tree looking for testme.json5
+ 3. Returns first found config or default if none found
+ 4. Each test can have its own nearest config
+
+ Configuration Merging Priority (highest to lowest):
+ 1. CLI arguments (--verbose, --workers, etc.)
+ 2. Test-specific testme.json5 (nearest to test file)
+ 3. Parent directory configs (inherited)
+ 4. Built-in defaults
+
+ This enables:
+ - Project-wide defaults at repository root
+ - Module-specific overrides in subdirectories
+ - Test-specific configuration closest to tests
+ - Automatic merging with CLI args preserved
  */
 export class ConfigManager {
     // Name of the configuration file to search for

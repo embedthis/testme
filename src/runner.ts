@@ -6,7 +6,32 @@ import { createHandlers, ShellTestHandler, CTestHandler, JavaScriptTestHandler, 
 import { ConfigManager } from './config.ts';
 
 /*
+ TestRunner - Core test execution orchestrator
+
+ Responsibilities:
+ - Discovers test files using TestDiscovery
+ - Manages test execution using language-specific handlers
+ - Coordinates parallel and sequential test execution
+ - Reports test results using TestReporter
+ - Manages artifact cleanup
+
+ Architecture:
+ - Uses Semaphore for concurrency control in parallel mode
+ - Delegates test execution to language-specific handlers (C, Shell, JS, TS, etc.)
+ - Supports both parallel and sequential execution modes
+ - Handles step mode for interactive debugging
+ - Manages artifact directories via ArtifactManager
+
+ Execution Flow:
+ 1. discoverTests() - Find all test files matching patterns
+ 2. runTests() - Execute tests using appropriate handlers
+ 3. Handlers perform: prepare() -> execute() -> cleanup()
+ 4. Results collected and reported via TestReporter
+ */
+
+/*
  Simple semaphore implementation to limit concurrent operations
+ Used to control the number of parallel test executions
  */
 class Semaphore {
   private permits: number;
@@ -37,19 +62,38 @@ class Semaphore {
   }
 }
 
+/*
+ TestRunner class - Main test execution coordinator
+ Orchestrates test discovery, execution, and reporting across multiple test types
+ */
 export class TestRunner {
   private handlers: TestHandler[];
   private artifactManager: ArtifactManager;
 
+  /*
+   Creates a new TestRunner instance
+   Initializes handlers for all supported test types (Shell, C, JS, TS, ES)
+   */
   constructor() {
     this.handlers = createHandlers();
     this.artifactManager = new ArtifactManager();
   }
 
+  /*
+   Discovers all test files matching the given options
+   @param options Discovery options including patterns, root directory, and exclusions
+   @returns Promise resolving to array of discovered test files
+   */
   async discoverTests(options: DiscoveryOptions): Promise<TestFile[]> {
     return await TestDiscovery.discoverTests(options);
   }
 
+  /*
+   Runs all tests in the test suite
+   Handles parallel or sequential execution based on configuration
+   @param testSuite Test suite containing tests and configuration
+   @returns Promise resolving to array of test results
+   */
   async runTests(testSuite: TestSuite): Promise<TestResult[]> {
     const reporter = new TestReporter(testSuite.config);
     const results: TestResult[] = [];
