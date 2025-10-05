@@ -4,7 +4,7 @@
   <img src="doc/logo.png" alt="TestMe Logo" width="400"/>
 </p>
 
-TestMe is a powerful, multi-language test runner built with Bun that can discover, compile, and execute tests across different programming languages with configurable patterns and parallel execution.
+TestMe is a powerful, multi-language test runner built with [Bun](https://bun.sh) that can discover, compile, and execute tests across different programming languages with configurable patterns and parallel execution.
 
 ## 🚀 Features
 
@@ -624,22 +624,19 @@ Environment variables in compiler flags and paths support `${...}` expansion:
                 flags: [
                     '-I${../include}',
                     '-L${../build/${PLATFORM}-${PROFILE}/lib}',
-                    '-Wl,-rpath,@executable_path/${CONFIGDIR}/../build/${PLATFORM}-${PROFILE}/lib'
+                    '-Wl,-rpath,@executable_path/${CONFIGDIR}/../build/${PLATFORM}-${PROFILE}/lib',
                 ],
-                libraries: ['mylib', 'm', 'pthread']
+                libraries: ['mylib', 'm', 'pthread'],
             },
             msvc: {
-                flags: [
-                    '/I${../include}',
-                    '/LIBPATH:${../build/${PLATFORM}-${PROFILE}/lib}'
-                ],
-                libraries: ['mylib']
-            }
-        }
+                flags: ['/I${../include}', '/LIBPATH:${../build/${PLATFORM}-${PROFILE}/lib}'],
+                libraries: ['mylib'],
+            },
+        },
     },
     env: {
-        MY_LIB_PATH: '${../build/${PLATFORM}-${PROFILE}/lib}'
-    }
+        MY_LIB_PATH: '${../build/${PLATFORM}-${PROFILE}/lib}',
+    },
 }
 ```
 
@@ -651,12 +648,12 @@ Environment variables in compiler flags and paths support `${...}` expansion:
         prep: 'docker-compose build',
         setup: 'docker-compose up -d',
         cleanup: 'docker-compose down',
-        delay: 5000  // Wait 5 seconds for services to start
+        delay: 5000, // Wait 5 seconds for services to start
     },
     env: {
         DATABASE_URL: 'postgresql://localhost:5432/testdb',
-        REDIS_URL: 'redis://localhost:6379'
-    }
+        REDIS_URL: 'redis://localhost:6379',
+    },
 }
 ```
 
@@ -665,12 +662,13 @@ Environment variables in compiler flags and paths support `${...}` expansion:
 ```json5
 {
     services: {
-        skip: './check-requirements.sh'  // Exit 0 to run, non-zero to skip
-    }
+        skip: './check-requirements.sh', // Exit 0 to run, non-zero to skip
+    },
 }
 ```
 
 check-requirements.sh:
+
 ```bash
 #!/bin/bash
 # Skip tests if required tools are missing
@@ -684,22 +682,24 @@ exit 0
 ### Organizing Tests by Depth
 
 Root testme.json5 (quick unit tests):
+
 ```json5
 {
     depth: 0,
-    execution: { timeout: 5000 }
+    execution: {timeout: 5000},
 }
 ```
 
 integration/testme.json5 (slow integration tests):
+
 ```json5
 {
     depth: 1,
-    execution: { timeout: 60000 },
+    execution: {timeout: 60000},
     services: {
         setup: './start-services.sh',
-        cleanup: './stop-services.sh'
-    }
+        cleanup: './stop-services.sh',
+    },
 }
 ```
 

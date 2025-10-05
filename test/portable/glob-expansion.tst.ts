@@ -1,4 +1,4 @@
-import { GlobExpansion } from '../src/utils/glob-expansion.ts';
+import { GlobExpansion } from '../../src/utils/glob-expansion.ts';
 import { mkdtemp, writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { tmpdir } from 'os';

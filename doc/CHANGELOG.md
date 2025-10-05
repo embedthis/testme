@@ -33,6 +33,14 @@
 - **CHORE**: Added tsconfig.json with strict TypeScript checking enabled
 - **CHORE**: Identified ~50 type errors to fix (type-only imports, override modifiers, strict nulls)
 
+### Test Infrastructure
+- **TEST**: Fixed all unit test failures - all tests now passing
+- **TEST**: Added skip script for Windows-specific tests (test/windows/skip-if-not-windows.sh)
+- **TEST**: Fixed CRLF line ending issues in portable shell tests
+- **TEST**: Fixed import path in portable/glob-expansion.tst.ts
+- **TEST**: Added environment variables to portable/testme.json5
+- **TEST**: Linked testme package for JavaScript/TypeScript tests in test directory
+
 ### Features
 - **DEV**: Added special variable support for build configuration
   - Added `${TESTDIR}` - Relative path from executable to test directory
