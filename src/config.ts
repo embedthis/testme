@@ -2,6 +2,7 @@ import type { TestConfig } from './types.ts';
 import { join, dirname } from 'path';
 import { readdir, stat } from 'fs/promises';
 import JSON5 from 'json5';
+import { ErrorMessages } from './utils/error-messages.ts';
 
 /*
  ConfigManager - Hierarchical configuration management
@@ -147,7 +148,8 @@ export class ConfigManager {
                     return { config, configDir: currentDir };
                 }
             } catch (error) {
-                console.warn(`Warning: Invalid JSON in config file ${configPath}: ${error}`);
+                console.error(ErrorMessages.configFileError(configPath, error));
+                // Continue searching in parent directories
             }
 
             const parentDir = dirname(currentDir);
@@ -230,7 +232,7 @@ export class ConfigManager {
             const configDir = dirname(configPath);
             return this.mergeWithDefaults(userConfig, configDir);
         } catch (error) {
-            throw new Error(`Failed to load config from ${configPath}: ${error}`);
+            throw new Error(ErrorMessages.configFileError(configPath, error));
         }
     }
 

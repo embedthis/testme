@@ -11,6 +11,7 @@ import { GlobExpansion } from "../utils/glob-expansion.ts";
 import { CompilerManager, CompilerType } from "../platform/compiler.ts";
 import { PermissionManager } from "../platform/permissions.ts";
 import { PlatformDetector } from "../platform/detector.ts";
+import { ErrorMessages } from "../utils/error-messages.ts";
 import { basename, resolve, isAbsolute } from "path";
 
 /*
@@ -246,7 +247,12 @@ export class CTestHandler extends BaseTestHandler {
 
         const success = result.exitCode === 0;
         const output = result.stdout || "Compilation completed";
-        const error = result.exitCode !== 0 ? result.stderr : undefined;
+        let error = result.exitCode !== 0 ? result.stderr : undefined;
+
+        // Enhance error messages for common compilation failures
+        if (error) {
+            error = this.enhanceCompilationError(error, file);
+        }
 
         // Save compilation log to artifacts
         const logContent = `Compiler: ${config.compiler?.c?.compiler || "gcc"}
@@ -762,5 +768,100 @@ Note: Make sure you have the C/C++ extension installed in VS Code.`;
             }
             return flag;
         });
+    }
+
+    /*
+     Enhances compilation error messages with helpful hints
+     @param error Original error message from compiler
+     @param file Test file being compiled
+     @returns Enhanced error message with helpful hints
+     */
+    private enhanceCompilationError(error: string, file: TestFile): string {
+        let enhancedError = error;
+        let hints: string[] = [];
+
+        // Check for missing testme.h
+        if (error.includes("testme.h") && (error.includes("No such file") ||
+            error.includes("not found") || error.includes("cannot find"))) {
+            hints.push(ErrorMessages.testmeHeaderNotFound());
+        }
+
+        // Check for missing library errors
+        const libNotFoundPatterns = [
+            /cannot find -l(\w+)/g,  // GCC/Clang: cannot find -lm
+            /ld: library not found for -l(\w+)/g,  // macOS Clang
+            /undefined reference to `(\w+)'/g,  // Missing function (likely library)
+        ];
+
+        for (const pattern of libNotFoundPatterns) {
+            const matches = error.matchAll(pattern);
+            for (const match of matches) {
+                const libName = match[1];
+                if (libName && !hints.some(h => h.includes(libName))) {
+                    hints.push(`\n💡 Hint: Library '${libName}' not found.
+Add to testme.json5:
+{
+  compiler: {
+    c: {
+      libraries: ['${libName}']
+    }
+  }
+}
+
+Or install the library development package on your system.`);
+                }
+            }
+        }
+
+        // Check for common include path issues
+        if (error.includes(".h:") || error.includes(".h'")) {
+            if (error.includes("No such file") || error.includes("not found")) {
+                hints.push(`\n💡 Hint: Header file not found.
+Solutions:
+1. Add include path in testme.json5:
+   {
+     compiler: {
+       c: {
+         flags: ['-I/path/to/headers']
+       }
+     }
+   }
+
+2. Copy the header file to your test directory
+
+3. Check the #include statement uses correct syntax:
+   - System headers: #include <header.h>
+   - Local headers: #include "header.h"`);
+            }
+        }
+
+        // Check for syntax errors
+        if (error.includes("error: expected") || error.includes("syntax error")) {
+            hints.push(`\n💡 Hint: Syntax error detected.
+Common causes:
+- Missing semicolon ;
+- Mismatched braces { }
+- Missing closing parenthesis )
+- Incorrect variable declarations
+
+Check the line number in the error message above.`);
+        }
+
+        // Check for undefined reference (missing implementation)
+        if (error.includes("undefined reference") || error.includes("unresolved external")) {
+            hints.push(`\n💡 Hint: Undefined reference (missing implementation).
+Common causes:
+1. Function declared but not implemented
+2. Missing library (add to libraries in testme.json5)
+3. Misspelled function name
+4. Missing source file in compilation`);
+        }
+
+        // Add hints to error if any were generated
+        if (hints.length > 0) {
+            enhancedError += "\n\n" + hints.join("\n");
+        }
+
+        return enhancedError;
     }
 }

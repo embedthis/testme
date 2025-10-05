@@ -50,9 +50,9 @@ TestMe is a production-ready, cross-platform multi-language test runner with nat
 
 Improve error messages to be more actionable:
 
--   [ ] Better compiler not found messages with installation instructions
--   [ ] Clearer configuration error messages with file locations
--   [ ] Helpful hints for common mistakes (e.g., missing testme.h)
+-   [x] Better compiler not found messages with installation instructions
+-   [x] Clearer configuration error messages with file locations
+-   [x] Helpful hints for common mistakes (e.g., missing testme.h)
 
 ### 2. Configuration Validation
 
@@ -92,12 +92,11 @@ Add coverage support for C tests:
 
 ### 3. Advanced Debugging Features
 
-**Priority**: Medium
+**Priority**: Low
 **Effort**: Medium
 
 Enhance debugging capabilities:
 
--   [ ] Better Xcode integration on macOS
 -   [ ] Core dump analysis integration
 
 ### 4. Test Filtering Enhancements

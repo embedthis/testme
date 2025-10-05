@@ -1,5 +1,32 @@
 # TestMe Changelog
 
+## 2025-10-05 (Session 3)
+
+### Enhanced Error Messages
+
+#### Compiler Not Found Errors
+- Added platform-specific installation instructions for GCC, Clang, and MSVC
+- Error messages now include:
+  - Download links for compilers
+  - Package manager installation commands
+  - Alternative compiler suggestions
+  - PATH configuration instructions
+
+#### Configuration File Errors
+- Better JSON5 syntax error messages with common fixes
+- File location prominently displayed in error output
+- Hints for common mistakes (missing commas, unclosed brackets, etc.)
+  - Permission error detection and fix suggestions
+
+#### Compilation Error Hints
+- Automatic detection of missing testme.h with installation instructions
+- Library not found errors with configuration examples
+- Header file not found with include path solutions
+- Syntax error hints with common causes
+- Undefined reference errors with troubleshooting steps
+
+New file: [src/utils/error-messages.ts](../src/utils/error-messages.ts) - Centralized error message generation
+
 ## 2025-10-05 (Session 2)
 
 ### New Language Support

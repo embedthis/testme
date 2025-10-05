@@ -8,7 +8,7 @@
   "type": "module",
   "private": false,
   "bin": {
-    "tm": "./src/index.ts"
+    "tm": "./dist/tm"
   },
   "exports": {
     ".": {
@@ -18,13 +18,14 @@
   },
   "scripts": {
     "start": "bun run src/index.ts",
-    "build": "bun build ./testme.ts --compile --outfile tm",
-    "build:win": "bun build ./testme.ts --compile --outfile tm.exe",
-    "build:unix": "bun build ./testme.ts --compile --outfile tm",
+    "build": "bun build ./testme.ts --compile --outfile dist/tm",
+    "build:win": "bun build ./testme.ts --compile --outfile dist/tm.exe",
+    "build:unix": "bun build ./testme.ts --compile --outfile dist/tm",
     "test": "bun test",
     "clean": "node -e \"require('fs').rmSync('dist', {recursive: true, force: true}); require('fs').rmSync('.testme', {recursive: true, force: true})\"",
-    "clean:win": "if exist tm.exe del tm.exe && for /f %i in ('dir /b /a .*.bun-build 2^>nul') do del %i",
-    "clean:unix": "rm -rf dist .testme tm"
+    "clean:win": "if exist tm.exe del dist\\tm.exe && for /f %i in ('dir /b /a .*.bun-build 2^>nul') do del %i",
+    "clean:unix": "rm -rf dist .testme dist/tm",
+    "postinstall": "bun run build"
   },
   "devDependencies": {
     "@types/bun": "latest",

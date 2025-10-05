@@ -4,7 +4,7 @@ prep:
 	bun install
 
 build:
-	bun build ./testme.ts --compile --outfile tm
+	bun build ./testme.ts --compile --outfile dist/tm
 
 test: build
 	tm
@@ -12,7 +12,7 @@ test: build
 install:
 	echo Installing
 	sudo mkdir -p /usr/local/lib/testme
-	sudo cp tm /usr/local/bin/tm
+	sudo cp dist/tm /usr/local/bin/tm
 	sudo cp test/testme.h /usr/local/include/testme.h
 	sudo cp doc/tm.1 /usr/local/share/man/man1
 	make -C src/modules/js build install
@@ -22,6 +22,6 @@ tidy:
 	rm -f .*.bun-build
 
 clean: tidy
-	rm -f tm
+	rm -f dist/tm
 
 .PHONY: prep run build test install tidy clean

@@ -6,6 +6,7 @@ import {
     TestHandler,
 } from "../types.ts";
 import { GlobExpansion } from "../utils/glob-expansion.ts";
+import { ErrorMessages } from "../utils/error-messages.ts";
 
 /*
  Abstract base class for all test handlers
@@ -106,10 +107,40 @@ export abstract class BaseTestHandler implements TestHandler {
                 clearTimeout(timeoutId);
             }
 
+            // Provide helpful error messages for common failures
+            let errorMessage = `Failed to execute command: ${error}`;
+
+            const errorStr = String(error);
+            // Detect "command not found" or "executable not found" errors
+            if (errorStr.includes("ENOENT") || errorStr.includes("not found") ||
+                errorStr.includes("No such file")) {
+
+                // Check if it's a compiler
+                if (command === "gcc" || command === "clang" || command === "cl" ||
+                    command === "cl.exe" || command.includes("gcc") || command.includes("clang")) {
+                    errorMessage = ErrorMessages.compilerNotFound(command);
+                }
+                // Check if it's a runtime dependency
+                else if (command === "python" || command === "python3" || command === "go" ||
+                         command === "node" || command === "bun") {
+                    errorMessage = ErrorMessages.dependencyNotFound(command);
+                }
+                else {
+                    errorMessage = `Executable not found in $PATH: "${command}"
+
+Common solutions:
+1. Install ${command} using your system's package manager
+2. Add ${command}'s directory to your PATH environment variable
+3. Specify the full path to ${command}
+
+Original error: ${error}`;
+                }
+            }
+
             return {
                 exitCode: -1,
                 stdout: "",
-                stderr: `Failed to execute command: ${error}`,
+                stderr: errorMessage,
             };
         }
     }
