@@ -1,0 +1,5 @@
+{
+    // Go tests require Go compiler
+    enable: true,
+    depth: 0,
+}

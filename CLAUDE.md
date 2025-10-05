@@ -97,6 +97,24 @@ Each test type (Shell, C, JS, TS, ES) implements the `TestHandler` type:
 -   C tests: stores compiled binaries and `compile.log`
 -   Artifacts are cleaned up automatically or via `--clean` flag
 
+### Test Runtime Modules (`src/modules/`)
+
+TestMe provides runtime helpers for different test languages:
+
+-   **C Module** (`src/modules/c/`): Contains `testme.h` header with test assertion macros
+    -   `teq(got, expected, msg)` - Test equality
+    -   `ttrue(condition, msg)` - Test boolean condition
+    -   `tinfo(msg, ...)` - Output test information
+    -   Installed to `/usr/local/include/testme.h` for system-wide use
+    -   Copied to `test/testme.h` for local development
+
+-   **JavaScript/TypeScript Module** (`src/modules/js/`): Test utilities for Bun runtime
+    -   Importable via `import { ... } from 'testme'`
+    -   Provides test assertion helpers
+
+-   **Ejscript Module** (`src/modules/es/`): Test helpers for Ejscript runtime
+    -   Loadable via `--require` flag in configuration
+
 ### Critical File Relationships
 
 #### Type System (`src/types.ts`)
@@ -295,3 +313,4 @@ Services are managed per configuration group:
 -   When writing code, format using prettier with tab stops set to 4 spaces
 -   All code is sufficiently commented with JSDoc-style comments
 -   Tests in subdirectories need to have unique names to avoid conflicts with tests in the parent or sibling directories.
+-   Create new unit tests in well named sub-directories under test

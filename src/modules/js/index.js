@@ -1,136 +1,128 @@
 /**
-    testme - Testing utilities for JavaScript and TypeScript tests
+    js/index.js - Testing utilities API for JavaScript and TypeScript tests
     Provides assertion functions, environment variable access, and test utilities
  */
 
-let exitCode = 0;
+let exitCode = 0
 
 function tdepth() {
-    return parseInt(tget("TESTME_DEPTH", "0"), 10);
+    return parseInt(tget('TESTME_DEPTH', '0'), 10)
 }
 
 function tget(key, def = null) {
-    let value = process.env[key];
-    if (value == null || value == "") {
-        value = def;
+    let value = process.env[key]
+    if (value == null || value == '') {
+        value = def
     }
-    return value;
+    return value
 }
 
 function thas(key) {
-    return tget(key) - 0;
+    return tget(key) - 0
 }
 
 function tverbose() {
-    return Boolean(tget("TESTME_VERBOSE"));
+    return Boolean(tget('TESTME_VERBOSE'))
 }
 
 export function getStack() {
-    const error = new Error();
-    const stack = error.stack?.split("\n") || [];
+    const error = new Error()
+    const stack = error.stack?.split('\n') || []
     // Skip this function and the calling test function to get the actual test line
-    const caller = stack[3] || stack[2] || stack[1] || "unknown";
-    const match = caller.match(/at (?:.*\s+\()?([^:w]+):(\d+)\)?/);
+    const caller = stack[3] || stack[2] || stack[1] || 'unknown'
+    const match = caller.match(/at (?:.*\s+\()?([^:w]+):(\d+)\)?/)
     if (match) {
         return {
             filename: match[1],
             line: match[2],
-        };
+        }
     }
-    return { filename: "unknown file", line: "unknown line" };
+    return {filename: 'unknown file', line: 'unknown line'}
 }
 
 function treport(success, stack, message, received, expected) {
-    let loc = `${stack.filename}:${stack.line}`;
+    let loc = `${stack.filename}:${stack.line}`
     if (!message) {
-        message = `Test ${success ? "passed" : "failed"}`;
+        message = `Test ${success ? 'passed' : 'failed'}`
     }
     if (success) {
-        console.log(`✓ ${message} at ${loc}`);
+        console.log(`✓ ${message} at ${loc}`)
     } else {
         if (expected === undefined && received === undefined) {
-            console.error(`✗ ${message} at ${loc}`);
+            console.error(`✗ ${message} at ${loc}`)
         } else {
-            console.error(
-                `✗ ${message} at ${loc}\nExpected: ${expected}\nReceived: ${received}`
-            );
+            console.error(`✗ ${message} at ${loc}\nExpected: ${expected}\nReceived: ${received}`)
         }
-        process.exit(1);
+        process.exit(1)
     }
 }
 
-function tassert(condition, message = "") {
-    treport(condition, getStack(), message);
+function tassert(condition, message = '') {
+    treport(condition, getStack(), message)
 }
-function ttrue(condition, message = "") {
-    treport(condition, getStack(), message);
-}
-
-function tfalse(condition, message = "") {
-    treport(!condition, getStack(), message);
+function ttrue(condition, message = '') {
+    treport(condition, getStack(), message)
 }
 
-function tfail(message = "") {
-    treport(false, getStack(), message);
+function tfalse(condition, message = '') {
+    treport(!condition, getStack(), message)
 }
 
-function teq(received, expected, message = "") {
-    treport(received == expected, getStack(), message, received, expected);
+function tfail(message = '') {
+    treport(false, getStack(), message)
 }
 
-function tneq(received, expected, message = "") {
-    treport(received != expected, getStack(), message, received, expected);
+function teq(received, expected, message = '') {
+    treport(received == expected, getStack(), message, received, expected)
 }
 
-function tmatch(string, pattern, message = "") {
-    treport(
-        new RegExp(pattern).test(string),
-        getStack(),
-        message,
-        string,
-        pattern
-    );
+function tneq(received, expected, message = '') {
+    treport(received != expected, getStack(), message, received, expected)
 }
 
-function tcontains(string, pattern, message = "") {
-    treport(string.includes(pattern), getStack(), message, string, pattern);
+function tmatch(string, pattern, message = '') {
+    treport(new RegExp(pattern).test(string), getStack(), message, string, pattern)
+}
+
+function tcontains(string, pattern, message = '') {
+    treport(string.includes(pattern), getStack(), message, string, pattern)
 }
 
 function tinfo(...args) {
-    console.log(...args);
+    console.log(...args)
 }
 
 function tdebug(...args) {
-    console.log(...args);
+    console.log(...args)
 }
 
 function tskip(...args) {
-    console.log(...args);
+    console.log(...args)
 }
 
 function twrite(...args) {
-    console.log(...args);
+    console.log(...args)
 }
 
 // Process exit handler to return appropriate exit code
-process.on("exit", () => {
-    process.exitCode = exitCode;
-});
+process.on('exit', () => {
+    process.exitCode = exitCode
+})
 
 // Handle uncaught exceptions
-process.on("uncaughtException", (error) => {
-    console.error("Uncaught exception:", error.message);
+process.on('uncaughtException', (error) => {
+    console.error('Uncaught exception:', error.message)
     if (tverbose()) {
-        console.error(error.stack);
+        console.error(error.stack)
     }
-    process.exit(1);
-});
+    process.exit(1)
+})
 
 // Handle unhandled promise rejections
-process.on("unhandledRejection", (reason) => {
-    console.error("Unhandled rejection:", reason);
-    process.exit(1);
-});
+process.on('unhandledRejection', (reason) => {
+    console.error('Unhandled rejection:', reason)
+    process.exit(1)
+})
 
 // Export all functions for use in tests
 export {
@@ -150,7 +142,7 @@ export {
     ttrue,
     tverbose,
     twrite,
-};
+}
 
 // Default export with all functions
 export default {
@@ -170,4 +162,4 @@ export default {
     ttrue,
     tverbose,
     twrite,
-};
+}

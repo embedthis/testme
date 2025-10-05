@@ -12,6 +12,7 @@ _.log
 .env.test.local
 .eslintcache
 .idea
+.local.mk
 .testme
 *.lcov
 *.tgz
@@ -23,3 +24,4 @@ logs
 node_modules
 out
 tm
+installs/

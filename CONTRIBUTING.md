@@ -91,6 +91,7 @@ testme/
 │   ├── discovery.ts       # Test file discovery
 │   ├── runner.ts          # Test execution orchestration
 │   ├── reporter.ts        # Output formatting
+│   ├── services.ts        # Service lifecycle management
 │   ├── artifacts.ts       # Build artifact management
 │   ├── types.ts           # TypeScript type definitions
 │   ├── handlers/          # Test type handlers
@@ -99,20 +100,45 @@ testme/
 │   │   ├── shell.ts       # Shell test handler
 │   │   ├── javascript.ts  # JavaScript test handler
 │   │   ├── typescript.ts  # TypeScript test handler
-│   │   └── ...
+│   │   ├── ejscript.ts    # Ejscript test handler
+│   │   ├── python.ts      # Python test handler
+│   │   ├── go.ts          # Go test handler
+│   │   └── index.ts       # Handler registry
 │   ├── platform/          # Platform abstraction
 │   │   ├── detector.ts    # OS/compiler detection
 │   │   ├── compiler.ts    # Compiler management
-│   │   └── permissions.ts # File permissions
-│   └── utils/             # Utility functions
-│       └── glob-expansion.ts # Variable expansion
+│   │   ├── permissions.ts # File permissions
+│   │   ├── process.ts     # Process management
+│   │   └── shell.ts       # Shell detection
+│   ├── utils/             # Utility functions
+│   │   ├── glob-expansion.ts # Variable expansion
+│   │   └── error-messages.ts # Error message helpers
+│   └── modules/           # Test runtime modules
+│       ├── c/             # C test header (testme.h)
+│       ├── js/            # JavaScript/TypeScript test helpers
+│       └── es/            # Ejscript test helpers
 ├── test/                  # Test suite
 │   ├── testme.json5       # Test configuration
-│   └── portable/          # Portable unit tests
-└── doc/                   # Documentation
-    ├── DESIGN.md          # Architecture overview
-    ├── PLAN.md            # Development roadmap
-    └── CHANGELOG.md       # Change history
+│   ├── basic.tst.c        # Framework verification test
+│   ├── portable/          # Cross-platform tests
+│   ├── platform/          # Platform abstraction tests
+│   ├── service/           # Service lifecycle tests
+│   ├── go/                # Go language tests
+│   ├── python/            # Python language tests
+│   └── windows/           # Windows-specific tests
+├── installs/              # Installation packages
+│   ├── npm/               # NPM/Bun package
+│   ├── homebrew/          # Homebrew formula
+│   ├── winget/            # Windows Package Manager
+│   ├── chocolatey/        # Chocolatey package
+│   └── apt/               # Debian/Ubuntu package
+├── doc/                   # Documentation
+│   ├── DESIGN.md          # Architecture overview
+│   ├── PLAN.md            # Development roadmap
+│   ├── CHANGELOG.md       # Change history
+│   └── tm.1               # Man page
+├── bin/                   # Build scripts
+└── dist/                  # Compiled binary output
 ```
 
 ## Coding Standards
@@ -175,8 +201,13 @@ TestMe uses itself for testing! Tests are located in the `test/` directory.
 **Test File Naming:**
 - C tests: `*.tst.c`
 - Shell tests: `*.tst.sh`
+- PowerShell tests: `*.tst.ps1`
+- Batch tests: `*.tst.bat`, `*.tst.cmd`
 - JavaScript tests: `*.tst.js`
 - TypeScript tests: `*.tst.ts`
+- Ejscript tests: `*.tst.es`
+- Python tests: `*.tst.py`
+- Go tests: `*.tst.go`
 
 **Test Structure:**
 
@@ -194,11 +225,16 @@ int main() {
 ```
 
 **Test Organization:**
-- Keep tests in `test/portable/` for portable unit tests
-- Use subdirectories for feature-specific tests
+- `test/portable/` - Cross-platform unit tests
+- `test/platform/` - Platform abstraction layer tests
+- `test/service/` - Service lifecycle integration tests
+- `test/go/` - Go language-specific tests
+- `test/python/` - Python language-specific tests
+- `test/windows/` - Windows-specific tests (PowerShell, Batch)
 - Tests must be able to run in parallel
 - Use `getpid()` for unique temporary filenames
 - Clean up any files created during tests
+- Place test-specific configs in subdirectory `testme.json5` files
 
 ### Running Tests
 

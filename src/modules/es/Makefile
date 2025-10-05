@@ -1,9 +1,12 @@
 #
-#
+#	module/es - Makefile to install the testme.mod
 #
 all: build
 
-build:
+build: testme.mod
+	@true
+
+testme.mod: testme.es
 	ejsc testme.es
 
 install:

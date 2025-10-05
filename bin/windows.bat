@@ -1,7 +1,7 @@
 @setlocal
 @echo off
 REM
-REM   Set VS vars and run a command
+REM   Useful wrapper to set Windows Visual Studio environment variables and run a command
 REM
 
 if "%PROCESSOR_ARCHITECTURE%"=="" set PROCESSOR_ARCHITECTURE=%PA%

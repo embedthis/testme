@@ -119,11 +119,13 @@ More powerful test selection:
 
 Make TestMe easily installable:
 
--   [ ] npm/bun package publication
--   [ ] Homebrew formula (macOS)
--   [ ] winget package (Windows)
--   [ ] chocolatey package (Windows)
--   [ ] apt/yum packages (Linux)
+-   [x] npm/bun package publication - Completed (installs/npm/)
+-   [x] Homebrew formula (macOS) - Completed (installs/homebrew/)
+-   [x] winget package (Windows) - Completed (installs/winget/)
+-   [x] chocolatey package (Windows) - Completed (installs/chocolatey/)
+-   [x] apt packages (Linux) - Completed (installs/apt/)
+-   [ ] Publish packages to respective registries
+-   [ ] yum/rpm packages (RHEL/Fedora)
 
 ### 2. Language Extensions
 

@@ -1,5 +1,59 @@
 # TestMe Changelog
 
+## 2025-10-05 (Session 4)
+
+### Installation Packages
+
+Created complete installation package configurations for multiple package managers:
+
+#### NPM/Bun Package (installs/npm/)
+- Full package.json configuration for npm registry
+- Postinstall script for building binary and installing support files
+- Handles testme.h header installation on Unix systems
+- Man page installation support
+- Cross-platform installation via `npm install -g @embedthis/testme` or `bun install -g @embedthis/testme`
+
+#### Homebrew Formula (installs/homebrew/)
+- Complete Ruby formula for Homebrew tap
+- Automated build and installation process
+- Installs binary, header, man page, and JS/ES modules
+- Test validation in formula
+- Installation via `brew install testme`
+
+#### WinGet Manifest (installs/winget/)
+- Complete manifest files for Windows Package Manager
+- Version, installer, and locale manifests
+- Support for x64 and ARM64 architectures
+- Portable installation with command alias
+- Installation via `winget install Embedthis.TestMe`
+
+#### Chocolatey Package (installs/chocolatey/)
+- NuSpec package definition
+- PowerShell installation and uninstallation scripts
+- PATH management and header file installation
+- Bun runtime dependency
+- Installation via `choco install testme`
+
+#### Debian/APT Package (installs/apt/)
+- Complete Debian packaging with control, rules, changelog, copyright
+- debhelper-compat support
+- Multi-architecture build support (amd64, arm64, armhf)
+- PPA publishing instructions
+- Installation via `sudo apt install testme`
+
+#### Documentation Updates
+- Created master installation guide: [installs/README.md](../installs/README.md)
+- Updated main README with quick install instructions for all platforms
+- Added package-specific READMEs with build and publishing instructions
+- Updated PLAN.md marking package distribution tasks complete
+
+All packages include:
+- tm binary installation
+- testme.h header for C tests
+- Man page documentation
+- JavaScript/TypeScript modules
+- Cross-platform support
+
 ## 2025-10-05 (Session 3)
 
 ### Enhanced Error Messages

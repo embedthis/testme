@@ -1,13 +1,13 @@
 #
-#
+#	module/js - Makefile to install the testme.js
 #
 all:
 
 build:
-
+	@true
 
 install:
-	bun link
+	bun --quiet link
 	sudo cp index.js /usr/local/include/testme.js
 	sudo mkdir -p /usr/local/lib/testme
 	sudo cp package.json /usr/local/lib/testme

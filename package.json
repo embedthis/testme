@@ -1,55 +1,87 @@
 {
-  "name": "testme",
-  "version": "0.8.0",
-  "description": "Multi-language test runner for shell, C, JavaScript, and TypeScript tests",
-  "main": "src/pkg/testme.js",
-  "module": "src/pkg/testme.js",
-  "types": "src/pkg/testme.d.ts",
-  "type": "module",
-  "private": false,
-  "bin": {
-    "tm": "./dist/tm"
-  },
-  "exports": {
-    ".": {
-      "import": "./src/pkg/testme.js",
-      "types": "./src/pkg/testme.d.ts"
+    "name": "@embedthis/testme",
+    "owner": "embedthis",
+    "version": "0.8.0",
+    "description": "Multi-language test runner for shell, C, JavaScript, TypeScript, Python, and Go tests",
+    "author": "Embedthis Software",
+    "license": "GPL-2.0",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/embedthis/testme.git"
+    },
+    "homepage": "https://github.com/embedthis/testme/",
+    "bugs": {
+        "url": "https://github.com/embedthis/testme/issues"
+    },
+    "main": "src/pkg/testme.js",
+    "module": "src/pkg/testme.js",
+    "types": "src/pkg/testme.d.ts",
+    "type": "module",
+    "private": false,
+    "bin": {
+        "tm": "./dist/tm"
+    },
+    "exports": {
+        ".": {
+            "import": "./src/pkg/testme.js",
+            "types": "./src/pkg/testme.d.ts"
+        }
+    },
+    "files": [
+        "bin/install.sh",
+        "bin/install.mjs",
+        "src/**/*.ts",
+        "src/**/*.js",
+        "src/**/*.d.ts",
+        "src/modules/es/testme.mod",
+        "test/testme.h",
+        "doc/tm.1",
+        "testme.ts",
+        "README.md",
+        "LICENSE"
+    ],
+    "scripts": {
+        "start": "bun run src/index.ts",
+        "build": "bun build ./testme.ts --compile --outfile dist/tm",
+        "build:win": "bun build ./testme.ts --compile --outfile dist/tm.exe",
+        "build:unix": "bun build ./testme.ts --compile --outfile dist/tm",
+        "test": "tm test",
+        "clean": "node -e \"require('fs').rmSync('dist', {recursive: true, force: true}); require('fs').rmSync('.testme', {recursive: true, force: true})\"",
+        "clean:win": "if exist tm.exe del dist\\tm.exe && for /f %i in ('dir /b /a .*.bun-build 2^>nul') do del %i",
+        "clean:unix": "rm -rf dist .testme dist/tm",
+        "postinstall": "sh bin/install.sh"
+    },
+    "engines": {
+        "node": ">=18.0.0",
+        "bun": ">=1.0.0"
+    },
+    "keywords": [
+        "test",
+        "testing",
+        "test-runner",
+        "c",
+        "javascript",
+        "typescript",
+        "python",
+        "go",
+        "shell",
+        "powershell",
+        "batch",
+        "windows",
+        "linux",
+        "macos",
+        "cross-platform",
+        "bun"
+    ],
+    "dependencies": {
+        "glob": "^11.0.3",
+        "json5": "^2.2.3"
+    },
+    "devDependencies": {
+        "@types/bun": "latest",
+        "bun-types": "latest"
+    },
+    "peerDependencies": {
+        "typescript": "^5"
     }
-  },
-  "scripts": {
-    "start": "bun run src/index.ts",
-    "build": "bun build ./testme.ts --compile --outfile dist/tm",
-    "build:win": "bun build ./testme.ts --compile --outfile dist/tm.exe",
-    "build:unix": "bun build ./testme.ts --compile --outfile dist/tm",
-    "test": "bun test",
-    "clean": "node -e \"require('fs').rmSync('dist', {recursive: true, force: true}); require('fs').rmSync('.testme', {recursive: true, force: true})\"",
-    "clean:win": "if exist tm.exe del dist\\tm.exe && for /f %i in ('dir /b /a .*.bun-build 2^>nul') do del %i",
-    "clean:unix": "rm -rf dist .testme dist/tm",
-    "postinstall": "bun run build"
-  },
-  "devDependencies": {
-    "@types/bun": "latest",
-    "bun-types": "latest"
-  },
-  "peerDependencies": {
-    "typescript": "^5"
-  },
-  "keywords": [
-    "test",
-    "testing",
-    "test-runner",
-    "c",
-    "javascript",
-    "typescript",
-    "shell",
-    "powershell",
-    "batch",
-    "windows",
-    "cross-platform",
-    "bun"
-  ],
-  "dependencies": {
-    "glob": "^11.0.3",
-    "json5": "^2.2.3"
-  }
 }

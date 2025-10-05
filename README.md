@@ -28,20 +28,34 @@ TestMe is a powerful, multi-language test runner built with [Bun](https://bun.sh
 -   [Usage](#usage)
 -   [Test File Types](#test-file-types)
 -   [Configuration](#configuration)
+-   [Common Use Cases](#common-use-cases)
 -   [Output Formats](#output-formats)
 -   [Development](#development)
 -   [Tips and Best Practices](#tips-and-best-practices)
+-   [Publishing](#publishing)
 
 ## 🔧 Installation
 
-### Prerequisites
+### Quick Install (NPM/Bun)
+
+```bash
+# Using npm
+npm install -g @embedthis/testme
+
+# Using bun
+bun install -g @embedthis/testme
+```
+
+### Manual Installation
+
+#### Prerequisites
 
 -   [Bun](https://bun.sh) - JavaScript runtime (required)
 -   C compiler (for C tests):
     -   **macOS/Linux**: GCC or Clang
     -   **Windows**: MSVC (Visual Studio), MinGW-w64, or LLVM/Clang
 
-### Unix/Linux/macOS Installation
+#### Unix/Linux/macOS
 
 1. Clone or download the tm project
 2. Install dependencies:
@@ -61,9 +75,9 @@ TestMe is a powerful, multi-language test runner built with [Bun](https://bun.sh
     sudo make install
     ```
 
-### Windows Installation
+#### Windows
 
-#### 1. Install Bun
+##### 1. Install Bun
 
 ```powershell
 powershell -c "irm bun.sh/install.ps1 | iex"
@@ -75,7 +89,7 @@ Verify installation:
 bun --version
 ```
 
-#### 2. Install a C Compiler (Optional)
+##### 2. Install a C Compiler (Optional)
 
 Choose one:
 
@@ -97,7 +111,7 @@ winget install mingw-w64
 winget install LLVM.LLVM
 ```
 
-#### 3. Build and Install
+##### 3. Build and Install
 
 ```powershell
 # Install dependencies
@@ -112,7 +126,7 @@ make install
 copy tm.exe $env:USERPROFILE\.local\bin\
 ```
 
-#### 4. Add to PATH (if needed)
+##### 4. Add to PATH (if needed)
 
 ```powershell
 $binPath = "$env:USERPROFILE\.local\bin"
@@ -120,6 +134,8 @@ $env:PATH += ";$binPath"
 
 # To make permanent, edit via System Properties > Environment Variables
 ```
+
+For more installation options and details, see [installs/README.md](installs/README.md).
 
 ## 🚀 Quick Start
 
@@ -859,6 +875,16 @@ bun --hot src/index.ts
 | **Compiler not found**          | Run from "Developer Command Prompt for VS 2022"<br>Or add compiler to PATH manually                                  |
 | **MSVC vs GCC flags**           | Check `testme.json5` compiler config<br>MSVC: `/W4 /std:c11`<br>GCC/MinGW: `-std=c99 -Wall -Wextra`                  |
 | **Shell tests fail on Windows** | Install Git for Windows (includes bash)<br>Or convert to `.tst.ps1` or `.tst.bat`                                    |
+
+---
+
+## 📦 Publishing
+
+If you're a package maintainer or want to contribute TestMe to additional repositories:
+
+-   **[Publishing Guide](doc/PUBLISHING.md)** - Complete step-by-step instructions for publishing to all package repositories
+-   **[Quick Reference](doc/PUBLISHING-QUICKREF.md)** - One-page reference for package publishing
+-   **[Installation Packages](installs/README.md)** - Package configurations and build instructions
 
 ---
 

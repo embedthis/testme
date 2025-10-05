@@ -1,27 +1,54 @@
+#
+#	Makefile - Build and install the TestMe project
+#
 all: build tidy
 
+#
+#  Install required dependencies
+#
 prep:
 	bun install
 
+#
+#  Build the project. Builds the tm binary and the support files.
+#
 build:
 	bun build ./testme.ts --compile --outfile dist/tm
+	@make -C src/modules/c build
+	@make -C src/modules/js build
+	@make -C src/modules/es build
 
 test: build
-	tm
+	tm test
 
-install:
-	echo Installing
-	sudo mkdir -p /usr/local/lib/testme
+install: build
+	@echo Installing
+	bin/install.sh
+
+#
+#  Old install method
+#
+old-install: build
 	sudo cp dist/tm /usr/local/bin/tm
-	sudo cp test/testme.h /usr/local/include/testme.h
 	sudo cp doc/tm.1 /usr/local/share/man/man1
-	make -C src/modules/js build install
-	make -C src/modules/es build install
-
-tidy:
-	rm -f .*.bun-build
+	@make -C src/modules/c install
+	@make -C src/modules/js install
+	@make -C src/modules/es install
 
 clean: tidy
 	rm -f dist/tm
+	rm -fr test/.testme
+
+#
+#  Remove bun artifacts
+#
+tidy:
+	@rm -f .*.bun-build
 
 .PHONY: prep run build test install tidy clean
+
+LOCAL_MAKEFILE := $(strip $(wildcard ./.local.mk))
+
+ifneq ($(LOCAL_MAKEFILE),)
+include $(LOCAL_MAKEFILE)
+endif
