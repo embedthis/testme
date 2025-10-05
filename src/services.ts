@@ -3,23 +3,77 @@ import { relative, delimiter } from "path";
 import { GlobExpansion } from "./utils/glob-expansion.ts";
 import { ProcessManager } from "./platform/process.ts";
 
-/*
- Manages setup and cleanup services for test execution
- Handles background processes and ensures proper cleanup
+/**
+ * Manages setup and cleanup services for test execution
+ *
+ * ServiceManager coordinates the lifecycle of test environment services including
+ * skip checks, preparation scripts, background setup processes, and cleanup operations.
+ * It ensures proper process management and cleanup even when tests fail or are interrupted.
+ *
+ * @remarks
+ * Service Execution Order:
+ * 1. Skip - Determines if tests should run (exit 0=run, non-zero=skip)
+ * 2. Prep - Runs once in foreground before tests
+ * 3. Setup - Starts as background service during tests
+ * 4. Tests Execute
+ * 5. Cleanup - Runs after tests complete, kills setup if still running
+ *
+ * Process Management:
+ * - Setup processes run in background and are automatically killed on exit
+ * - Cleanup handlers registered for SIGINT, SIGTERM, and process exit
+ * - All scripts run in the directory containing testme.json5
+ * - Environment variables from config are expanded and passed to services
+ *
+ * @example
+ * ```typescript
+ * const serviceManager = new ServiceManager('/path/to/tests');
+ *
+ * // Check if tests should be skipped
+ * const { shouldSkip, message } = await serviceManager.runSkip(config);
+ * if (shouldSkip) {
+ *   console.log('Skipping:', message);
+ *   return;
+ * }
+ *
+ * // Run preparation
+ * await serviceManager.runPrep(config);
+ *
+ * // Start background service
+ * await serviceManager.runSetup(config);
+ *
+ * // Run tests...
+ *
+ * // Cleanup
+ * await serviceManager.runCleanup(config);
+ * ```
  */
 export class ServiceManager {
+    /** @internal */
     private setupProcess: Bun.Subprocess | null = null;
+    /** @internal */
     private isSetupRunning = false;
+    /** @internal */
     private invocationDir: string;
 
+    /**
+     * Creates a new ServiceManager instance
+     *
+     * @param invocationDir - Directory from which tests were invoked (for display paths)
+     */
     constructor(invocationDir?: string) {
         this.invocationDir = invocationDir || process.cwd();
     }
 
-    /*
-     Runs the skip script to determine if tests should be skipped
-     @param config Test configuration containing service settings
-     @returns Object with shouldSkip boolean and optional message
+    /**
+     * Runs the skip script to determine if tests should be skipped
+     *
+     * @param config - Test configuration containing service settings
+     * @returns Object with shouldSkip boolean and optional message
+     *
+     * @remarks
+     * Exit code 0 means tests should run (don't skip).
+     * Non-zero exit code means tests should be skipped.
+     * Any output (stdout/stderr) from the skip script is captured as the skip message.
      */
     async runSkip(config: TestConfig): Promise<{ shouldSkip: boolean; message?: string }> {
         const skipCommand = config.services?.skip;
@@ -83,10 +137,15 @@ export class ServiceManager {
         }
     }
 
-    /*
-     Runs the prep command in the foreground and waits for completion
-     @param config Test configuration containing service settings
-     @throws Error if prep command fails or times out
+    /**
+     * Runs the prep command in the foreground and waits for completion
+     *
+     * @param config - Test configuration containing service settings
+     * @throws Error if prep command fails or times out
+     *
+     * @remarks
+     * Prep script runs once before all tests and waits for completion.
+     * Use for one-time setup operations like compiling code or starting databases.
      */
     async runPrep(config: TestConfig): Promise<void> {
         const prepCommand = config.services?.prep;
@@ -145,10 +204,16 @@ export class ServiceManager {
         }
     }
 
-    /*
-     Runs the setup command as a background process
-     @param config Test configuration containing service settings
-     @throws Error if setup command fails or times out
+    /**
+     * Runs the setup command as a background process
+     *
+     * @param config - Test configuration containing service settings
+     * @throws Error if setup command fails or times out
+     *
+     * @remarks
+     * Setup script runs in the background during test execution.
+     * Automatically killed when tests complete or process exits.
+     * Supports optional delay after startup before tests begin.
      */
     async runSetup(config: TestConfig): Promise<void> {
         const setupCommand = config.services?.setup;
@@ -232,9 +297,15 @@ export class ServiceManager {
         }
     }
 
-    /*
-     Runs the cleanup command in the foreground
-     @param config Test configuration containing service settings
+    /**
+     * Runs the cleanup command in the foreground
+     *
+     * @param config - Test configuration containing service settings
+     *
+     * @remarks
+     * Cleanup script runs after all tests complete.
+     * Automatically kills the setup process first if it's still running.
+     * Errors in cleanup are logged but don't fail the test run.
      */
     async runCleanup(config: TestConfig): Promise<void> {
         const cleanupCommand = config.services?.cleanup;
@@ -298,8 +369,12 @@ export class ServiceManager {
         }
     }
 
-    /*
-     Kills the setup process and all its subprocesses
+    /**
+     * Kills the setup process and all its subprocesses
+     *
+     * @remarks
+     * Uses platform-appropriate process killing (kills entire process tree on Unix).
+     * Safe to call multiple times - idempotent operation.
      */
     async killSetup(): Promise<void> {
         if (!this.setupProcess || !this.isSetupRunning) {
@@ -324,9 +399,10 @@ export class ServiceManager {
         }
     }
 
-    /*
-     Checks if setup service is currently running
-     @returns true if setup process is running
+    /**
+     * Checks if setup service is currently running
+     *
+     * @returns true if setup process is running
      */
     isSetupServiceRunning(): boolean {
         return (

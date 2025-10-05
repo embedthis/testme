@@ -162,7 +162,9 @@ export enum TestType {
   C = 'c',
   JavaScript = 'javascript',
   TypeScript = 'typescript',
-  Ejscript = 'ejscript'
+  Ejscript = 'ejscript',
+  Python = 'python',
+  Go = 'go'
 }
 
 /*

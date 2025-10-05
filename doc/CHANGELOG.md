@@ -1,6 +1,57 @@
 # TestMe Changelog
 
-## 2025-10-05
+## 2025-10-05 (Session 2)
+
+### New Language Support
+- **Python Test Support (.tst.py)** - Added full support for Python tests
+  - Uses `python3` command (falls back to `python` if unavailable)
+  - Automatic detection and execution
+  - Example test: [test/python-basic.tst.py](../test/python-basic.tst.py)
+
+- **Go Test Support (.tst.go)** - Added full support for Go tests
+  - Uses `go run` for compilation and execution
+  - Requires Go to be installed
+  - Example test: [test/go-basic.tst.go](../test/go-basic.tst.go)
+
+### Code Quality Improvements
+
+#### Standardized Error Handling
+- Moved duplicate `combineOutput()` method from all handlers to BaseTestHandler
+- Added `createErrorResult()` helper method for consistent error reporting
+- Improved error messages to include file paths for easier debugging
+- All handlers now use standardized output formatting
+
+#### Comprehensive Test Coverage
+- **Platform Abstraction Layer Tests**
+  - test/platform-detector.tst.ts - Platform and capability detection
+  - test/platform-permissions.tst.ts - File permissions and executability
+  - test/platform-process.tst.ts - Process spawning and management
+
+- **Service Lifecycle Integration Tests**
+  - test/service-lifecycle.tst.ts - Complete service lifecycle testing
+  - Tests skip, prep, setup, and cleanup services
+  - Verifies proper process management and cleanup
+
+#### API Documentation
+- Added comprehensive JSDoc documentation to internal APIs:
+  - ConfigManager - Configuration loading and merging
+  - ServiceManager - Service lifecycle management
+  - ArtifactManager - Build artifact management
+  - All methods now have proper parameter and return type documentation
+
+### Test Results
+All test suites pass successfully:
+- ✓ Platform detector tests (10 tests)
+- ✓ Platform permissions tests (10 tests)
+- ✓ Platform process tests (10 tests)
+- ✓ Service lifecycle tests (11 tests)
+- ✓ String tests (4 tests)
+- ✓ Glob expansion tests (4 tests)
+- ✓ Python basic tests (4 tests)
+
+Total: 53 passing tests
+
+## 2025-10-05 (Session 1)
 
 ### Compiler Defaults
 - **DEV**: Added default compiler flags for GCC/Clang

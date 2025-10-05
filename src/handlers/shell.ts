@@ -73,21 +73,4 @@ export class ShellTestHandler extends BaseTestHandler {
             result.exitCode
         );
     }
-
-    /*
-     Combines stdout and stderr into formatted output
-     @param stdout Standard output from shell execution
-     @param stderr Standard error from shell execution
-     @returns Formatted combined output
-     */
-    private combineOutput(stdout: string, stderr: string): string {
-        let output = "";
-        if (stdout.trim()) {
-            output += `STDOUT:\n${stdout}\n`;
-        }
-        if (stderr.trim()) {
-            output += `STDERR:\n${stderr}`;
-        }
-        return output.trim();
-    }
 }

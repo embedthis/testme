@@ -31,11 +31,49 @@ import JSON5 from 'json5';
  - Test-specific configuration closest to tests
  - Automatic merging with CLI args preserved
  */
+/**
+ * Manages hierarchical configuration loading and merging for TestMe
+ *
+ * ConfigManager handles the discovery and loading of testme.json5 configuration files
+ * throughout the directory tree. It implements a hierarchical configuration system where
+ * configurations can be inherited and overridden at different directory levels.
+ *
+ * @remarks
+ * Configuration Discovery Algorithm:
+ * 1. Starts from a specified directory (typically the test file's location)
+ * 2. Walks up the directory tree looking for testme.json5
+ * 3. Returns the first found configuration merged with defaults
+ * 4. Each test can have its own nearest configuration
+ *
+ * Configuration Priority (highest to lowest):
+ * 1. CLI arguments (--verbose, --workers, etc.)
+ * 2. Test-specific testme.json5 (nearest to test file)
+ * 3. Parent directory configs (inherited)
+ * 4. Built-in defaults
+ *
+ * @example
+ * ```typescript
+ * // Find configuration for a test file
+ * const config = await ConfigManager.findConfig('/path/to/test/dir');
+ *
+ * // Load from specific file
+ * const config = await ConfigManager.loadConfigFromFile('/path/to/testme.json5');
+ *
+ * // Get default configuration
+ * const defaults = ConfigManager.getDefaultConfig();
+ * ```
+ */
 export class ConfigManager {
-    // Name of the configuration file to search for
+    /**
+     * Name of the configuration file to search for
+     * @internal
+     */
     private static readonly CONFIG_FILENAME = 'testme.json5';
 
-    // Default configuration values used as fallback
+    /**
+     * Default configuration values used as fallback
+     * @internal
+     */
     private static readonly DEFAULT_CONFIG: TestConfig = {
         enable: true, // Tests are enabled by default
         compiler: {
@@ -69,20 +107,31 @@ export class ConfigManager {
         }
     };
 
-    /*
-     Finds and loads configuration starting from a directory and walking up the tree
-     @param startDir Directory to start searching from
-     @returns Merged configuration with defaults and config directory
+    /**
+     * Finds and loads configuration starting from a directory and walking up the tree
+     *
+     * @param startDir - Directory to start searching from
+     * @returns Merged configuration with defaults and config directory
+     *
+     * @remarks
+     * This method walks up the directory tree starting from `startDir`, looking for
+     * the first testme.json5 file. The found configuration is merged with default
+     * values to ensure all required properties are present.
      */
     static async findConfig(startDir: string): Promise<TestConfig> {
         const { config, configDir } = await this.findConfigFile(startDir);
         return this.mergeWithDefaults(config, configDir);
     }
 
-    /*
-     Searches for configuration file by walking up directory tree
-     @param startDir Directory to start searching from
-     @returns Object with parsed configuration and config directory path
+    /**
+     * Searches for configuration file by walking up directory tree
+     *
+     * @param startDir - Directory to start searching from
+     * @returns Object with parsed configuration and config directory path
+     *
+     * @remarks
+     * Returns null for both config and configDir if no configuration file is found.
+     * Uses JSON5 parser to allow comments and trailing commas in config files.
      */
     static async findConfigFile(startDir: string): Promise<{ config: Partial<TestConfig> | null; configDir: string | null }> {
         let currentDir = startDir;
@@ -112,11 +161,18 @@ export class ConfigManager {
         return { config: null, configDir: null };
     }
 
-    /*
-     Merges user configuration with default values
-     @param userConfig User-provided configuration (can be null)
-     @param configDir Directory containing the config file (can be null)
-     @returns Complete configuration with defaults applied
+    /**
+     * Merges user configuration with default values
+     *
+     * @param userConfig - User-provided configuration (can be null)
+     * @param configDir - Directory containing the config file (can be null)
+     * @returns Complete configuration with defaults applied
+     *
+     * @internal
+     * @remarks
+     * Performs deep merge of user config with defaults, ensuring all required
+     * properties exist. The configDir is added to the merged configuration for
+     * use in resolving relative paths.
      */
     private static mergeWithDefaults(userConfig: Partial<TestConfig> | null, configDir: string | null): TestConfig {
         const baseConfig = userConfig ? {
@@ -155,11 +211,16 @@ export class ConfigManager {
         };
     }
 
-    /*
-     Loads configuration from a specific file path
-     @param configPath Path to configuration file
-     @returns Merged configuration with defaults
-     @throws Error if file cannot be loaded or parsed
+    /**
+     * Loads configuration from a specific file path
+     *
+     * @param configPath - Path to configuration file
+     * @returns Merged configuration with defaults
+     * @throws Error if file cannot be loaded or parsed
+     *
+     * @remarks
+     * Directly loads a configuration file from a specific path, useful when
+     * you already know the exact configuration file location.
      */
     static async loadConfigFromFile(configPath: string): Promise<TestConfig> {
         try {
@@ -173,10 +234,15 @@ export class ConfigManager {
         }
     }
 
-    /*
-     Searches for testme.json5 files in immediate subdirectories
-     @param rootDir Directory to search subdirectories of
-     @returns Array of config directories that contain testme.json5
+    /**
+     * Searches for testme.json5 files in immediate subdirectories
+     *
+     * @param rootDir - Directory to search subdirectories of
+     * @returns Array of config directories that contain testme.json5
+     *
+     * @remarks
+     * Only searches one level deep - does not recursively search nested directories.
+     * Results are sorted alphabetically for consistent ordering.
      */
     static async findSubdirectoryConfigs(rootDir: string): Promise<string[]> {
         const configDirs: string[] = [];
@@ -211,9 +277,14 @@ export class ConfigManager {
         return configDirs.sort(); // Sort for consistent ordering
     }
 
-    /*
-     Returns a copy of the default configuration
-     @returns Default configuration object
+    /**
+     * Returns a copy of the default configuration
+     *
+     * @returns Default configuration object
+     *
+     * @remarks
+     * Returns a shallow copy to prevent modification of the default values.
+     * Useful for testing or programmatic configuration creation.
      */
     static getDefaultConfig(): TestConfig {
         return { ...this.DEFAULT_CONFIG };

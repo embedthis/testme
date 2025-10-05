@@ -44,7 +44,9 @@ export class TestDiscovery {
         '.tst.c': TestType.C,
         '.tst.js': TestType.JavaScript,
         '.tst.ts': TestType.TypeScript,
-        '.tst.es': TestType.Ejscript
+        '.tst.es': TestType.Ejscript,
+        '.tst.py': TestType.Python,
+        '.tst.go': TestType.Go
     };
 
     /*

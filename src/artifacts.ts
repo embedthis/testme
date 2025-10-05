@@ -5,9 +5,44 @@ import { mkdir, rmdir, readdir, unlink, stat } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { GlobExpansion } from "./utils/glob-expansion.ts";
 
-/*
- Manages build artifacts and temporary files for test execution
- Creates and cleans .testme directories alongside test files
+/**
+ * Manages build artifacts and temporary files for test execution
+ *
+ * ArtifactManager handles the creation and cleanup of .testme directories that store
+ * build artifacts, compiled binaries, and other temporary files generated during test execution.
+ * Each test file gets its own subdirectory within .testme for isolation.
+ *
+ * @remarks
+ * Artifact Directory Structure:
+ * ```
+ * test/
+ *   ├── math.tst.c
+ *   └── .testme/
+ *       └── math/           // Unique directory for math.tst.c
+ *           ├── binary       // Compiled executable
+ *           ├── compile.log  // Compilation output
+ *           └── math.yml     // Xcode project config (macOS only)
+ * ```
+ *
+ * Features:
+ * - Creates isolated artifact directories per test file
+ * - Supports Xcode project generation for C test debugging on macOS
+ * - Handles recursive cleanup of artifact directories
+ * - Provides artifact file read/write utilities
+ *
+ * @example
+ * ```typescript
+ * const manager = new ArtifactManager();
+ *
+ * // Create artifact directory
+ * await manager.createArtifactDir(testFile);
+ *
+ * // Write compilation log
+ * await manager.writeArtifact(testFile, 'compile.log', logOutput);
+ *
+ * // Clean up after tests
+ * await manager.cleanArtifactDir(testFile);
+ * ```
  */
 export class ArtifactManager implements IArtifactManager {
     /*

@@ -2,7 +2,7 @@ import { TestFile, TestResult, TestConfig, TestStatus, TestHandler, TestSuite, D
 import { TestDiscovery } from './discovery.ts';
 import { ArtifactManager } from './artifacts.ts';
 import { TestReporter } from './reporter.ts';
-import { createHandlers, ShellTestHandler, CTestHandler, JavaScriptTestHandler, TypeScriptTestHandler, EjscriptTestHandler } from './handlers/index.ts';
+import { createHandlers, ShellTestHandler, CTestHandler, JavaScriptTestHandler, TypeScriptTestHandler, EjscriptTestHandler, PythonTestHandler, GoTestHandler } from './handlers/index.ts';
 import { ConfigManager } from './config.ts';
 
 /*
@@ -250,6 +250,10 @@ export class TestRunner {
         return new TypeScriptTestHandler();
       case TestType.Ejscript:
         return new EjscriptTestHandler();
+      case TestType.Python:
+        return new PythonTestHandler();
+      case TestType.Go:
+        return new GoTestHandler();
       default:
         return undefined;
     }

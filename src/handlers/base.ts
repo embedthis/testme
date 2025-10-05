@@ -193,4 +193,53 @@ export abstract class BaseTestHandler implements TestHandler {
 
         return { result, duration };
     }
+
+    /**
+     * Combines stdout and stderr into formatted output
+     *
+     * @param stdout - Standard output from test execution
+     * @param stderr - Standard error from test execution
+     * @returns Formatted combined output
+     *
+     * @remarks
+     * This is a standardized output format used across all test handlers.
+     * Empty output sections are omitted.
+     */
+    protected combineOutput(stdout: string, stderr: string): string {
+        let output = "";
+        if (stdout.trim()) {
+            output += `STDOUT:\n${stdout}\n`;
+        }
+        if (stderr.trim()) {
+            output += `STDERR:\n${stderr}`;
+        }
+        return output.trim();
+    }
+
+    /**
+     * Creates an error result for when test execution fails unexpectedly
+     *
+     * @param file - Test file that failed
+     * @param error - Error that occurred
+     * @param duration - Duration before failure (optional)
+     * @returns TestResult with Error status
+     *
+     * @remarks
+     * Use this for infrastructure failures (compilation errors, runtime errors, etc.)
+     * rather than test assertion failures.
+     */
+    protected createErrorResult(
+        file: TestFile,
+        error: unknown,
+        duration: number = 0
+    ): TestResult {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        return this.createTestResult(
+            file,
+            TestStatus.Error,
+            duration,
+            "",
+            `Test execution error in ${file.path}: ${errorMessage}`
+        );
+    }
 }

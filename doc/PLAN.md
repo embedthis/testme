@@ -133,8 +133,8 @@ Make TestMe easily installable:
 
 Support additional languages:
 
--   [ ] Python tests (.tst.py) - High demand
--   [ ] Go tests (.tst.go)
+-   [x] Python tests (.tst.py) - Completed
+-   [x] Go tests (.tst.go) - Completed
 -   [ ] Rust tests (.tst.rs)
 -   [ ] Ruby tests (.tst.rb)
 
@@ -145,24 +145,24 @@ Support additional languages:
 
 Help users create tests:
 
--   [x] `tm --init` command to create testme.json5
--   [x] `tm --new <name>` to scaffold test files
+-   [ ] `tm init` command to create testme.json5
+-   [ ] `tm new <name>` to scaffold test files
 
 ## Technical Debt
 
 ### High Priority
 
--   [ ] Add unit tests for platform abstraction layer
+-   [x] Add unit tests for platform abstraction layer (platform-detector.tst.ts, platform-permissions.tst.ts, platform-process.tst.ts)
+-   [x] Document internal APIs (ConfigManager, ServiceManager, ArtifactManager, GlobExpansion)
+-   [x] Standardize error handling across handlers (moved combineOutput to base handler, added createErrorResult helper)
+-   [x] Add integration tests for service lifecycle (service-lifecycle.tst.ts)
 -   [ ] Improve type safety in configuration merging
--   [ ] Standardize error handling across handlers
--   [ ] Add integration tests for service lifecycle
 
 ### Medium Priority
 
 -   [ ] Refactor glob expansion to support nested variables
 -   [ ] Optimize path normalization performance
 -   [ ] Simplify test handler registration
--   [ ] Document internal APIs
 
 ### Low Priority
 
