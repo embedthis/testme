@@ -380,12 +380,32 @@ ${result.stderr}`;
             const compilerConfig = await CompilerManager.getDefaultCompilerConfig(
                 config.compiler?.c?.compiler
             );
-            const rawFlags = config.compiler?.c?.flags || [
-                "-std=c99",
-                "-Wall",
-                "-Wextra",
-            ];
-            const rawLibraries = config.compiler?.c?.libraries || [];
+
+            // Get compiler-specific or default user flags and libraries (same as compile method)
+            let userFlags: string[] = [];
+            let rawLibraries: string[] = [];
+
+            const cConfig = config.compiler?.c;
+            if (cConfig) {
+                // Try compiler-specific config first
+                if (compilerConfig.type === CompilerType.MSVC && cConfig.msvc) {
+                    userFlags = cConfig.msvc.flags || [];
+                    rawLibraries = cConfig.msvc.libraries || [];
+                } else if (compilerConfig.type === CompilerType.GCC && cConfig.gcc) {
+                    userFlags = cConfig.gcc.flags || [];
+                    rawLibraries = cConfig.gcc.libraries || [];
+                } else if (compilerConfig.type === CompilerType.Clang && cConfig.clang) {
+                    userFlags = cConfig.clang.flags || [];
+                    rawLibraries = cConfig.clang.libraries || [];
+                } else {
+                    // Fall back to default flags
+                    userFlags = cConfig.flags || [];
+                    rawLibraries = cConfig.libraries || [];
+                }
+            }
+
+            // Merge compiler defaults with user flags (defaults first, then user overrides)
+            const rawFlags = [...compilerConfig.flags, ...userFlags];
 
             // Create special variables for expansion
             const specialVars = GlobExpansion.createSpecialVariables(
