@@ -5,6 +5,7 @@ import { ConfigManager } from "./config.ts";
 import { TestRunner } from "./runner.ts";
 import { ServiceManager } from "./services.ts";
 import { TestDiscovery } from "./discovery.ts";
+import { VERSION } from "./version.ts";
 import type { TestConfig, TestFile } from "./types.ts";
 import { resolve, dirname, relative, join } from "path";
 import { writeFile } from "fs/promises";
@@ -487,7 +488,7 @@ class TestMeApp {
 
             // Handle version option
             if (options.version) {
-                console.log("tm version 1.0.0");
+                console.log(`tm version ${VERSION}`);
                 return 0;
             }
 

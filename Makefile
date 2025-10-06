@@ -13,6 +13,7 @@ prep:
 #  Build the project. Builds the tm binary and the support files.
 #
 build:
+	node bin/update-version.mjs
 	bun build ./testme.ts --compile --outfile dist/tm
 	@make -C src/modules/c build
 	@make -C src/modules/js build
