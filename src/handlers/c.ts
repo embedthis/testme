@@ -149,16 +149,38 @@ export class CTestHandler extends BaseTestHandler {
             // Select flags based on detected compiler type
             const cConfig = config.compiler?.c;
             if (cConfig) {
+                // Determine current platform
+                const platform = PlatformDetector.isWindows() ? 'windows' :
+                               PlatformDetector.isMacOS() ? 'macosx' : 'linux';
+
                 // Try compiler-specific config first
                 if (compilerConfig.type === CompilerType.MSVC && cConfig.msvc) {
-                    userFlags = cConfig.msvc.flags || [];
-                    rawLibraries = cConfig.msvc.libraries || [];
+                    userFlags = [...(cConfig.msvc.flags || [])];
+                    rawLibraries = [...(cConfig.msvc.libraries || [])];
+                    // Check for platform-specific overrides
+                    const platformSettings = cConfig.msvc[platform];
+                    if (platformSettings) {
+                        if (platformSettings.flags) userFlags.push(...platformSettings.flags);
+                        if (platformSettings.libraries) rawLibraries.push(...platformSettings.libraries);
+                    }
                 } else if (compilerConfig.type === CompilerType.GCC && cConfig.gcc) {
-                    userFlags = cConfig.gcc.flags || [];
-                    rawLibraries = cConfig.gcc.libraries || [];
+                    userFlags = [...(cConfig.gcc.flags || [])];
+                    rawLibraries = [...(cConfig.gcc.libraries || [])];
+                    // Check for platform-specific overrides
+                    const platformSettings = cConfig.gcc[platform];
+                    if (platformSettings) {
+                        if (platformSettings.flags) userFlags.push(...platformSettings.flags);
+                        if (platformSettings.libraries) rawLibraries.push(...platformSettings.libraries);
+                    }
                 } else if (compilerConfig.type === CompilerType.Clang && cConfig.clang) {
-                    userFlags = cConfig.clang.flags || [];
-                    rawLibraries = cConfig.clang.libraries || [];
+                    userFlags = [...(cConfig.clang.flags || [])];
+                    rawLibraries = [...(cConfig.clang.libraries || [])];
+                    // Check for platform-specific overrides
+                    const platformSettings = cConfig.clang[platform];
+                    if (platformSettings) {
+                        if (platformSettings.flags) userFlags.push(...platformSettings.flags);
+                        if (platformSettings.libraries) rawLibraries.push(...platformSettings.libraries);
+                    }
                 } else {
                     // Fall back to default flags
                     userFlags = cConfig.flags || [];
@@ -406,16 +428,38 @@ ${result.stderr}`;
 
             const cConfig = config.compiler?.c;
             if (cConfig) {
+                // Determine current platform
+                const platform = PlatformDetector.isWindows() ? 'windows' :
+                               PlatformDetector.isMacOS() ? 'macosx' : 'linux';
+
                 // Try compiler-specific config first
                 if (compilerConfig.type === CompilerType.MSVC && cConfig.msvc) {
-                    userFlags = cConfig.msvc.flags || [];
-                    rawLibraries = cConfig.msvc.libraries || [];
+                    userFlags = [...(cConfig.msvc.flags || [])];
+                    rawLibraries = [...(cConfig.msvc.libraries || [])];
+                    // Check for platform-specific overrides
+                    const platformSettings = cConfig.msvc[platform];
+                    if (platformSettings) {
+                        if (platformSettings.flags) userFlags.push(...platformSettings.flags);
+                        if (platformSettings.libraries) rawLibraries.push(...platformSettings.libraries);
+                    }
                 } else if (compilerConfig.type === CompilerType.GCC && cConfig.gcc) {
-                    userFlags = cConfig.gcc.flags || [];
-                    rawLibraries = cConfig.gcc.libraries || [];
+                    userFlags = [...(cConfig.gcc.flags || [])];
+                    rawLibraries = [...(cConfig.gcc.libraries || [])];
+                    // Check for platform-specific overrides
+                    const platformSettings = cConfig.gcc[platform];
+                    if (platformSettings) {
+                        if (platformSettings.flags) userFlags.push(...platformSettings.flags);
+                        if (platformSettings.libraries) rawLibraries.push(...platformSettings.libraries);
+                    }
                 } else if (compilerConfig.type === CompilerType.Clang && cConfig.clang) {
-                    userFlags = cConfig.clang.flags || [];
-                    rawLibraries = cConfig.clang.libraries || [];
+                    userFlags = [...(cConfig.clang.flags || [])];
+                    rawLibraries = [...(cConfig.clang.libraries || [])];
+                    // Check for platform-specific overrides
+                    const platformSettings = cConfig.clang[platform];
+                    if (platformSettings) {
+                        if (platformSettings.flags) userFlags.push(...platformSettings.flags);
+                        if (platformSettings.libraries) rawLibraries.push(...platformSettings.libraries);
+                    }
                 } else {
                     // Fall back to default flags
                     userFlags = cConfig.flags || [];

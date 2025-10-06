@@ -40,6 +40,25 @@ export type TestConfig = {
 }
 
 /*
+ Platform-specific compiler settings
+ */
+type PlatformCompilerSettings = {
+  flags?: string[];
+  libraries?: string[];
+};
+
+/*
+ Compiler-specific settings with optional platform overrides
+ */
+type CompilerSettings = {
+  flags?: string[];
+  libraries?: string[];
+  windows?: PlatformCompilerSettings;
+  macosx?: PlatformCompilerSettings;
+  linux?: PlatformCompilerSettings;
+};
+
+/*
  Configuration for language-specific compilers
  */
 export type CompilerConfig = {
@@ -51,18 +70,9 @@ export type CompilerConfig = {
     }; // Optional: auto-detect if not specified, or use platform-specific compiler
     flags?: string[]; // Default flags for all compilers
     libraries?: string[];
-    gcc?: {
-      flags?: string[];
-      libraries?: string[];
-    };
-    clang?: {
-      flags?: string[];
-      libraries?: string[];
-    };
-    msvc?: {
-      flags?: string[];
-      libraries?: string[];
-    };
+    gcc?: CompilerSettings;
+    clang?: CompilerSettings;
+    msvc?: CompilerSettings;
   };
   es?: {
     require?: string | string[];

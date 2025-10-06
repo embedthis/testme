@@ -561,10 +561,26 @@ TestMe automatically detects and configures the appropriate C compiler for your 
 -   `compiler.c.compiler` - C compiler path (optional, use 'default' to auto-detect, or specify 'gcc', 'clang', or full path)
 -   `compiler.c.gcc.flags` - GCC-specific flags (merged with GCC defaults)
 -   `compiler.c.gcc.libraries` - GCC-specific libraries (e.g., `['m', 'pthread']`)
+-   `compiler.c.gcc.windows.flags` - Additional Windows-specific GCC flags
+-   `compiler.c.gcc.windows.libraries` - Additional Windows-specific GCC libraries
+-   `compiler.c.gcc.macosx.flags` - Additional macOS-specific GCC flags
+-   `compiler.c.gcc.macosx.libraries` - Additional macOS-specific GCC libraries
+-   `compiler.c.gcc.linux.flags` - Additional Linux-specific GCC flags
+-   `compiler.c.gcc.linux.libraries` - Additional Linux-specific GCC libraries
 -   `compiler.c.clang.flags` - Clang-specific flags (merged with Clang defaults)
 -   `compiler.c.clang.libraries` - Clang-specific libraries
+-   `compiler.c.clang.windows.flags` - Additional Windows-specific Clang flags
+-   `compiler.c.clang.windows.libraries` - Additional Windows-specific Clang libraries
+-   `compiler.c.clang.macosx.flags` - Additional macOS-specific Clang flags
+-   `compiler.c.clang.macosx.libraries` - Additional macOS-specific Clang libraries
+-   `compiler.c.clang.linux.flags` - Additional Linux-specific Clang flags
+-   `compiler.c.clang.linux.libraries` - Additional Linux-specific Clang libraries
 -   `compiler.c.msvc.flags` - MSVC-specific flags (merged with MSVC defaults)
 -   `compiler.c.msvc.libraries` - MSVC-specific libraries
+-   `compiler.c.msvc.windows.flags` - Additional Windows-specific MSVC flags
+-   `compiler.c.msvc.windows.libraries` - Additional Windows-specific MSVC libraries
+
+**Note:** Platform-specific settings (`windows`, `macosx`, `linux`) are **additive** - they are appended to the base compiler settings, allowing you to specify common settings once and add platform-specific flags/libraries only where needed.
 
 **Variable Expansion:**
 
@@ -579,7 +595,7 @@ Environment variables in compiler flags and paths support `${...}` expansion:
 -   `${TESTDIR}` - Relative path from executable to test file directory
 -   `${pattern}` - Glob patterns (e.g., `${../build/*/bin}` expands to matching paths)
 
-**Example:**
+**Example (Basic):**
 
 ```json5
 {
@@ -591,7 +607,6 @@ Environment variables in compiler flags and paths support `${...}` expansion:
                 flags: [
                     '-I${../build/${PLATFORM}-${PROFILE}/inc}',
                     '-L${../build/${PLATFORM}-${PROFILE}/bin}',
-                    '-Wl,-rpath,@executable_path/${CONFIGDIR}/../build/${PLATFORM}-${PROFILE}/bin',
                 ],
                 libraries: ['m', 'pthread'],
             },
@@ -599,13 +614,43 @@ Environment variables in compiler flags and paths support `${...}` expansion:
                 flags: [
                     '-I${../build/${PLATFORM}-${PROFILE}/inc}',
                     '-L${../build/${PLATFORM}-${PROFILE}/bin}',
-                    '-Wl,-rpath,@executable_path/${CONFIGDIR}/../build/${PLATFORM}-${PROFILE}/bin',
                 ],
                 libraries: ['m', 'pthread'],
             },
             msvc: {
                 flags: ['/I${../build/${PLATFORM}-${PROFILE}/inc}'],
                 libraries: [],
+            },
+        },
+    },
+}
+```
+
+**Example (Platform-Specific Settings):**
+
+```json5
+{
+    compiler: {
+        c: {
+            gcc: {
+                // Common flags for all platforms
+                flags: ['-I..'],
+                libraries: ['m', 'pthread'],
+
+                // Additional macOS-specific settings
+                macosx: {
+                    flags: [
+                        '-framework', 'IOKit',
+                        '-framework', 'CoreFoundation',
+                    ],
+                    libraries: ['objc'],
+                },
+
+                // Additional Linux-specific settings
+                linux: {
+                    flags: ['-D_GNU_SOURCE'],
+                    libraries: ['rt', 'dl'],
+                },
             },
         },
     },

@@ -35,6 +35,20 @@
             /*
                 GCC-specific flags (Unix/Linux/MinGW)
                 Default flags are automatically added: -std=c99 -Wall -Wextra -Wno-unused-parameter -Wno-strict-prototypes -O0 -g -I. -I~/.local/include -L~/.local/lib -I/opt/homebrew/include -L/opt/homebrew/lib
+
+                Platform-specific overrides are supported:
+                gcc: {
+                    flags: ['-I..'],              // Common flags for all platforms
+                    libraries: ['m', 'pthread'],  // Common libraries for all platforms
+                    macosx: {
+                        flags: ['-framework', 'IOKit'],  // Additional flags for macOS
+                        libraries: ['objc'],             // Additional libraries for macOS
+                    },
+                    linux: {
+                        flags: ['-D_GNU_SOURCE'],   // Additional flags for Linux
+                        libraries: ['rt'],          // Additional libraries for Linux
+                    },
+                }
              */
             gcc: {
                 flags: [
@@ -49,6 +63,8 @@
             /*
                 Clang-specific flags (macOS/Unix)
                 Default flags are automatically added: -std=c99 -Wall -Wextra -Wno-unused-parameter -Wno-strict-prototypes -O0 -g -I. -I~/.local/include -L~/.local/lib -I/opt/homebrew/include -L/opt/homebrew/lib
+
+                Platform-specific overrides are also supported (see gcc example above)
             */
             clang: {
                 flags: [

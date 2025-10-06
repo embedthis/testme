@@ -20,6 +20,13 @@
 
 ### Compiler Configuration
 
+-   **DEV**: Added per-platform compiler settings support
+    -   Compiler-specific settings (gcc, clang, msvc) now support platform-specific overrides
+    -   Platform subdirectories: `windows`, `macosx`, `linux`
+    -   Platform settings are merged with base compiler settings (additive)
+    -   Example: `clang: { flags: ['-O0'], macosx: { flags: ['-framework', 'IOKit'] } }`
+    -   Allows platform-specific flags and libraries without duplicating common settings
+
 -   **FIX**: Default compiler flags now use expanded home directory paths
     -   Changed from `-I~/.local/include` to `-I/Users/username/.local/include` (expanded at runtime)
     -   Changed from `-L~/.local/lib` to `-L/Users/username/.local/lib` (expanded at runtime)
