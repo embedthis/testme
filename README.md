@@ -20,10 +20,10 @@ TestMe is a powerful, multi-language test runner built with [Bun](https://bun.sh
 -   **Test Control**: Skip scripts, depth requirements, and enable/disable flags
 -   **Multiple Output Formats**: Simple, detailed, and JSON reporting
 -   **Integrated Debugging**: Multi-language debug support with platform-specific debuggers
-    -   C: GDB, LLDB, Xcode, Visual Studio, VS Code
-    -   JavaScript/TypeScript: Bun inspector, VS Code
-    -   Python: pdb, VS Code
-    -   Go: Delve, VS Code
+    -   C: GDB, LLDB, Xcode, Visual Studio, VS Code, Cursor
+    -   JavaScript/TypeScript: Bun inspector, VS Code, Cursor
+    -   Python: pdb, VS Code, Cursor
+    -   Go: Delve, VS Code, Cursor
 
 ## 📋 Table of Contents
 
@@ -260,9 +260,9 @@ int main() {
 
 ### JavaScript Tests (`.tst.js`)
 
-JavaScript tests executed with Bun runtime. Import the `testme` module for built-in testing utilities, or use standard assertions.
+JavaScript tests are executed with the Bun runtime. Import the `testme` module for built-in testing utilities, or use standard assertions.
 
-**Note**: TestMe automatically links the testme module when running JS tests if not already linked.
+**Note**: TestMe automatically installs and links the testme module when running JS tests if not already linked.
 
 ```javascript
 // test_array.tst.js
@@ -306,9 +306,9 @@ if (thas('TESTME_VERBOSE')) {
 
 ### TypeScript Tests (`.tst.ts`)
 
-TypeScript tests executed with Bun runtime (includes automatic transpilation). Import the `testme` module for built-in testing utilities.
+TypeScript tests executed are with the Bun runtime (includes automatic transpilation). Import the `testme` module for built-in testing utilities.
 
-**Note**: TestMe automatically links the testme module when running TS tests if not already linked.
+**Note**: TestMe automatically installs and links the `testme` module when running TS tests if not already linked.
 
 ```typescript
 // test_types.tst.ts
@@ -849,17 +849,18 @@ tm --debug math.tst.c
 ```
 
 **Configuration:**
+
 ```json5
 {
     debug: {
-        c: 'xcode',  // Use specific debugger
+        c: 'xcode', // Use specific debugger
         // Or use platform map:
         c: {
             macosx: 'xcode',
             linux: 'gdb',
-            windows: 'vs'
-        }
-    }
+            windows: 'vs',
+        },
+    },
 }
 ```
 
@@ -876,9 +877,11 @@ tm --debug types.tst.ts
 **VSCode Workflow (default):**
 
 Prerequisites:
-- Install the [Bun VSCode extension](https://marketplace.visualstudio.com/items?itemName=oven.bun-vscode)
+
+-   Install the [Bun VSCode extension](https://marketplace.visualstudio.com/items?itemName=oven.bun-vscode)
 
 Steps:
+
 1. Run `tm --debug test.tst.js` (or `.tst.ts`)
 2. TestMe automatically creates `.vscode/launch.json` in test directory
 3. VSCode opens with the workspace
@@ -887,21 +890,23 @@ Steps:
 6. Select "Debug Bun Test" configuration
 
 **Configuration:**
+
 ```json5
 {
     debug: {
-        js: 'vscode',  // JavaScript debugger (default)
+        js: 'vscode', // JavaScript debugger (default)
         // js: 'cursor', // Or use Cursor editor
-        ts: 'vscode',  // TypeScript debugger (default)
+        ts: 'vscode', // TypeScript debugger (default)
         // ts: 'cursor', // Or use Cursor editor
-    }
+    },
 }
 ```
 
 **Supported Debuggers:**
-- `vscode` - Visual Studio Code (default)
-- `cursor` - Cursor editor (VSCode fork)
-- Custom path to debugger executable
+
+-   `vscode` - Visual Studio Code (default)
+-   `cursor` - Cursor editor (VSCode fork)
+-   Custom path to debugger executable
 
 ### Python Test Debugging
 
@@ -914,21 +919,23 @@ tm --debug test.tst.py
 ```
 
 **pdb commands:**
-- `h` - help
-- `b <line>` - set breakpoint
-- `c` - continue
-- `n` - next line
-- `s` - step into
-- `p <var>` - print variable
-- `q` - quit
+
+-   `h` - help
+-   `b <line>` - set breakpoint
+-   `c` - continue
+-   `n` - next line
+-   `s` - step into
+-   `p <var>` - print variable
+-   `q` - quit
 
 **Configuration:**
+
 ```json5
 {
     debug: {
-        py: 'pdb',      // Use Python debugger (default)
+        py: 'pdb', // Use Python debugger (default)
         // py: 'vscode', // Or use VSCode
-    }
+    },
 }
 ```
 
@@ -943,21 +950,23 @@ tm --debug calc.tst.go
 ```
 
 **delve commands:**
-- `help` - show help
-- `break <line>` - set breakpoint
-- `continue` - continue execution
-- `next` - step over
-- `step` - step into
-- `print <var>` - print variable
-- `exit` - exit debugger
+
+-   `help` - show help
+-   `break <line>` - set breakpoint
+-   `continue` - continue execution
+-   `next` - step over
+-   `step` - step into
+-   `print <var>` - print variable
+-   `exit` - exit debugger
 
 **Configuration:**
+
 ```json5
 {
     debug: {
-        go: 'delve',    // Use Delve debugger (default)
+        go: 'delve', // Use Delve debugger (default)
         // go: 'vscode', // Or use VSCode
-    }
+    },
 }
 ```
 
@@ -970,7 +979,7 @@ You can specify a custom debugger executable path:
     debug: {
         c: '/usr/local/bin/my-gdb',
         py: '/opt/debugger/pdb-enhanced',
-    }
+    },
 }
 ```
 
