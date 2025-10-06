@@ -87,9 +87,34 @@ Each test type (Shell, PowerShell, Batch, C, JS, TS, Python, Go, ES) implements 
     -   Test control (enable, depth requirements)
     -   Compilation (C flags, Ejscript modules)
     -   Execution (timeouts, parallelism, workers)
+    -   Patterns (file discovery with platform-specific deep blending)
     -   Services (skip, prep, setup, cleanup)
     -   Environment variables with `${...}` expansion
     -   Output formatting
+
+#### Pattern Configuration with Platform Support
+
+Patterns support platform-specific deep blending:
+
+-   **Base patterns**: Applied to all platforms (include/exclude arrays)
+-   **Platform-specific patterns**: Additions for windows/macosx/linux
+-   **Deep blending**: Platform patterns are added to (not replace) base patterns
+-   **Auto-detection**: Current platform determines which patterns to merge
+
+Example:
+```json5
+{
+    patterns: {
+        include: ['**/*.tst.c', '**/*.tst.js'],  // All platforms
+        windows: { include: ['**/*.tst.ps1'] },   // Added on Windows
+        macosx: { include: ['**/*.tst.sh'] },     // Added on macOS
+        linux: { include: ['**/*.tst.sh'] }       // Added on Linux
+    }
+}
+```
+
+Effective on Windows: `**/*.tst.c`, `**/*.tst.js`, `**/*.tst.ps1`
+Effective on macOS: `**/*.tst.c`, `**/*.tst.js`, `**/*.tst.sh`
 
 #### Artifact Management System
 

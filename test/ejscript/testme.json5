@@ -1,0 +1,14 @@
+{
+    // Ejscript test configuration
+    // Tests are skipped if ejsc compiler is not found
+
+    services: {
+        skip: './skip.sh',
+    },
+
+    compiler: {
+        es: {
+            require: 'testme',
+        },
+    },
+}

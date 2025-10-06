@@ -95,6 +95,18 @@ export type OutputConfig = {
 export type PatternConfig = {
   include: string[];
   exclude: string[];
+  windows?: {
+    include?: string[];
+    exclude?: string[];
+  };
+  macosx?: {
+    include?: string[];
+    exclude?: string[];
+  };
+  linux?: {
+    include?: string[];
+    exclude?: string[];
+  };
 }
 
 /*

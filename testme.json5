@@ -76,17 +76,29 @@
 
     // File discovery patterns
     patterns: {
+        // Base patterns applied to all platforms
         include: [
-            '**/*.tst.sh',
-            '**/*.tst.ps1',
-            '**/*.tst.bat',
-            '**/*.tst.cmd',
             '**/*.tst.c',
             '**/*.tst.js',
             '**/*.tst.ts',
             '**/*.tst.es',
         ],
         exclude: ['**/node_modules/**', '**/.testme/**', '**/.*/**'],
+
+        // Windows-specific patterns (added to base patterns on Windows)
+        windows: {
+            include: ['**/*.tst.ps1', '**/*.tst.bat', '**/*.tst.cmd'],
+        },
+
+        // macOS-specific patterns (added to base patterns on macOS)
+        macosx: {
+            include: ['**/*.tst.sh'],
+        },
+
+        // Linux-specific patterns (added to base patterns on Linux)
+        linux: {
+            include: ['**/*.tst.sh'],
+        },
     },
 
     // Service management for test setup/teardown

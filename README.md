@@ -622,8 +622,59 @@ Environment variables in compiler flags and paths support `${...}` expansion:
 
 #### Pattern Settings
 
--   `patterns.include` - Array of include patterns (default: all test types)
--   `patterns.exclude` - Array of exclude patterns (default: node_modules, .testme, hidden dirs)
+Pattern configuration supports platform-specific patterns that are deep blended with base patterns:
+
+-   `patterns.include` - Array of include patterns applied to all platforms
+-   `patterns.exclude` - Array of exclude patterns applied to all platforms
+-   `patterns.windows.include` - Additional patterns for Windows (merged with base)
+-   `patterns.windows.exclude` - Additional exclude patterns for Windows
+-   `patterns.macosx.include` - Additional patterns for macOS (merged with base)
+-   `patterns.macosx.exclude` - Additional exclude patterns for macOS
+-   `patterns.linux.include` - Additional patterns for Linux (merged with base)
+-   `patterns.linux.exclude` - Additional exclude patterns for Linux
+
+**Pattern Merging Behavior:**
+
+Platform-specific patterns are added to base patterns, not replaced:
+1. Start with base `include` and `exclude` patterns
+2. On the current platform, add platform-specific patterns to the base
+3. Result is the union of base patterns and platform-specific patterns
+
+**Example:**
+
+```json5
+{
+    patterns: {
+        // Base patterns for all platforms
+        include: ['**/*.tst.c', '**/*.tst.js', '**/*.tst.ts'],
+        exclude: ['**/node_modules/**'],
+
+        // Windows-specific additions
+        windows: {
+            include: ['**/*.tst.ps1', '**/*.tst.bat'], // Added on Windows only
+            exclude: ['**/wsl/**'], // Excluded on Windows only
+        },
+
+        // macOS-specific additions
+        macosx: {
+            include: ['**/*.tst.sh'], // Shell tests on macOS
+        },
+
+        // Linux-specific additions
+        linux: {
+            include: ['**/*.tst.sh'], // Shell tests on Linux
+        },
+    },
+}
+```
+
+On Windows, the effective patterns would be:
+- Include: `**/*.tst.c`, `**/*.tst.js`, `**/*.tst.ts`, `**/*.tst.ps1`, `**/*.tst.bat`
+- Exclude: `**/node_modules/**`, `**/wsl/**`
+
+On macOS/Linux, the effective patterns would be:
+- Include: `**/*.tst.c`, `**/*.tst.js`, `**/*.tst.ts`, `**/*.tst.sh`
+- Exclude: `**/node_modules/**`
 
 #### Service Settings
 

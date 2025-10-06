@@ -268,8 +268,43 @@ const handler = this.createFreshHandler(testFile);
 
 1. **Recursive Directory Walking**: Starting from root, traverse all subdirectories
 2. **Extension Matching**: Files ending in `.tst.sh`, `.tst.ps1`, `.tst.bat`, `.tst.cmd`, `.tst.c`, `.tst.js`, `.tst.ts`, `.tst.py`, `.tst.go`, `.tst.es`
-3. **Pattern Filtering**: Apply include/exclude glob patterns
+3. **Pattern Filtering**: Apply include/exclude glob patterns with platform-specific blending
 4. **TestFile Creation**: Generate metadata including artifact directories
+
+#### Platform-Specific Pattern Blending
+
+Patterns support platform-specific additions that are deep blended with base patterns:
+
+1. **Base Patterns**: Applied to all platforms (include/exclude)
+2. **Platform Patterns**: Platform-specific patterns (windows/macosx/linux) are added to base patterns
+3. **Deep Blending**: Platform patterns augment (not replace) the base patterns
+
+**Example Configuration:**
+```json5
+{
+    patterns: {
+        include: ['**/*.tst.c', '**/*.tst.js'],  // All platforms
+        exclude: ['**/node_modules/**'],
+        windows: {
+            include: ['**/*.tst.ps1', '**/*.tst.bat'],  // Added on Windows
+        },
+        macosx: {
+            include: ['**/*.tst.sh'],  // Added on macOS
+        },
+        linux: {
+            include: ['**/*.tst.sh'],  // Added on Linux
+        },
+    }
+}
+```
+
+**Effective Patterns on Windows:**
+- Include: `**/*.tst.c`, `**/*.tst.js`, `**/*.tst.ps1`, `**/*.tst.bat`
+- Exclude: `**/node_modules/**`
+
+**Effective Patterns on macOS:**
+- Include: `**/*.tst.c`, `**/*.tst.js`, `**/*.tst.sh`
+- Exclude: `**/node_modules/**`
 
 ```typescript
 // Test file structure
@@ -580,8 +615,20 @@ type TestConfig = {
         colors: boolean;         // ANSI color codes
     };
     patterns?: {
-        include: string[];       // Include glob patterns
-        exclude: string[];       // Exclude glob patterns
+        include: string[];       // Base include glob patterns (all platforms)
+        exclude: string[];       // Base exclude glob patterns (all platforms)
+        windows?: {              // Windows-specific patterns (added to base)
+            include?: string[];  // Additional include patterns for Windows
+            exclude?: string[];  // Additional exclude patterns for Windows
+        };
+        macosx?: {               // macOS-specific patterns (added to base)
+            include?: string[];  // Additional include patterns for macOS
+            exclude?: string[];  // Additional exclude patterns for macOS
+        };
+        linux?: {                // Linux-specific patterns (added to base)
+            include?: string[];  // Additional include patterns for Linux
+            exclude?: string[];  // Additional exclude patterns for Linux
+        };
     };
     services?: {
         skip?: string;           // Script to check if tests should run (0=run, non-zero=skip)

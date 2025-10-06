@@ -94,8 +94,17 @@ export class ConfigManager {
             colors: true
         },
         patterns: {
-            include: ['**/*.tst.sh', '**/*.tst.ps1', '**/*.tst.bat', '**/*.tst.cmd', '**/*.tst.c', '**/*.tst.js', '**/*.tst.ts', '**/*.tst.es'],
-            exclude: ['**/node_modules/**', '**/.testme/**', '**/.*/**']
+            include: ['**/*.tst.c', '**/*.tst.js', '**/*.tst.ts', '**/*.tst.py', '**/*.tst.go', '**/*.tst.es'],
+            exclude: ['**/node_modules/**', '**/.testme/**', '**/.*/**'],
+            windows: {
+                include: ['**/*.tst.ps1', '**/*.tst.bat', '**/*.tst.cmd']
+            },
+            macosx: {
+                include: ['**/*.tst.sh']
+            },
+            linux: {
+                include: ['**/*.tst.sh']
+            }
         },
         services: {
             prep: '',
@@ -195,10 +204,7 @@ export class ConfigManager {
                 ...this.DEFAULT_CONFIG.output,
                 ...userConfig.output
             },
-            patterns: {
-                ...this.DEFAULT_CONFIG.patterns,
-                ...userConfig.patterns
-            },
+            patterns: this.mergePlatformPatterns(this.DEFAULT_CONFIG.patterns!, userConfig.patterns),
             services: {
                 ...this.DEFAULT_CONFIG.services,
                 ...userConfig.services
@@ -211,6 +217,50 @@ export class ConfigManager {
             ...baseConfig,
             configDir: configDir || undefined
         };
+    }
+
+    /**
+     * Merges base patterns with user patterns and applies platform-specific overrides
+     *
+     * @param basePatterns - Default pattern configuration
+     * @param userPatterns - User-provided pattern configuration
+     * @returns Merged pattern configuration with platform-specific patterns blended
+     *
+     * @internal
+     * @remarks
+     * Platform-specific patterns are deep blended with base patterns:
+     * 1. Start with base include/exclude patterns
+     * 2. Merge with user include/exclude patterns
+     * 3. Add platform-specific patterns (windows/macosx/linux) to the merged base
+     * 4. Platform patterns augment rather than replace the base patterns
+     */
+    private static mergePlatformPatterns(basePatterns: any, userPatterns: any): any {
+        if (!userPatterns) {
+            return basePatterns;
+        }
+
+        // Determine current platform
+        const platform = process.platform === 'win32' ? 'windows' :
+                        process.platform === 'darwin' ? 'macosx' : 'linux';
+
+        // Merge base patterns
+        const merged = {
+            include: [...(basePatterns.include || []), ...(userPatterns.include || [])],
+            exclude: [...(basePatterns.exclude || []), ...(userPatterns.exclude || [])]
+        };
+
+        // Deep blend platform-specific patterns
+        const platformPatterns = userPatterns[platform];
+        if (platformPatterns) {
+            if (platformPatterns.include) {
+                merged.include = [...merged.include, ...platformPatterns.include];
+            }
+            if (platformPatterns.exclude) {
+                merged.exclude = [...merged.exclude, ...platformPatterns.exclude];
+            }
+        }
+
+        return merged;
     }
 
     /**
