@@ -55,7 +55,7 @@ async function testProcessSpawning(): Promise<TestResult[]> {
     const isWindows = PlatformDetector.isWindows();
 
     // Test basic command execution
-    const command = isWindows ? "cmd" : "echo";
+    const command = isWindows ? "cmd.exe" : "echo";
     const args = isWindows ? ["/c", "echo", "test"] : ["test"];
 
     try {
@@ -93,7 +93,7 @@ async function testProcessEnvironment(): Promise<TestResult[]> {
     const envVarName = "TESTME_PROCESS_TEST";
     const envVarValue = "test-value-123";
 
-    const command = isWindows ? "cmd" : "sh";
+    const command = isWindows ? "cmd.exe" : "sh";
     const args = isWindows
         ? ["/c", "echo", `%${envVarName}%`]
         : ["-c", `echo $${envVarName}`];
@@ -132,7 +132,7 @@ async function testProcessWorkingDirectory(): Promise<TestResult[]> {
     await writeFile(testFilePath, "test", "utf-8");
 
     // Test working directory
-    const command = isWindows ? "cmd" : "sh";
+    const command = isWindows ? "cmd.exe" : "sh";
     const args = isWindows
         ? ["/c", "dir", "/b", testFileName]
         : ["-c", `ls ${testFileName}`];
@@ -198,7 +198,7 @@ async function testProcessKilling(): Promise<TestResult[]> {
     const isWindows = PlatformDetector.isWindows();
 
     // Spawn a long-running process
-    const command = isWindows ? "cmd" : "sh";
+    const command = isWindows ? "cmd.exe" : "sh";
     const args = isWindows
         ? ["/c", "timeout", "/t", "30", "/nobreak"]
         : ["-c", "sleep 30"];

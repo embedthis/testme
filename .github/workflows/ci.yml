@@ -39,6 +39,22 @@ jobs:
         run: ${{ matrix.install-compiler }}
         shell: bash
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+
+      - name: Verify Python installation
+        run: python --version || python3 --version
+
+      - name: Verify Go installation
+        run: go version
+
       - name: Build TestMe
         run: bun run build
 
