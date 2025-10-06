@@ -29,6 +29,7 @@ install: build
 #  Old install method
 #
 old-install: build
+	bun --quiet link
 	sudo cp dist/tm /usr/local/bin/tm
 	sudo cp doc/tm.1 /usr/local/share/man/man1
 	@make -C src/modules/c install

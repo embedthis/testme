@@ -7,7 +7,6 @@ build:
 	@true
 
 install:
-	bun --quiet link
 	sudo cp index.js /usr/local/include/testme.js
 	sudo mkdir -p /usr/local/lib/testme
 	sudo cp package.json /usr/local/lib/testme
