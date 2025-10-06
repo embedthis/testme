@@ -4,11 +4,13 @@
 
 TestMe is a production-ready, cross-platform multi-language test runner with native support for Windows, macOS, and Linux. Core features are complete and well-documented.
 
-**Version**: 0.8.0+
-**Last Updated**: 2025-10-06
+**Version**: 0.8.5+
+**Last Updated**: 2025-10-07
 
 ## Recently Completed
 
+-   ✅ GitHub Actions CI/CD pipeline with multi-platform testing
+-   ✅ Manual test mode (`enable: 'manual'`) for tests that only run when explicitly named
 -   ✅ Native Windows support (PowerShell, Batch, MSVC/MinGW/Clang)
 -   ✅ Platform abstraction layer (src/platform/)
 -   ✅ Special variable system (${TESTDIR}, ${CONFIGDIR}, ${PLATFORM}, ${PROFILE}, etc.)
@@ -74,9 +76,13 @@ Add validation for testme.json5:
 
 Add first-class CI/CD support:
 
--   [ ] GitHub Actions examples
+-   [x] GitHub Actions workflows - Completed 2025-10-07
+    -   CI workflow (.github/workflows/ci.yml) with multi-platform testing (Ubuntu, macOS, Windows)
+    -   Release workflow (.github/workflows/release.yml) with automated NPM publishing
+    -   Automated testing on push and pull requests
+    -   Build verification and artifact upload
 -   [ ] GitLab CI examples
--   [ ] Exit code standardization for CI systems
+-   [x] Exit code standardization for CI systems - Already implemented
 
 ### 2. Test Coverage Reporting
 
@@ -106,6 +112,7 @@ Enhance debugging capabilities:
 
 More powerful test selection:
 
+-   [x] Manual test mode (`enable: 'manual'`) - Completed 2025-10-07
 -   [ ] Tag-based filtering (e.g., @smoke, @integration)
 -   [ ] Exclusion patterns (--exclude)
 -   [ ] Last-failed test mode

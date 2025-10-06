@@ -626,7 +626,7 @@ project/
 
 ```typescript
 type TestConfig = {
-    enable?: boolean // Enable or disable tests in this directory
+    enable?: boolean | 'manual' // Enable (true), disable (false), or run only when explicitly named ('manual')
     depth?: number // Minimum depth required to run tests (default: 0)
     compiler?: {
         c?: {
@@ -756,30 +756,47 @@ The `depth` field allows tests to require a minimum depth level to run:
 -   Long-running test suites
 -   Tests requiring external services or hardware
 
-### Test Enable/Disable
+### Test Enable/Disable/Manual
 
-The `enable` field allows tests to be disabled for specific directories:
+The `enable` field controls test execution with three modes:
 
 ```json5
 {
-    enable: false, // Disables all tests in this directory
+    enable: true,      // Run tests normally (default)
+    enable: false,     // Disable all tests in this directory
+    enable: 'manual',  // Only run when explicitly named
 }
 ```
 
 **Behavior:**
 
--   **Default**: Tests are enabled (`enable: true`)
--   **Disabled directories**: Tests are skipped entirely during execution
--   **Verbose output**: Shows "🚫 Tests disabled in: <directory>" message when `--verbose` is used
--   **Silent operation**: No message shown in normal mode
--   **Discovery**: Disabled tests are filtered out from `--list` output
+-   **`enable: true` (default)**: Tests run normally when discovered by pattern matching
+-   **`enable: false`**: Tests are skipped entirely during execution
+    -   Verbose output shows "🚫 Tests disabled in: <directory>" message
+    -   Silent operation shows no message
+    -   Disabled tests are filtered out from `--list` output
+-   **`enable: 'manual'`**: Tests only run when explicitly named (new in 2025-10-07)
+    -   Excluded from directory-level patterns (e.g., running `tm` in a directory)
+    -   Excluded from wildcard patterns (e.g., `*.tst.c`, `test*`)
+    -   Included when named explicitly by:
+        -   Full path: `tm test/slow.tst.c`
+        -   Base name: `tm slow`
+        -   Filename: `tm slow.tst.c`
+    -   Verbose output shows "⏭️ Skipping manual tests in: <directory> (not explicitly named)" when excluded
+    -   Manual tests appear in `--list` output when explicitly named
 
 **Use Cases:**
 
--   Temporarily disable flaky tests
--   Skip tests in development branches
--   Exclude tests that require specific hardware/environment
--   Selective testing during debugging
+-   **`enable: false`**:
+    -   Temporarily disable flaky tests
+    -   Skip tests in development branches
+    -   Exclude tests that require specific hardware/environment
+-   **`enable: 'manual'`**:
+    -   Slow tests that should not run automatically (e.g., stress tests, benchmarks)
+    -   Destructive tests that modify system state (e.g., database migrations, file system changes)
+    -   Tests requiring special setup or credentials (e.g., cloud API tests, hardware-dependent tests)
+    -   Resource-intensive integration tests
+    -   Tests that should only run on-demand
 
 ### Service Initialization Delay
 

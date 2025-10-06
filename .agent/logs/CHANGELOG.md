@@ -2,6 +2,24 @@
 
 ## 2025-10-07
 
+### CI/CD Pipeline
+
+-   **DEV**: Added GitHub Actions workflows for continuous integration and deployment
+    -   Created `.github/workflows/ci.yml` for automated testing on push and pull requests
+        -   Multi-platform testing on Ubuntu, macOS, and Windows
+        -   Automatic C compiler installation (GCC, Clang, MSVC)
+        -   Build verification and test execution
+        -   Test artifact upload on failure for debugging
+        -   Lint and format checking
+        -   Package building on main branch commits
+    -   Created `.github/workflows/release.yml` for automated releases
+        -   Triggered by version tags (v*.*.*)
+        -   Automatic GitHub release creation with release notes
+        -   Automated NPM package publishing
+        -   Manual workflow dispatch support
+    -   All workflows use latest Bun runtime and actions versions
+    -   Fail-fast disabled to see results on all platforms
+
 ### Manual Test Mode
 
 -   **DEV**: Added `enable: 'manual'` configuration option for tests that should only run when explicitly named
@@ -26,6 +44,7 @@
 
 -   **DOC**: Updated man page with detailed explanation of `enable: 'manual'` option
 -   **DOC**: Updated `--init` template with comments explaining all three `enable` values (true, false, 'manual')
+-   **DOC**: Updated PLAN.md to mark CI/CD integration as completed
 
 ## 2025-10-06
 

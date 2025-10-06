@@ -4,6 +4,12 @@
   <img src="doc/logo.png" alt="TestMe Logo" width="400"/>
 </p>
 
+<p align="center">
+  <a href="https://github.com/embedthis/testme/actions/workflows/ci.yml"><img src="https://github.com/embedthis/testme/actions/workflows/ci.yml/badge.svg" alt="CI Status"></a>
+  <a href="https://www.npmjs.com/package/@embedthis/testme"><img src="https://img.shields.io/npm/v/@embedthis/testme.svg" alt="npm version"></a>
+  <a href="https://github.com/embedthis/testme/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License"></a>
+</p>
+
 TestMe is a powerful, multi-language test runner built with [Bun](https://bun.sh) that can discover, compile, and execute tests across different programming languages with configurable patterns and parallel execution.
 
 ## 🚀 Features
