@@ -123,7 +123,7 @@ function installSupportFiles() {
         log('Linking JavaScript testme module via bun link...')
         execSync('bun link', {
             cwd: jsModuleDir,
-            stdio: 'inherit',
+            stdio: 'ignore',
         })
         log('JavaScript testme module linked successfully')
     } catch (err) {

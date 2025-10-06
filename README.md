@@ -8,7 +8,7 @@ TestMe is a powerful, multi-language test runner built with [Bun](https://bun.sh
 
 ## 🚀 Features
 
--   **Multi-language Support**: Shell (`.tst.sh`), PowerShell (`.tst.ps1`), Batch (`.tst.bat`, `.tst.cmd`), C (`.tst.c`), JavaScript (`.tst.js`), TypeScript (`.tst.ts`), Python (`.tst.py`), Go (`.tst.go`), Ejscript (`.tst.es`)
+-   **Multi-language Support**: Shell (`.tst.sh`), PowerShell (`.tst.ps1`), Batch (`.tst.bat`, `.tst.cmd`), C (`.tst.c`), JavaScript (`.tst.js`), TypeScript (`.tst.ts`), Python (`.tst.py`), and Go (`.tst.go`).
 -   **Automatic Compilation**: C programs are compiled automatically with platform-appropriate compilers (GCC/Clang/MSVC)
 -   **Cross-platform**: Full support for Windows, macOS, and Linux with native test types for each platform
 -   **Recursive Discovery**: Finds test files at any depth in directory trees
@@ -604,17 +604,11 @@ Environment variables in compiler flags and paths support `${...}` expansion:
             compiler: 'default', // Auto-detect best compiler
 
             gcc: {
-                flags: [
-                    '-I${../build/${PLATFORM}-${PROFILE}/inc}',
-                    '-L${../build/${PLATFORM}-${PROFILE}/bin}',
-                ],
+                flags: ['-I${../build/${PLATFORM}-${PROFILE}/inc}', '-L${../build/${PLATFORM}-${PROFILE}/bin}'],
                 libraries: ['m', 'pthread'],
             },
             clang: {
-                flags: [
-                    '-I${../build/${PLATFORM}-${PROFILE}/inc}',
-                    '-L${../build/${PLATFORM}-${PROFILE}/bin}',
-                ],
+                flags: ['-I${../build/${PLATFORM}-${PROFILE}/inc}', '-L${../build/${PLATFORM}-${PROFILE}/bin}'],
                 libraries: ['m', 'pthread'],
             },
             msvc: {
@@ -639,10 +633,7 @@ Environment variables in compiler flags and paths support `${...}` expansion:
 
                 // Additional macOS-specific settings
                 macosx: {
-                    flags: [
-                        '-framework', 'IOKit',
-                        '-framework', 'CoreFoundation',
-                    ],
+                    flags: ['-framework', 'IOKit', '-framework', 'CoreFoundation'],
                     libraries: ['objc'],
                 },
 
@@ -656,10 +647,6 @@ Environment variables in compiler flags and paths support `${...}` expansion:
     },
 }
 ```
-
-##### Ejscript Compiler Configuration
-
--   `compiler.es.require` - Ejscript modules to preload with `--require` (string or array)
 
 #### Execution Settings
 
@@ -1131,7 +1118,7 @@ bun --hot src/index.ts
 
 | Problem                   | Solution                                                                                                                                                                         |
 | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Tests not discovered**  | Check file extensions (`.tst.sh`, `.tst.c`, `.tst.js`, `.tst.ts`, `.tst.es`)<br>Use `--list` to see what's found<br>Check `enable: false` in config<br>Verify depth requirements |
+| **Tests not discovered**  | Check file extensions (`.tst.sh`, `.tst.c`, `.tst.js`, `.tst.ts`)<br>Use `--list` to see what's found<br>Check `enable: false` in config<br>Verify depth requirements |
 | **C compilation failing** | Check GCC/Clang is in PATH<br>Review `.testme/compile.log`<br>Use `-s` to see compile commands                                                                                   |
 | **Permission errors**     | Make shell scripts executable: `chmod +x *.tst.sh`<br>Check directory permissions                                                                                                |
 | **Tests skipped**         | Check skip script exit code<br>Verify `--depth` is sufficient<br>Run with `-v` for details                                                                                       |

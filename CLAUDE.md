@@ -379,3 +379,4 @@ npm publish
 -   All code is sufficiently commented with JSDoc-style comments
 -   Tests in subdirectories need to have unique names to avoid conflicts with tests in the parent or sibling directories.
 -   Create new unit tests in well named sub-directories under test
+-   No need to document publicly Ejscript support.
