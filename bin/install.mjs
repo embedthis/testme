@@ -117,6 +117,20 @@ function installSupportFiles() {
         }
     }
 
+    // Link JavaScript testme module via bun link
+    try {
+        const jsModuleDir = path.join(__dirname, '..', 'src', 'modules', 'js')
+        log('Linking JavaScript testme module via bun link...')
+        execSync('bun link', {
+            cwd: jsModuleDir,
+            stdio: 'inherit',
+        })
+        log('JavaScript testme module linked successfully')
+    } catch (err) {
+        error('Could not link JavaScript testme module. You may need to run "bun link" manually.')
+        error(`  cd ${path.join(__dirname, '..', 'src', 'modules', 'js')} && bun link`)
+    }
+
     // Install legacy Ejscript testme.mod if ejsc is available
     if (checkEjsc()) {
         try {

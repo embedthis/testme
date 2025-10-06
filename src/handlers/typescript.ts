@@ -9,6 +9,7 @@ import { BaseTestHandler } from "./base.ts";
 import { PlatformDetector } from "../platform/detector.ts";
 import * as path from "path";
 import * as fs from "fs";
+import * as os from "os";
 
 /*
  Handler for executing TypeScript tests (.tst.ts files)
@@ -32,6 +33,9 @@ export class TypeScriptTestHandler extends BaseTestHandler {
      @returns Promise resolving to test results
      */
     async execute(file: TestFile, config: TestConfig): Promise<TestResult> {
+        // Ensure testme module is linked
+        await this.ensureTestmeLinked(file, config);
+
         // Handle debug mode
         if (config.execution?.debugMode) {
             return await this.launchDebugger(file, config);
@@ -59,6 +63,79 @@ export class TypeScriptTestHandler extends BaseTestHandler {
             error,
             result.exitCode
         );
+    }
+
+    /*
+     Ensures testme module is linked by checking for node_modules/testme
+     If not found, runs 'bun link testme' in the appropriate directory
+     @param file Test file being executed
+     @param config Test configuration
+     */
+    private async ensureTestmeLinked(file: TestFile, config: TestConfig): Promise<void> {
+        // Search up from test file directory for testme.json5
+        const linkDir = this.findLinkDirectory(file.directory);
+
+        if (!linkDir) {
+            return; // No suitable directory found
+        }
+
+        const testmeModulePath = path.join(linkDir, 'node_modules', 'testme');
+
+        // Check if testme module already exists as a local link
+        if (fs.existsSync(testmeModulePath)) {
+            // Verify it's a symlink (not a real package)
+            try {
+                const stats = fs.lstatSync(testmeModulePath);
+                if (stats.isSymbolicLink()) {
+                    return; // Already linked
+                }
+            } catch {
+                // Continue to create link
+            }
+        }
+
+        // Run bun link testme in the link directory
+        try {
+            await this.runCommand('bun', ['link', 'testme'], {
+                cwd: linkDir,
+            });
+        } catch (error) {
+            // Linking failed, but continue anyway - the test might not need it
+        }
+    }
+
+    /*
+     Finds the appropriate directory to run 'bun link testme' in
+     Searches up from test file directory to find the closest testme.json5
+     @param startDir Directory to start searching from
+     @returns Directory path containing testme.json5, or null if not found
+     */
+    private findLinkDirectory(startDir: string): string | null {
+        let currentDir = startDir;
+        const homeDir = os.homedir();
+
+        while (true) {
+            // Stop at home directory
+            if (currentDir === homeDir) {
+                return null;
+            }
+
+            // Check for testme.json5
+            const configPath = path.join(currentDir, 'testme.json5');
+            if (fs.existsSync(configPath)) {
+                return currentDir;
+            }
+
+            // Move up one directory
+            const parentDir = path.dirname(currentDir);
+
+            // Stop if we've reached the root
+            if (parentDir === currentDir) {
+                return null;
+            }
+
+            currentDir = parentDir;
+        }
     }
 
     /*

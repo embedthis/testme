@@ -9,6 +9,12 @@
     -   Header installs to `~/.local/include/testme.h` instead of `/usr/local/include/testme.h`
     -   Man page installs to `~/.local/share/man/man1/tm.1` instead of `/usr/local/share/man/man1/tm.1`
     -   Ejscript module installs to `~/.local/lib/testme/testme.mod` instead of `/usr/local/lib/testme/testme.mod`
+    -   JavaScript testme module is now linked via `bun link` during installation
+    -   Tests can now import testme utilities via `import { teq, ttrue } from 'testme'`
+    -   **Auto-linking**: JavaScript and TypeScript handlers automatically run `bun link testme` if not already linked
+    -   Auto-linking searches up from test directory to find the closest `testme.json5` file
+    -   Link is created in the directory containing `testme.json5`, not above it
+    -   Only creates link if it doesn't exist or isn't already a symlink
     -   No longer requires sudo for installation
     -   Follows XDG Base Directory specification
 

@@ -260,11 +260,13 @@ int main() {
 
 ### JavaScript Tests (`.tst.js`)
 
-JavaScript tests executed with Bun runtime. Import `testme.js` for built-in testing utilities, or use standard assertions.
+JavaScript tests executed with Bun runtime. Import the `testme` module for built-in testing utilities, or use standard assertions.
+
+**Note**: TestMe automatically links the testme module when running JS tests if not already linked.
 
 ```javascript
 // test_array.tst.js
-import {teq, tneq, ttrue, tinfo, tget, thas} from './testme.js'
+import {teq, tneq, ttrue, tinfo, tget, thas} from 'testme'
 
 tinfo('Running JavaScript tests...')
 
@@ -286,7 +288,7 @@ if (thas('TESTME_VERBOSE')) {
 }
 ```
 
-#### JavaScript Testing Functions (testme.js)
+#### JavaScript Testing Functions (testme module)
 
 -   `teq(received, expected, msg)` - Assert two values are equal
 -   `tneq(received, expected, msg)` - Assert two values are not equal
@@ -304,11 +306,13 @@ if (thas('TESTME_VERBOSE')) {
 
 ### TypeScript Tests (`.tst.ts`)
 
-TypeScript tests executed with Bun runtime (includes automatic transpilation). Import `testme.js` for built-in testing utilities.
+TypeScript tests executed with Bun runtime (includes automatic transpilation). Import the `testme` module for built-in testing utilities.
+
+**Note**: TestMe automatically links the testme module when running TS tests if not already linked.
 
 ```typescript
 // test_types.tst.ts
-import {teq, ttrue, tinfo, tget} from './testme.js'
+import {teq, ttrue, tinfo, tget} from 'testme'
 
 tinfo('Running TypeScript tests...')
 
