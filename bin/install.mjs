@@ -6,6 +6,7 @@
  */
 
 import {execSync} from 'child_process'
+import fs from 'fs'
 import path from 'path'
 import os from 'os'
 import {fileURLToPath} from 'url'
@@ -58,13 +59,19 @@ function buildBinary() {
 
 function installBinary() {
     const platform = os.platform()
-    const binarySrc = platform === 'win32' ? 'dist/tm.exe' : 'dist/tm'
-    const binaryDest = platform === 'win32' ? 'C:\\Windows\\System32\\tm.exe' : '/usr/local/bin/tm'
+    const binarySrc = platform === 'win32' ? path.join('dist', 'tm.exe') : 'dist/tm'
+    const binaryDest = platform === 'win32' ? path.join(os.homedir(), '.bun', 'bin', 'tm.exe') : '/usr/local/bin/tm'
 
     try {
         if (platform === 'win32') {
+            const binDir = path.dirname(binaryDest)
             log(`Installing tm binary to ${binaryDest}...`)
-            execSync(`copy "${binarySrc}" "${binaryDest}"`, {stdio: 'inherit', shell: 'cmd.exe'})
+            // Create directory structure recursively if it doesn't exist
+            if (!fs.existsSync(binDir)) {
+                fs.mkdirSync(binDir, {recursive: true})
+            }
+            fs.copyFileSync(binarySrc, binaryDest)
+            log('Binary installed successfully')
         } else {
             log(`Installing tm binary to ${binaryDest} (may require sudo)...`)
             execSync(`sudo cp ${binarySrc} ${binaryDest}`, {stdio: 'inherit'})
@@ -84,14 +91,17 @@ function installSupportFiles() {
         const headerSrc = path.join(__dirname, '..', 'test', 'testme.h')
         const headerDest =
             platform === 'win32'
-                ? path.join(process.env.PROGRAMFILES || 'C:\\Program Files', 'testme', 'include', 'testme.h')
+                ? path.join(os.homedir(), '.bun', 'include', 'testme.h')
                 : '/usr/local/include/testme.h'
 
         if (platform === 'win32') {
             log('Installing testme.h header...')
             const headerDir = path.dirname(headerDest)
-            execSync(`if not exist "${headerDir}" mkdir "${headerDir}"`, {stdio: 'inherit', shell: 'cmd.exe'})
-            execSync(`copy "${headerSrc}" "${headerDest}"`, {stdio: 'inherit', shell: 'cmd.exe'})
+            if (!fs.existsSync(headerDir)) {
+                fs.mkdirSync(headerDir, {recursive: true})
+            }
+            fs.copyFileSync(headerSrc, headerDest)
+            log('Header installed successfully')
         } else {
             log('Installing testme.h header...')
             execSync(`sudo mkdir -p $(dirname ${headerDest})`, {stdio: 'inherit'})
@@ -164,7 +174,6 @@ function main() {
     installSupportFiles()
 
     log('Installation complete!')
-    log('Run "tm --help" to get started')
 }
 
 main()

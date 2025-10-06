@@ -38,11 +38,25 @@ TestMe is a powerful, multi-language test runner built with [Bun](https://bun.sh
 
 ### Prerequisites
 
-TestMe requires **Bun** to be installed:
+TestMe requires **Bun** to be installed and operate.
 
 -   **[Bun](https://bun.sh)** - Fast JavaScript runtime with built-in TypeScript support
     -   Installation: Visit [bun.sh](https://bun.sh) for installation instructions
     -   Verify: `bun --version`
+
+Ensure the Bun binaries directory is in your path.
+
+For Unix/Linux/macOS:
+
+```sh
+export "PATH=~/.bun/bin:$PATH"
+```
+
+on Windows with PowerShell:
+
+```powershell
+setx PATH "$($env:PATH);$env:USERPROFILE\.bun\bin"
+```
 
 ### Quick Install
 
@@ -67,7 +81,7 @@ bun install -g @embedthis/testme
 
 4. Install the project (on MacOS/Linux only):
     ```bash
-    sudo make install
+    sudo bun run install
     ```
 
 #### Windows
@@ -80,23 +94,7 @@ bun install
 
 # Build
 bun run build
-
-# Install to user directory (optional)
-make install
-# or copy manually
-copy tm.exe $env:USERPROFILE\.local\bin\
 ```
-
-##### 2. Add to PATH (if needed)
-
-```powershell
-$binPath = "$env:USERPROFILE\.local\bin"
-$env:PATH += ";$binPath"
-
-# To make permanent, edit via System Properties > Environment Variables
-```
-
-For more installation options and details, see [installs/README.md](installs/README.md).
 
 ## 🚀 Quick Start
 
