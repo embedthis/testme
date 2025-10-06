@@ -60,25 +60,22 @@ function buildBinary() {
 function installBinary() {
     const platform = os.platform()
     const binarySrc = platform === 'win32' ? path.join('dist', 'tm.exe') : 'dist/tm'
-    const binaryDest = platform === 'win32' ? path.join(os.homedir(), '.bun', 'bin', 'tm.exe') : '/usr/local/bin/tm'
+    const binaryDest = path.join(os.homedir(), '.bun', 'bin', platform == 'win32' ? 'tm.exe' : 'tm')
 
     try {
-        if (platform === 'win32') {
-            const binDir = path.dirname(binaryDest)
-            log(`Installing tm binary to ${binaryDest}...`)
-            // Create directory structure recursively if it doesn't exist
-            if (!fs.existsSync(binDir)) {
-                fs.mkdirSync(binDir, {recursive: true})
-            }
-            fs.copyFileSync(binarySrc, binaryDest)
-            log('Binary installed successfully')
-        } else {
-            log(`Installing tm binary to ${binaryDest} (may require sudo)...`)
-            execSync(`sudo cp ${binarySrc} ${binaryDest}`, {stdio: 'inherit'})
-            execSync(`sudo chmod +x ${binaryDest}`, {stdio: 'inherit'})
+        const binDir = path.dirname(binaryDest)
+        log(`Installing tm binary to ${binaryDest}...`)
+        // Create directory structure recursively if it doesn't exist
+        if (!fs.existsSync(binDir)) {
+            fs.mkdirSync(binDir, {recursive: true})
         }
+        fs.copyFileSync(binarySrc, binaryDest)
+        if (platform !== 'win32') {
+            fs.chmodSync(binaryDest, 0o755)
+        }
+        log('Binary installed successfully')
     } catch (err) {
-        error(`Could not install binary to ${binaryDest}. You may need administrator/sudo privileges.`)
+        error(`Could not install binary to ${binaryDest}`)
         error('You can manually copy the binary from dist/tm to your PATH.')
     }
 }
@@ -88,25 +85,16 @@ function installSupportFiles() {
 
     // Install testme.h header
     try {
-        const headerSrc = path.join(__dirname, '..', 'test', 'testme.h')
-        const headerDest =
-            platform === 'win32'
-                ? path.join(os.homedir(), '.bun', 'include', 'testme.h')
-                : '/usr/local/include/testme.h'
+        const headerSrc = path.join(__dirname, '..', 'src', 'modules', 'c', 'testme.h')
+        const headerDest = path.join(os.homedir(), '.local', 'include', 'testme.h')
 
-        if (platform === 'win32') {
-            log('Installing testme.h header...')
-            const headerDir = path.dirname(headerDest)
-            if (!fs.existsSync(headerDir)) {
-                fs.mkdirSync(headerDir, {recursive: true})
-            }
-            fs.copyFileSync(headerSrc, headerDest)
-            log('Header installed successfully')
-        } else {
-            log('Installing testme.h header...')
-            execSync(`sudo mkdir -p $(dirname ${headerDest})`, {stdio: 'inherit'})
-            execSync(`sudo cp ${headerSrc} ${headerDest}`, {stdio: 'inherit'})
+        log('Installing testme.h header to ~/.local/include...')
+        const headerDir = path.dirname(headerDest)
+        if (!fs.existsSync(headerDir)) {
+            fs.mkdirSync(headerDir, {recursive: true})
         }
+        fs.copyFileSync(headerSrc, headerDest)
+        log('Header installed successfully')
     } catch (err) {
         error('Could not install testme.h header. You may need to install it manually.')
     }
@@ -115,11 +103,15 @@ function installSupportFiles() {
     if (platform !== 'win32') {
         try {
             const manSrc = path.join(__dirname, '..', 'doc', 'tm.1')
-            const manDest = '/usr/local/share/man/man1/tm.1'
+            const manDest = path.join(os.homedir(), '.local', 'share', 'man', 'man1', 'tm.1')
 
             log('Installing man page...')
-            execSync(`sudo mkdir -p $(dirname ${manDest})`, {stdio: 'inherit'})
-            execSync(`sudo cp ${manSrc} ${manDest}`, {stdio: 'inherit'})
+            const manDir = path.dirname(manDest)
+            if (!fs.existsSync(manDir)) {
+                fs.mkdirSync(manDir, {recursive: true})
+            }
+            fs.copyFileSync(manSrc, manDest)
+            log('Man page installed successfully')
         } catch (err) {
             error('Could not install man page. You may need to install it manually.')
         }
@@ -131,18 +123,23 @@ function installSupportFiles() {
             const modSrc = path.join(__dirname, '..', 'src', 'modules', 'es', 'testme.mod')
             const homeDir = os.homedir()
             const userModDest = path.join(homeDir, '.ejs', 'testme.mod')
-            const systemModDest = '/usr/local/lib/testme/testme.mod'
+            const localModDest = path.join(homeDir, '.local', 'lib', 'testme', 'testme.mod')
 
             log('Installing Ejscript testme.mod...')
 
-            // Install to user directory
+            // Install to user .ejs directory
             const userModDir = path.dirname(userModDest)
-            execSync(`mkdir -p ${userModDir}`, {stdio: 'inherit'})
-            execSync(`cp ${modSrc} ${userModDest}`, {stdio: 'inherit'})
+            if (!fs.existsSync(userModDir)) {
+                fs.mkdirSync(userModDir, {recursive: true})
+            }
+            fs.copyFileSync(modSrc, userModDest)
 
-            // Install to system directory
-            execSync(`sudo mkdir -p $(dirname ${systemModDest})`, {stdio: 'inherit'})
-            execSync(`sudo cp ${modSrc} ${systemModDest}`, {stdio: 'inherit'})
+            // Install to .local directory
+            const localModDir = path.dirname(localModDest)
+            if (!fs.existsSync(localModDir)) {
+                fs.mkdirSync(localModDir, {recursive: true})
+            }
+            fs.copyFileSync(modSrc, localModDest)
 
             log('Ejscript testme.mod installed successfully')
         } catch (err) {

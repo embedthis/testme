@@ -39,7 +39,16 @@ async function handleInit(): Promise<void> {
     // Compiler configuration for different languages
     compiler: {
         c: {
-            compiler: 'default',  // Auto-detect best compiler
+            // Compiler selection has three modes:
+            // 1. Auto-detect: compiler: 'default'
+            // 2. Explicit compiler for all platforms: compiler: 'gcc'
+            // 3. Per-platform compiler map:
+            //    compiler: {
+            //        windows: 'msvc',
+            //        macosx: 'clang',
+            //        linux: 'gcc'
+            //    }
+            compiler: 'default',
 
             // GCC-specific flags (Unix/Linux/MinGW)
             gcc: {

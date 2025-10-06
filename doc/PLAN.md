@@ -220,10 +220,10 @@ Completed full npm package installation infrastructure:
 -   ✅ Implemented `bin/install.mjs` ES module installation script with:
     -   Platform detection (Windows vs Unix)
     -   Binary building with correct extension (.exe on Windows)
-    -   Binary installation to `/usr/local/bin/tm` (Unix) or `C:\Windows\System32\tm.exe` (Windows)
-    -   `testme.h` header installation to system include directories
-    -   Man page installation to `/usr/local/share/man/man1/tm.1` (Unix only)
-    -   Ejscript `testme.mod` installation to `~/.ejs/testme.mod` and `/usr/local/lib/testme/testme.mod` (if `ejsc` found)
+    -   Binary installation to `~/.bun/bin/tm` (no sudo required)
+    -   `testme.h` header installation to `~/.local/include/testme.h`
+    -   Man page installation to `~/.local/share/man/man1/tm.1` (Unix only)
+    -   Ejscript `testme.mod` installation to `~/.ejs/testme.mod` and `~/.local/lib/testme/testme.mod` (if `ejsc` found)
 -   ✅ Updated package.json with correct files array (excluding pre-built binary)
 -   ✅ Configured postinstall hook to run installation script
 -   ✅ Updated documentation (CLAUDE.md) with installation process details

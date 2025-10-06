@@ -27,12 +27,12 @@ install: build
 	bun bin/install.mjs
 
 #
-#  Old install method
+#	Local dev env install
 #
-old-install: build
+dev-install: build
 	bun --quiet link
-	sudo cp dist/tm /usr/local/bin/tm
-	sudo cp doc/tm.1 /usr/local/share/man/man1
+	cp dist/tm ~/.bun/bin
+	cp doc/tm.1 ~/.local/share/man/man1
 	@make -C src/modules/c install
 	@make -C src/modules/js install
 	@make -C src/modules/es install

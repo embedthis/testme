@@ -102,14 +102,15 @@ Patterns support platform-specific deep blending:
 -   **Auto-detection**: Current platform determines which patterns to merge
 
 Example:
+
 ```json5
 {
     patterns: {
-        include: ['**/*.tst.c', '**/*.tst.js'],  // All platforms
-        windows: { include: ['**/*.tst.ps1'] },   // Added on Windows
-        macosx: { include: ['**/*.tst.sh'] },     // Added on macOS
-        linux: { include: ['**/*.tst.sh'] }       // Added on Linux
-    }
+        include: ['**/*.tst.c', '**/*.tst.js'], // All platforms
+        windows: {include: ['**/*.tst.ps1']}, // Added on Windows
+        macosx: {include: ['**/*.tst.sh']}, // Added on macOS
+        linux: {include: ['**/*.tst.sh']}, // Added on Linux
+    },
 }
 ```
 
@@ -127,13 +128,15 @@ Effective on macOS: `**/*.tst.c`, `**/*.tst.js`, `**/*.tst.sh`
 TestMe provides runtime helpers for different test languages:
 
 -   **C Module** (`src/modules/c/`): Contains `testme.h` header with test assertion macros
+
     -   `teq(got, expected, msg)` - Test equality
     -   `ttrue(condition, msg)` - Test boolean condition
     -   `tinfo(msg, ...)` - Output test information
-    -   Installed to `/usr/local/include/testme.h` for system-wide use
+    -   Installed to `~/.local/include/testme.h` for user-local use
     -   Copied to `test/testme.h` for local development
 
 -   **JavaScript/TypeScript Module** (`src/modules/js/`): Test utilities for Bun runtime
+
     -   Importable via `import { ... } from 'testme'`
     -   Provides test assertion helpers
 
@@ -197,10 +200,11 @@ The configuration file uses this hierarchy:
 -   `enable` - Enable or disable tests in this directory (default: true)
 -   `depth` - Minimum depth required to run tests (default: 0)
 -   `compiler.c` - C compilation settings (compiler, flags, libraries)
+    -   `compiler` - Can be: "default" (auto-detect), string (e.g., "gcc"), or platform map: `{ windows: 'msvc', macosx: 'clang', linux: 'gcc' }`
 -   `compiler.es` - Ejscript settings (require modules)
 -   `execution` - Runtime behavior (timeout, parallel, workers)
 -   `output` - Display formatting (verbose, format, colors)
--   `patterns` - File discovery (include/exclude glob patterns)
+-   `patterns` - File discovery (include/exclude glob patterns) with platform-specific blending
 -   `services` - Service scripts (skip, prep, setup, cleanup)
 -   `env` - Environment variables with `${...}` glob expansion
 
@@ -343,11 +347,12 @@ Services are managed per configuration group:
 ### NPM Package Installation
 
 TestMe is distributed as an npm package (`@embedthis/testme`) that:
--   Builds the `tm` binary during postinstall using `bin/install.sh` wrapper
--   Installs binary to `/usr/local/bin/tm` (Unix) or `C:\Windows\System32\tm.exe` (Windows)
--   Installs `testme.h` C header to `/usr/local/include/testme.h` (or Windows equivalent)
--   Installs man page to `/usr/local/share/man/man1/tm.1` (Unix only)
--   Installs Ejscript `testme.mod` to `~/.ejs/testme.mod` and `/usr/local/lib/testme/testme.mod` if `ejsc` is found
+
+-   Builds the `tm` binary during postinstall using `bin/install.mjs`
+-   Installs binary to `~/.bun/bin/tm`
+-   Installs `testme.h` C header to `~/.local/include/testme.h`
+-   Installs man page to `~/.local/share/man/man1/tm.1` (Unix only)
+-   Installs Ejscript `testme.mod` to `~/.ejs/testme.mod` and `~/.local/lib/testme/testme.mod` if `ejsc` is found
 
 The installation script (`bin/install.mjs`) supports both Bun and Node.js runtimes via the `bin/install.sh` wrapper.
 

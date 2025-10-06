@@ -316,7 +316,7 @@ ${result.stderr}`;
     }
 
     /*
-     Launches the appropriate debugger based on configuration or platform defaults
+     Launches the appropriate debugger based on the platform
      @param file C test file to debug
      @param config Test execution configuration
      @param compileDuration Duration of compilation phase
@@ -328,30 +328,32 @@ ${result.stderr}`;
         compileDuration: number
     ): Promise<TestResult> {
         try {
-            // Get debugger from config or auto-detect based on platform
-            const debuggerName = config.debug?.c || this.getDefaultDebugger();
-
-            // Route to appropriate debugger handler
-            switch (debuggerName) {
-                case 'xcode':
-                    return await this.launchXcodeDebugger(file, config, compileDuration);
-                case 'lldb':
-                    return await this.launchLldbDebugger(file, config, compileDuration);
-                case 'gdb':
-                    return await this.launchGdbDebugger(file, config, compileDuration);
-                case 'vs':
-                    return await this.launchVisualStudioDebugger(file, config, compileDuration);
-                case 'vscode':
-                    return await this.launchVSCodeDebugger(file, config, compileDuration);
-                default:
-                    // If it's not a known alias, treat it as a path to a debugger executable
-                    return this.createTestResult(
-                        file,
-                        TestStatus.Error,
-                        compileDuration,
-                        "",
-                        `Unknown debugger: ${debuggerName}. Valid options: xcode, lldb, gdb, vs, vscode, or path to debugger executable`
-                    );
+            if (PlatformDetector.isMacOS()) {
+                return await this.launchXcodeDebugger(
+                    file,
+                    config,
+                    compileDuration
+                );
+            } else if (PlatformDetector.isLinux()) {
+                return await this.launchGdbDebugger(
+                    file,
+                    config,
+                    compileDuration
+                );
+            } else if (PlatformDetector.isWindows()) {
+                return await this.launchWindowsDebugger(
+                    file,
+                    config,
+                    compileDuration
+                );
+            } else {
+                return this.createTestResult(
+                    file,
+                    TestStatus.Error,
+                    compileDuration,
+                    "",
+                    `Debug mode not supported on platform: ${process.platform}`
+                );
             }
         } catch (error) {
             return this.createTestResult(
@@ -362,21 +364,6 @@ ${result.stderr}`;
                 `Failed to launch debugger: ${error}`
             );
         }
-    }
-
-    /*
-     Gets the default debugger for the current platform
-     @returns Default debugger name
-     */
-    private getDefaultDebugger(): string {
-        if (PlatformDetector.isMacOS()) {
-            return 'xcode';
-        } else if (PlatformDetector.isLinux()) {
-            return 'gdb';
-        } else if (PlatformDetector.isWindows()) {
-            return 'vs';
-        }
-        return 'gdb'; // Fallback
     }
 
     /*
@@ -590,61 +577,7 @@ To debug:
     }
 
     /*
-     Launches LLDB debugger
-     @param file C test file to debug
-     @param config Test execution configuration
-     @param compileDuration Duration of compilation phase
-     @returns Promise resolving to test results
-     */
-    private async launchLldbDebugger(
-        file: TestFile,
-        config: TestConfig,
-        compileDuration: number
-    ): Promise<TestResult> {
-        const binaryPath = this.getBinaryPath(file);
-
-        try {
-            console.log("🐛 Launching LLDB debugger...");
-            console.log(`Binary: ${binaryPath}`);
-            console.log("LLDB commands you can use:");
-            console.log("  (lldb) run       - Start the program");
-            console.log("  (lldb) b main    - Set breakpoint at main");
-            console.log("  (lldb) step      - Step through code");
-            console.log("  (lldb) continue  - Continue execution");
-            console.log("  (lldb) p var     - Print variable value");
-            console.log("  (lldb) quit      - Exit debugger");
-            console.log("");
-
-            // Launch LLDB in interactive mode
-            const lldb = await this.runCommand("lldb", [binaryPath], {
-                cwd: file.directory,
-                timeout: 0, // No timeout for interactive debugging
-                env: await this.getTestEnvironment(config),
-            });
-
-            const output = `LLDB debugging session completed.
-Exit code: ${lldb.exitCode}
-${lldb.stdout}`;
-
-            const status =
-                lldb.exitCode === 0 ? TestStatus.Passed : TestStatus.Failed;
-            const error = lldb.exitCode !== 0 ? lldb.stderr : undefined;
-
-            return this.createTestResult(
-                file,
-                status,
-                compileDuration,
-                output,
-                error,
-                lldb.exitCode
-            );
-        } catch (error) {
-            throw new Error(`LLDB debugger setup failed: ${error}`);
-        }
-    }
-
-    /*
-     Launches GDB debugger
+     Launches GDB debugger on Linux
      @param file C test file to debug
      @param config Test execution configuration
      @param compileDuration Duration of compilation phase
@@ -698,7 +631,7 @@ ${gdb.stdout}`;
     }
 
     /*
-     Launches Windows debugger (Visual Studio for MSVC, VS Code for GCC/MinGW)
+     Launches Windows debugger (VS Code or Visual Studio)
      @param file C test file to debug
      @param config Test execution configuration
      @param compileDuration Duration of compilation phase
@@ -709,184 +642,29 @@ ${gdb.stdout}`;
         config: TestConfig,
         compileDuration: number
     ): Promise<TestResult> {
-        const compilerConfig = await CompilerManager.getDefaultCompilerConfig(
-            config.compiler?.c?.compiler
-        );
-
-        // Use Visual Studio for MSVC, VS Code for GCC/MinGW
-        if (compilerConfig.type === CompilerType.MSVC) {
-            return await this.launchVisualStudioDebugger(file, config, compileDuration);
-        } else {
-            return await this.launchVSCodeDebugger(file, config, compileDuration);
-        }
-    }
-
-    /*
-     Launches Visual Studio debugger for MSVC-compiled tests
-     @param file C test file to debug
-     @param config Test execution configuration
-     @param compileDuration Duration of compilation phase
-     @returns Promise resolving to test results
-     */
-    private async launchVisualStudioDebugger(
-        file: TestFile,
-        config: TestConfig,
-        compileDuration: number
-    ): Promise<TestResult> {
         const binaryPath = this.getBinaryPath(file);
 
         try {
-            console.log("🛠️  Preparing Visual Studio debugger...");
-            console.log(`📁 Binary: ${binaryPath}`);
-            console.log(`📄 Source: ${file.path}`);
-
-            // Get compiler config to find devenv path from MSVC installation
-            const compilerConfig = await CompilerManager.getDefaultCompilerConfig(
-                config.compiler?.c?.compiler
-            );
-
-            let devenvPath = "devenv";
-
-            // If we have MSVC compiler path, derive devenv path from it
-            if (compilerConfig.type === CompilerType.MSVC && compilerConfig.compiler) {
-                const derivedDevenv = this.findDevenvFromCompiler(compilerConfig.compiler);
-                if (derivedDevenv) {
-                    devenvPath = derivedDevenv;
-                    console.log(`🔍 Found Visual Studio at: ${devenvPath}`);
-                }
-            }
-
-            // Try to launch Visual Studio with debugger
-            let vsOpened = false;
-            try {
-                console.log("🚀 Launching Visual Studio...");
-
-                // Use Windows 'start' command to launch devenv detached
-                // start requires: start "title" "program" args
-                // The first quoted string is the window title, second is the program
-                const proc = Bun.spawn(["cmd", "/c", "start", "Visual Studio Debugger", devenvPath, binaryPath], {
-                    cwd: file.directory,
-                    stdout: "ignore",
-                    stderr: "ignore",
-                    stdin: "ignore",
-                    detached: true,
-                });
-
-                // Unref the process so it doesn't keep the test runner alive
-                proc.unref();
-
-                // Give it a moment to start
-                await new Promise(resolve => setTimeout(resolve, 1500));
-
-                vsOpened = true;
-                console.log("✅ Visual Studio launched");
-            } catch (error) {
-                // Visual Studio devenv command not available
-                console.log("📋 Could not launch Visual Studio automatically");
-                console.log(`   Manually open Visual Studio and debug: ${binaryPath}`);
-            }
-
-            const output = `Visual Studio debug setup completed.
-Binary: ${binaryPath}
-Source: ${file.path}
-
-To debug:
-${vsOpened ? '1. Visual Studio should be open with the debugger ready' : `1. Open Visual Studio\n2. File > Open > Project/Solution, or run: "${devenvPath}" /DebugExe "${binaryPath}"`}
-${vsOpened ? '2' : '3'}. Set breakpoints in the source: ${file.path}
-${vsOpened ? '3' : '4'}. Start debugging (F5)`;
-
-            return this.createTestResult(
-                file,
-                TestStatus.Passed,
-                compileDuration,
-                output
-            );
-        } catch (error) {
-            throw new Error(`Visual Studio debugger setup failed: ${error}`);
-        }
-    }
-
-    /*
-     Finds devenv.exe path from MSVC compiler path
-     @param compilerPath Path to cl.exe
-     @returns Path to devenv.exe if found, null otherwise
-     */
-    private findDevenvFromCompiler(compilerPath: string): string | null {
-        // MSVC path format: C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.41.34120\bin\Hostx64\x64\cl.exe
-        // devenv.exe is at:  C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\devenv.exe
-
-        const parts = compilerPath.split(/[\\\/]/);
-
-        // Find Visual Studio root (directory before VC)
-        const vcIndex = parts.findIndex(p => p.toUpperCase() === 'VC');
-        if (vcIndex === -1) {
-            return null;
-        }
-
-        // Build path to devenv.exe
-        const vsRoot = parts.slice(0, vcIndex).join('\\');
-        const devenvPath = `${vsRoot}\\Common7\\IDE\\devenv.exe`;
-
-        return devenvPath;
-    }
-
-    /*
-     Launches VS Code debugger for GCC/MinGW-compiled tests
-     @param file C test file to debug
-     @param config Test execution configuration
-     @param compileDuration Duration of compilation phase
-     @returns Promise resolving to test results
-     */
-    private async launchVSCodeDebugger(
-        file: TestFile,
-        config: TestConfig,
-        compileDuration: number
-    ): Promise<TestResult> {
-        const binaryPath = this.getBinaryPath(file);
-        const testBaseName = basename(file.name, ".tst.c");
-
-        try {
-            // Create VS Code launch configuration
+            // Try to create VS Code launch configuration
             const vscodeConfigCreated = await this.createVSCodeDebugConfig(file, config);
 
             if (vscodeConfigCreated) {
                 console.log("🛠️  VS Code debug configuration created");
-                console.log(`📁 Project location: ${file.artifactDir}`);
-
-                // Try to launch VS Code (optional - don't fail if not available)
-                let vscodeOpened = false;
-                try {
-                    console.log("🚀 Opening VS Code...");
-                    // Open the artifact directory and the test source file
-                    const vscode = await this.runCommand("code", [file.artifactDir, file.path], {
-                        cwd: file.directory,
-                        timeout: 10000,
-                    });
-
-                    if (vscode.exitCode === 0) {
-                        vscodeOpened = true;
-                        console.log("✅ VS Code opened successfully");
-                    }
-                } catch (error) {
-                    // VS Code CLI not available - provide manual instructions
-                    console.log("📋 VS Code 'code' command not found in PATH");
-                    console.log(`   Manually open this folder in VS Code: ${file.artifactDir}`);
-                }
+                console.log(`📁 Open this folder in VS Code: ${file.directory}`);
+                console.log("📋 Press F5 in VS Code to start debugging");
 
                 const output = `VS Code debug configuration created successfully.
-Location: ${file.artifactDir}\\.vscode\\launch.json
+Location: ${file.directory}\\.vscode\\launch.json
 Binary: ${binaryPath}
-Source: ${file.path}
 
 To debug:
-1. ${vscodeOpened ? 'VS Code should be open' : `Open this folder in VS Code: ${file.artifactDir}`}
-2. Open the test file: ${file.path}
+1. Open this folder in VS Code
+2. Open the test file: ${file.name}
 3. Set breakpoints in your code
 4. Press F5 (or Run > Start Debugging)
-5. The debugger will stop at entry point
+5. The debugger will stop at breakpoints
 
-Note: Make sure you have the C/C++ extension installed in VS Code.
-${!vscodeOpened ? '\nTip: Install VS Code CLI by opening VS Code > Command Palette (Ctrl+Shift+P) > "Shell Command: Install \'code\' command in PATH"' : ''}`;
+Note: Make sure you have the C/C++ extension installed in VS Code.`;
 
                 return this.createTestResult(
                     file,
@@ -898,7 +676,7 @@ ${!vscodeOpened ? '\nTip: Install VS Code CLI by opening VS Code > Command Palet
                 throw new Error("Could not create VS Code debug configuration");
             }
         } catch (error) {
-            throw new Error(`VS Code debugger setup failed: ${error}`);
+            throw new Error(`Windows debugger setup failed: ${error}`);
         }
     }
 
@@ -913,8 +691,7 @@ ${!vscodeOpened ? '\nTip: Install VS Code CLI by opening VS Code > Command Palet
         config: TestConfig
     ): Promise<boolean> {
         try {
-            const testBaseName = basename(file.name, ".tst.c");
-            const vscodeDir = resolve(file.artifactDir, ".vscode");
+            const vscodeDir = resolve(file.directory, ".vscode");
             const launchJsonPath = resolve(vscodeDir, "launch.json");
 
             // Create .vscode directory if it doesn't exist
@@ -922,8 +699,15 @@ ${!vscodeOpened ? '\nTip: Install VS Code CLI by opening VS Code > Command Palet
 
             const binaryPath = this.getBinaryPath(file);
 
-            // Use cppdbg debugger type for Windows (works with both GDB and MSVC)
-            const debuggerType = "cppdbg";
+            // Determine debugger type based on available compiler
+            const compilerConfig = await CompilerManager.getDefaultCompilerConfig(
+                config.compiler?.c?.compiler
+            );
+
+            let debuggerType = "cppvsdbg"; // Default for MSVC
+            if (compilerConfig.type === CompilerType.MinGW || compilerConfig.type === CompilerType.GCC) {
+                debuggerType = "cppdbg"; // For MinGW/GCC (uses GDB)
+            }
 
             const launchConfig = {
                 version: "0.2.0",
@@ -934,7 +718,7 @@ ${!vscodeOpened ? '\nTip: Install VS Code CLI by opening VS Code > Command Palet
                         request: "launch",
                         program: binaryPath,
                         args: [],
-                        stopAtEntry: true,
+                        stopAtEntry: false,
                         cwd: file.directory,
                         environment: [],
                         externalConsole: false,
@@ -945,17 +729,9 @@ ${!vscodeOpened ? '\nTip: Install VS Code CLI by opening VS Code > Command Palet
                                 description: "Enable pretty-printing for gdb",
                                 text: "-enable-pretty-printing",
                                 ignoreFailures: true
-                            },
-                            {
-                                description: "Set Disassembly Flavor to Intel",
-                                text: "-gdb-set disassembly-flavor intel",
-                                ignoreFailures: true
                             }
                         ] : undefined,
-                        preLaunchTask: undefined,
-                        sourceFileMap: {
-                            [file.directory]: file.directory
-                        }
+                        preLaunchTask: undefined
                     }
                 ]
             };

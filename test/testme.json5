@@ -16,23 +16,28 @@
      */
     compiler: {
         c: {
-            compiler: 'default', // Auto-detect best compiler. Use 'gcc', 'clang', or path to override
+            // Compiler selection has three modes (same as documented above)
+            compiler: {
+                windows: 'msvc',
+                macosx: 'clang',
+                linux: 'gcc',
+            },
 
             /*
                 GCC-specific flags (Unix/Linux/MinGW)
-                Default flags are automatically added: -std=c99 -Wall -Wextra -Wno-unused-parameter -Wno-strict-prototypes -O0 -g -I. -I/usr/local/include -L/usr/local/lib -I/opt/homebrew/include -L/opt/homebrew/lib
+                Default flags are automatically added: -std=c99 -Wall -Wextra -Wno-unused-parameter -Wno-strict-prototypes -O0 -g -I. -I~/.local/include -L~/.local/lib -I/opt/homebrew/include -L/opt/homebrew/lib
              */
             gcc: {
-                flags: ['-I..'],
+                flags: ['-I../src/modules/c'],
                 libraries: ['m', 'pthread'],
             },
 
             /*
                 Clang-specific flags (macOS/Unix)
-                Default flags are automatically added: -std=c99 -Wall -Wextra -Wno-unused-parameter -Wno-strict-prototypes -O0 -g -I. -I/usr/local/include -L/usr/local/lib -I/opt/homebrew/include -L/opt/homebrew/lib
+                Default flags are automatically added: -std=c99 -Wall -Wextra -Wno-unused-parameter -Wno-strict-prototypes -O0 -g -I. -I~/.local/include -L~/.local/lib -I/opt/homebrew/include -L/opt/homebrew/lib
             */
             clang: {
-                flags: ['-I..'],
+                flags: ['-I../src/modules/c'],
                 libraries: ['m', 'pthread'],
             },
 
@@ -41,13 +46,35 @@
                 Default flags are automatically added: /std:c11 /W4 /Od /Zi /nologo
             */
             msvc: {
-                flags: ['/I.', '/I..'],
+                flags: ['/I.', '/I../src/modules/c'],
                 libraries: [],
             },
         },
         es: {
             require: 'testme',
         },
+    },
+
+    // Debugger configuration for different languages (use with --debug flag)
+    debug: {
+        // C debugger: xcode, lldb, gdb, vs, vscode, or path to executable
+        c: {
+            macosx: 'xcode',
+            linux: 'gdb',
+            windows: 'vs',
+        },
+
+        // JavaScript debugger: vscode, or path to executable
+        // js: 'vscode',
+
+        // TypeScript debugger: vscode, or path to executable
+        // ts: 'vscode',
+
+        // Python debugger: vscode, pdb, or path to executable
+        // py: 'vscode',
+
+        // Go debugger: vscode, delve, or path to executable
+        // go: 'delve',
     },
 
     // Test execution settings
@@ -67,12 +94,7 @@
     // File discovery patterns
     patterns: {
         // Base patterns applied to all platforms
-        include: [
-            '**/*.tst.c',
-            '**/*.tst.js',
-            '**/*.tst.ts',
-            '**/*.tst.es',
-        ],
+        include: ['**/*.tst.c', '**/*.tst.js', '**/*.tst.ts', '**/*.tst.es'],
         exclude: ['**/node_modules/**', '**/.testme/**', '**/.*/**'],
 
         // Windows-specific patterns (added to base patterns on Windows)

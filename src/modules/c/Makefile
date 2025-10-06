@@ -3,11 +3,9 @@
 #
 all: build
 
-build: ../../../test/testme.h
+build:
 	@true
 
-../../../test/testme.h: testme.h
-	cp testme.h ../../../test
-
 install:
-	sudo cp testme.h /usr/local/include/testme.h
+	mkdir -p ~/.local/include
+	cp testme.h ~/.local/include/testme.h

@@ -1,3 +1,6 @@
+/*
+    testme.json5 - Sample TestMe configuration file
+ */
 {
     /*
         Enable or disable tests in this directory
@@ -16,11 +19,22 @@
      */
     compiler: {
         c: {
-            compiler: 'default',  // Auto-detect best compiler. Use 'gcc', 'clang', or path to override
+            /*
+                Compiler selection has three modes:
+                1. Auto-detect (default): compiler: 'default'
+                2. Explicit compiler for all platforms: compiler: 'gcc'
+                3. Per-platform compiler map:
+                compiler: {
+                    windows: 'msvc',
+                    macosx: 'clang',
+                    linux: 'gcc'
+                }
+            */
+            compiler: 'default',
 
             /*
                 GCC-specific flags (Unix/Linux/MinGW)
-                Default flags are automatically added: -std=c99 -Wall -Wextra -Wno-unused-parameter -Wno-strict-prototypes -O0 -g -I. -I/usr/local/include -L/usr/local/lib -I/opt/homebrew/include -L/opt/homebrew/lib
+                Default flags are automatically added: -std=c99 -Wall -Wextra -Wno-unused-parameter -Wno-strict-prototypes -O0 -g -I. -I~/.local/include -L~/.local/lib -I/opt/homebrew/include -L/opt/homebrew/lib
              */
             gcc: {
                 flags: [
@@ -34,7 +48,7 @@
 
             /*
                 Clang-specific flags (macOS/Unix)
-                Default flags are automatically added: -std=c99 -Wall -Wextra -Wno-unused-parameter -Wno-strict-prototypes -O0 -g -I. -I/usr/local/include -L/usr/local/lib -I/opt/homebrew/include -L/opt/homebrew/lib
+                Default flags are automatically added: -std=c99 -Wall -Wextra -Wno-unused-parameter -Wno-strict-prototypes -O0 -g -I. -I~/.local/include -L~/.local/lib -I/opt/homebrew/include -L/opt/homebrew/lib
             */
             clang: {
                 flags: [
@@ -56,8 +70,43 @@
             },
         },
         es: {
-            require: 'testme',
+            // Ejscript module to require (supports ~ and ${} expansion)
+            require: '${~/.local/lib/testme/testme.mod}',
         },
+    },
+
+    /*
+        Debugger configuration for different languages (use with --debug flag)
+     */
+    debug: {
+        /*
+            C debugger selection has three modes:
+            1. Auto-detect (default): c: 'default'
+            2. Explicit debugger for all platforms: c: 'gdb'
+            3. Per-platform debugger map:
+               c: {
+                   windows: 'vs',      // or 'vscode'
+                   macosx: 'xcode',    // or 'lldb'
+                   linux: 'gdb'        // or 'lldb', 'vscode'
+               }
+            Valid C debuggers: xcode, lldb, gdb, vs, vscode, or path to executable
+         */
+        c: 'default',
+
+        // JavaScript debugger: vscode, or path to executable
+        // js: 'vscode',
+
+        // TypeScript debugger: vscode, or path to executable
+        // ts: 'vscode',
+
+        // Python debugger: vscode, pdb, or path to executable
+        // py: 'vscode',
+
+        // Go debugger: vscode, delve, or path to executable
+        // go: 'delve',
+
+        // Ejscript debugger: vscode, or path to executable
+        // es: 'vscode',
     },
 
     // Test execution settings
@@ -77,12 +126,7 @@
     // File discovery patterns
     patterns: {
         // Base patterns applied to all platforms
-        include: [
-            '**/*.tst.c',
-            '**/*.tst.js',
-            '**/*.tst.ts',
-            '**/*.tst.es',
-        ],
+        include: ['**/*.tst.c', '**/*.tst.js', '**/*.tst.ts', '**/*.tst.es'],
         exclude: ['**/node_modules/**', '**/.testme/**', '**/.*/**'],
 
         // Windows-specific patterns (added to base patterns on Windows)

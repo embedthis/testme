@@ -6,7 +6,7 @@
 import { ServiceManager } from "../../src/services.ts";
 import type { TestConfig } from "../../src/types.ts";
 import { writeFile, unlink, mkdir, rmdir } from "node:fs/promises";
-import { join } from "path";
+import { join, basename } from "path";
 import { PlatformDetector } from "../../src/platform/detector.ts";
 
 interface TestResult {
@@ -48,7 +48,7 @@ async function testSkipService(): Promise<TestResult[]> {
 
     const config1: TestConfig = {
         services: {
-            skip: `./${dontSkipScript.split('/').pop()}`
+            skip: `./${basename(dontSkipScript)}`
         },
         configDir: testDir,
         execution: { timeout: 30000, parallel: false },
@@ -68,7 +68,7 @@ async function testSkipService(): Promise<TestResult[]> {
 
     const config2: TestConfig = {
         services: {
-            skip: `./${doSkipScript.split('/').pop()}`
+            skip: `./${basename(doSkipScript)}`
         },
         configDir: testDir,
         execution: { timeout: 30000, parallel: false },
@@ -91,7 +91,7 @@ async function testSkipService(): Promise<TestResult[]> {
 
     const config3: TestConfig = {
         services: {
-            skip: `./${skipWithMessageScript.split('/').pop()}`
+            skip: `./${basename(skipWithMessageScript)}`
         },
         configDir: testDir,
         execution: { timeout: 30000, parallel: false },
@@ -127,7 +127,7 @@ async function testPrepService(): Promise<TestResult[]> {
 
     const config: TestConfig = {
         services: {
-            prep: `./${prepScript.split('/').pop()}`
+            prep: `./${basename(prepScript)}`
         },
         configDir: testDir,
         execution: { timeout: 30000, parallel: false },
@@ -173,14 +173,14 @@ async function testSetupCleanupService(): Promise<TestResult[]> {
     const setupScript = await createScript(
         "setup",
         isWindows
-            ? `@echo setup > ${setupMarker}\n@timeout /t 5 /nobreak > nul`
+            ? `@echo setup > ${setupMarker}\n@ping -n 6 127.0.0.1 > nul`
             : `echo 'setup' > ${setupMarker}\nsleep 5`
     );
 
     const config: TestConfig = {
         services: {
-            setup: `./${setupScript.split('/').pop()}`,
-            cleanup: `./${setupScript.split('/').pop()}` // Will cleanup the setup
+            setup: `./${basename(setupScript)}`,
+            cleanup: `./${basename(setupScript)}` // Will cleanup the setup
         },
         configDir: testDir,
         execution: { timeout: 30000, parallel: false },
@@ -254,7 +254,7 @@ async function testFullLifecycle(): Promise<TestResult[]> {
     const setupScript = await createScript(
         "full-setup",
         isWindows
-            ? `@echo setup > ${setupMarker}\n@timeout /t 5 /nobreak > nul`
+            ? `@echo setup > ${setupMarker}\n@ping -n 6 127.0.0.1 > nul`
             : `echo 'setup' > ${setupMarker}\nsleep 5`
     );
     const cleanupMarker = join(testDir, "full-cleanup.txt");
@@ -262,10 +262,10 @@ async function testFullLifecycle(): Promise<TestResult[]> {
 
     const config: TestConfig = {
         services: {
-            skip: `./${skipScript.split('/').pop()}`,
-            prep: `./${prepScript.split('/').pop()}`,
-            setup: `./${setupScript.split('/').pop()}`,
-            cleanup: `./${cleanupScript.split('/').pop()}`
+            skip: `./${basename(skipScript)}`,
+            prep: `./${basename(prepScript)}`,
+            setup: `./${basename(setupScript)}`,
+            cleanup: `./${basename(cleanupScript)}`
         },
         configDir: testDir,
         execution: { timeout: 30000, parallel: false },

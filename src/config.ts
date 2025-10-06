@@ -193,9 +193,20 @@ export class ConfigManager {
                 ...userConfig.compiler,
                 c: {
                     ...this.DEFAULT_CONFIG.compiler?.c,
-                    ...userConfig.compiler?.c
+                    ...userConfig.compiler?.c,
+                    // Resolve platform-specific compiler selection
+                    compiler: this.resolvePlatformCompiler(userConfig.compiler?.c?.compiler)
                 }
             },
+            debug: userConfig.debug ? {
+                // Resolve platform-specific debugger selections for each language
+                c: this.resolvePlatformValue(userConfig.debug.c),
+                js: this.resolvePlatformValue(userConfig.debug.js),
+                ts: this.resolvePlatformValue(userConfig.debug.ts),
+                py: this.resolvePlatformValue(userConfig.debug.py),
+                go: this.resolvePlatformValue(userConfig.debug.go),
+                es: this.resolvePlatformValue(userConfig.debug.es)
+            } : undefined,
             execution: {
                 ...this.DEFAULT_CONFIG.execution,
                 ...userConfig.execution
@@ -217,6 +228,73 @@ export class ConfigManager {
             ...baseConfig,
             configDir: configDir || undefined
         };
+    }
+
+    /**
+     * Resolves platform-specific compiler selection
+     *
+     * @param compilerConfig - Compiler configuration (string, object, or undefined)
+     * @returns Resolved compiler string or undefined for auto-detect
+     *
+     * @internal
+     * @remarks
+     * Handles three configuration modes:
+     * 1. Undefined or "default" → returns undefined (auto-detect)
+     * 2. String value → returns that compiler for all platforms
+     * 3. Platform map → returns platform-specific compiler or undefined if not specified
+     */
+    private static resolvePlatformCompiler(compilerConfig: string | { windows?: string; macosx?: string; linux?: string } | undefined): string | undefined {
+        return this.resolvePlatformValue(compilerConfig);
+    }
+
+    /**
+     * Resolves platform-specific debugger selection
+     *
+     * @param debuggerConfig - Debugger configuration (string, object, or undefined)
+     * @returns Resolved debugger string or undefined for auto-detect
+     *
+     * @internal
+     * @remarks
+     * Handles three configuration modes:
+     * 1. Undefined or "default" → returns undefined (auto-detect)
+     * 2. String value → returns that debugger for all platforms
+     * 3. Platform map → returns platform-specific debugger or undefined if not specified
+     *
+     * Valid debugger values: xcode, lldb, gdb, vs, vscode
+     */
+    private static resolvePlatformDebugger(debuggerConfig: string | { windows?: string; macosx?: string; linux?: string } | undefined): string | undefined {
+        return this.resolvePlatformValue(debuggerConfig);
+    }
+
+    /**
+     * Generic platform-specific value resolution
+     *
+     * @param config - Configuration value (string, object, or undefined)
+     * @returns Resolved string or undefined
+     *
+     * @internal
+     * @remarks
+     * Shared implementation for resolving platform-specific configuration values
+     */
+    private static resolvePlatformValue(config: string | { windows?: string; macosx?: string; linux?: string } | undefined): string | undefined {
+        // If unset or "default", return undefined (triggers auto-detect)
+        if (!config || config === 'default') {
+            return undefined;
+        }
+
+        // If string, return as-is
+        if (typeof config === 'string') {
+            return config;
+        }
+
+        // If object, resolve based on current platform
+        const platform = process.platform === 'win32' ? 'windows' :
+                        process.platform === 'darwin' ? 'macosx' : 'linux';
+
+        const platformValue = config[platform];
+
+        // If platform not specified in map, return undefined (auto-detect)
+        return platformValue || undefined;
     }
 
     /**

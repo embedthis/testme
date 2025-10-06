@@ -1,6 +1,7 @@
 import { PlatformDetector } from "./detector.ts";
 import type { CompilerInfo } from "./detector.ts";
 import { PermissionManager } from "./permissions.ts";
+import os from "os";
 
 export enum CompilerType {
     GCC = "gcc",
@@ -155,6 +156,8 @@ export class CompilerManager {
      @returns Array of default flags
      */
     private static getDefaultFlags(type: CompilerType): string[] {
+        const homeDir = os.homedir();
+
         switch (type) {
             case CompilerType.MSVC:
                 return [
@@ -175,8 +178,8 @@ export class CompilerManager {
                     "-O0",              // No optimization (for debugging)
                     "-g",               // Generate debug info
                     "-I.",              // Include current directory
-                    "-I/usr/local/include", // Include /usr/local
-                    "-L/usr/local/lib", // Library path /usr/local
+                    `-I${homeDir}/.local/include`, // Include ~/.local
+                    `-L${homeDir}/.local/lib`, // Library path ~/.local
                     "-I/opt/homebrew/include", // Include Homebrew (macOS)
                     "-L/opt/homebrew/lib"  // Library path Homebrew (macOS)
                 ];
@@ -189,8 +192,8 @@ export class CompilerManager {
                     "-O0",              // No optimization (for debugging)
                     "-g",               // Generate debug info
                     "-I.",              // Include current directory
-                    "-I/usr/local/include", // Include /usr/local
-                    "-L/usr/local/lib", // Library path /usr/local
+                    `-I${homeDir}/.local/include`, // Include ~/.local
+                    `-L${homeDir}/.local/lib`, // Library path ~/.local
                     "-I/opt/homebrew/include", // Include Homebrew (macOS)
                     "-L/opt/homebrew/lib"  // Library path Homebrew (macOS)
                 ];

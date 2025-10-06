@@ -1,6 +1,8 @@
 import type { TestFile, TestResult, TestConfig } from '../types.ts';
 import { TestStatus, TestType } from '../types.ts';
 import { BaseTestHandler } from './base.ts';
+import { GlobExpansion } from '../utils/glob-expansion.ts';
+import os from 'os';
 
 /*
  Handler for executing Ejscript tests (.tst.es files)
@@ -51,10 +53,32 @@ export class EjscriptTestHandler extends BaseTestHandler {
         const require = config.compiler?.es?.require;
         if (require) {
             const modules = Array.isArray(require) ? require.join(' ') : require;
-            args.push('--require', modules);
+            const expandedModules = this.expandPath(modules);
+            args.push('--require', expandedModules);
         }
 
         args.push(file.path);
         return args;
+    }
+
+    /*
+     Expands paths with tilde (~) and ${} patterns
+     @param path Path to expand
+     @returns Expanded path
+     */
+    private expandPath(path: string): string {
+        // Expand tilde to home directory
+        let expanded = path;
+        if (expanded.startsWith('~/')) {
+            expanded = expanded.replace('~', os.homedir());
+        }
+
+        // Handle ${~/ pattern from glob expansion
+        if (expanded.includes('${~/')) {
+            expanded = expanded.replace(/\$\{~\//g, os.homedir() + '/');
+            expanded = expanded.replace(/\}/g, '');
+        }
+
+        return expanded;
     }
 }

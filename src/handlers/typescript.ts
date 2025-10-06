@@ -6,6 +6,9 @@ import {
     TestType,
 } from "../types.ts";
 import { BaseTestHandler } from "./base.ts";
+import { PlatformDetector } from "../platform/detector.ts";
+import * as path from "path";
+import * as fs from "fs";
 
 /*
  Handler for executing TypeScript tests (.tst.ts files)
@@ -29,6 +32,11 @@ export class TypeScriptTestHandler extends BaseTestHandler {
      @returns Promise resolving to test results
      */
     async execute(file: TestFile, config: TestConfig): Promise<TestResult> {
+        // Handle debug mode
+        if (config.execution?.debugMode) {
+            return await this.launchDebugger(file, config);
+        }
+
         const { result, duration } = await this.measureExecution(async () => {
             // Bun can execute TypeScript files directly
             return await this.runCommand("bun", [file.path], {
@@ -40,6 +48,178 @@ export class TypeScriptTestHandler extends BaseTestHandler {
 
         const status =
             result.exitCode === 0 ? TestStatus.Passed : TestStatus.Failed;
+        const output = this.combineOutput(result.stdout, result.stderr);
+        const error = result.exitCode !== 0 ? result.stderr : undefined;
+
+        return this.createTestResult(
+            file,
+            status,
+            duration,
+            output,
+            error,
+            result.exitCode
+        );
+    }
+
+    /*
+     Launches TypeScript debugger for interactive debugging
+     @param file TypeScript test file to debug
+     @param config Test configuration
+     @returns Promise resolving to test results
+     */
+    private async launchDebugger(
+        file: TestFile,
+        config: TestConfig
+    ): Promise<TestResult> {
+        try {
+            const debuggerName = config.debug?.ts || this.getDefaultDebugger();
+
+            console.log(`\n🐛 Launching ${debuggerName} debugger for: ${file.path}`);
+            console.log(`Working directory: ${file.directory}\n`);
+
+            switch (debuggerName) {
+                case 'vscode':
+                    return await this.launchVSCodeDebugger(file, config, 'code');
+                case 'cursor':
+                    return await this.launchVSCodeDebugger(file, config, 'cursor');
+                default:
+                    // Treat as path to debugger executable
+                    return await this.launchCustomDebugger(file, config, debuggerName);
+            }
+        } catch (error) {
+            return this.createErrorResult(file, error);
+        }
+    }
+
+    /*
+     Gets default debugger for current platform
+     @returns Default debugger name
+     */
+    private getDefaultDebugger(): string {
+        return 'vscode';
+    }
+
+    /*
+     Launches VSCode debugger with TypeScript debugging configuration
+     @param file TypeScript test file to debug
+     @param config Test configuration
+     @returns Promise resolving to test results
+     */
+    private async launchVSCodeDebugger(
+        file: TestFile,
+        config: TestConfig,
+        editorCommand: string = 'code'
+    ): Promise<TestResult> {
+        const startTime = performance.now();
+        const editorName = editorCommand === 'cursor' ? 'Cursor' : 'VSCode';
+
+        console.log(`Starting test with Bun debugger in ${editorName}...`);
+        console.log(`File: ${file.path}\n`);
+
+        // Create .vscode directory and launch.json
+        await this.createVSCodeConfig(file);
+
+        console.log(`Opening ${editorName} workspace...`);
+        console.log('\nPrerequisites:');
+        console.log('- Install Bun extension: https://marketplace.visualstudio.com/items?itemName=oven.bun-vscode');
+        console.log('\nInstructions:');
+        console.log(`1. ${editorName} will open with your test directory`);
+        console.log('2. Open the test file and set breakpoints');
+        console.log('3. Press F5 or Run > Start Debugging');
+        console.log('4. Select "Debug Bun Test" configuration\n');
+
+        // Launch editor with the directory (so .vscode is visible)
+        const command = PlatformDetector.isWindows() ? `${editorCommand}.cmd` : editorCommand;
+        await this.runCommand(command, [file.directory], {
+            cwd: file.directory,
+        });
+
+        // Wait for user to set up debugging in VSCode
+        console.log('\nWaiting for you to start debugging in VSCode...');
+        console.log('The test will run when you start the debugger (F5)\n');
+
+        // Run test normally - user will attach debugger
+        const result = await this.runCommand('bun', [file.path], {
+            cwd: file.directory,
+            env: await this.getTestEnvironment(config),
+        });
+
+        const duration = performance.now() - startTime;
+        const status = result.exitCode === 0 ? TestStatus.Passed : TestStatus.Failed;
+        const output = this.combineOutput(result.stdout, result.stderr);
+        const error = result.exitCode !== 0 ? result.stderr : undefined;
+
+        return this.createTestResult(
+            file,
+            status,
+            duration,
+            output,
+            error,
+            result.exitCode
+        );
+    }
+
+    /*
+     Creates VSCode launch configuration for Bun debugging
+     @param file Test file to create configuration for
+     */
+    private async createVSCodeConfig(file: TestFile): Promise<void> {
+        const vscodeDir = path.join(file.directory, '.vscode');
+        const launchJsonPath = path.join(vscodeDir, 'launch.json');
+
+        // Create .vscode directory if it doesn't exist
+        if (!fs.existsSync(vscodeDir)) {
+            fs.mkdirSync(vscodeDir, { recursive: true });
+        }
+
+        // Create launch.json configuration
+        const launchConfig = {
+            version: '0.2.0',
+            configurations: [
+                {
+                    type: 'bun',
+                    request: 'launch',
+                    name: 'Debug Bun Test',
+                    program: file.path,
+                    cwd: file.directory,
+                    stopOnEntry: false,
+                    watchMode: false
+                }
+            ]
+        };
+
+        // Write or update launch.json
+        if (fs.existsSync(launchJsonPath)) {
+            console.log('Updating existing .vscode/launch.json...');
+        } else {
+            console.log('Creating .vscode/launch.json...');
+        }
+
+        fs.writeFileSync(launchJsonPath, JSON.stringify(launchConfig, null, 4));
+    }
+
+    /*
+     Launches custom debugger using specified executable path
+     @param file TypeScript test file to debug
+     @param config Test configuration
+     @param debuggerPath Path to debugger executable
+     @returns Promise resolving to test results
+     */
+    private async launchCustomDebugger(
+        file: TestFile,
+        config: TestConfig,
+        debuggerPath: string
+    ): Promise<TestResult> {
+        const startTime = performance.now();
+
+        console.log(`Launching custom debugger: ${debuggerPath}`);
+        const result = await this.runCommand(debuggerPath, [file.path], {
+            cwd: file.directory,
+            env: await this.getTestEnvironment(config),
+        });
+
+        const duration = performance.now() - startTime;
+        const status = result.exitCode === 0 ? TestStatus.Passed : TestStatus.Failed;
         const output = this.combineOutput(result.stdout, result.stderr);
         const error = result.exitCode !== 0 ? result.stderr : undefined;
 

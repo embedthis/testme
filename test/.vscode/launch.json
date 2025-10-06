@@ -1,0 +1,15 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        
+        {
+            "type": "bun",
+            "request": "launch",
+            "name": "Debug Bun Test",
+            "program": "/Users/mob/c/testme/test/js.tst.js",
+            "cwd": "/Users/mob/c/testme/test",
+            "stopOnEntry": false,
+            "watchMode": false
+        }
+    ]
+}

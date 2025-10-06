@@ -30,6 +30,7 @@ export type TestConfig = {
   depth?: number; // Minimum depth required to run tests in this directory (default: 0)
   profile?: string; // Build profile (dev, prod, debug, release, etc.) - defaults to env.PROFILE or 'debug'
   compiler?: CompilerConfig;
+  debug?: DebugConfig;
   execution?: ExecutionConfig;
   output?: OutputConfig;
   patterns?: PatternConfig;
@@ -43,7 +44,11 @@ export type TestConfig = {
  */
 export type CompilerConfig = {
   c?: {
-    compiler?: string; // Optional: auto-detect if not specified
+    compiler?: string | {
+      windows?: string;
+      macosx?: string;
+      linux?: string;
+    }; // Optional: auto-detect if not specified, or use platform-specific compiler
     flags?: string[]; // Default flags for all compilers
     libraries?: string[];
     gcc?: {
@@ -62,6 +67,27 @@ export type CompilerConfig = {
   es?: {
     require?: string | string[];
   };
+}
+
+/*
+ Platform-specific debugger map type
+ */
+type PlatformDebugger = string | {
+  windows?: string;
+  macosx?: string;
+  linux?: string;
+};
+
+/*
+ Configuration for debuggers across different languages
+ */
+export type DebugConfig = {
+  c?: PlatformDebugger;      // C debugger: xcode, lldb, gdb, vs, vscode, or path
+  js?: PlatformDebugger;     // JavaScript debugger: vscode, or path
+  ts?: PlatformDebugger;     // TypeScript debugger: vscode, or path
+  py?: PlatformDebugger;     // Python debugger: vscode, pdb, or path
+  go?: PlatformDebugger;     // Go debugger: vscode, delve, or path
+  es?: PlatformDebugger;     // Ejscript debugger: vscode, or path
 }
 
 /*

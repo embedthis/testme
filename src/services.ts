@@ -1,7 +1,8 @@
 import { TestConfig } from "./types.ts";
-import { relative, delimiter } from "path";
+import { relative, delimiter, isAbsolute, join } from "path";
 import { GlobExpansion } from "./utils/glob-expansion.ts";
 import { ProcessManager } from "./platform/process.ts";
+import { PlatformDetector } from "./platform/detector.ts";
 
 /**
  * Manages setup and cleanup services for test execution
@@ -90,7 +91,7 @@ export class ServiceManager {
 
         try {
             // Parse command and arguments
-            const [command, ...args] = this.parseCommand(skipCommand);
+            const [command, ...args] = this.parseCommand(skipCommand, config.configDir);
 
             // Run skip script in foreground with proper environment
             const skipProcess = Bun.spawn([command, ...args], {
@@ -162,7 +163,7 @@ export class ServiceManager {
 
         try {
             // Parse command and arguments
-            const [command, ...args] = this.parseCommand(prepCommand);
+            const [command, ...args] = this.parseCommand(prepCommand, config.configDir);
 
             // Run prep in foreground with proper environment
             const prepProcess = Bun.spawn([command, ...args], {
@@ -230,13 +231,13 @@ export class ServiceManager {
 
         try {
             // Parse command and arguments
-            const [command, ...args] = this.parseCommand(setupCommand);
+            const [command, ...args] = this.parseCommand(setupCommand, config.configDir, true);
 
             // Start the background process with proper environment
             this.setupProcess = Bun.spawn([command, ...args], {
                 stdout: "pipe",
                 stderr: "pipe",
-                stdin: "ignore",
+                stdin: "pipe", // Don't ignore stdin on Windows - some commands like timeout need it
                 cwd: config.configDir, // Run in the directory containing testme.json5
                 env: await this.getServiceEnvironment(config)
             });
@@ -260,8 +261,13 @@ export class ServiceManager {
             // Wait for the process to start (give it a moment to initialize)
             await new Promise((resolve) => setTimeout(resolve, 1000));
 
-            // Check if process is still running
-            if (this.setupProcess && !this.setupProcess.killed) {
+            // Check if process is still running by checking if exited promise is still pending
+            const exitPromise = this.setupProcess.exited;
+            const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve('timeout'), 100));
+            const raceResult = await Promise.race([exitPromise, timeoutPromise]);
+
+            // If the race resolved to 'timeout', the process is still running
+            if (this.setupProcess && raceResult === 'timeout') {
                 if (timeoutId) {
                     clearTimeout(timeoutId);
                 }
@@ -325,7 +331,7 @@ export class ServiceManager {
 
         try {
             // Parse command and arguments
-            const [command, ...args] = this.parseCommand(cleanupCommand);
+            const [command, ...args] = this.parseCommand(cleanupCommand, config.configDir);
 
             // Run cleanup in foreground with proper environment
             const cleanupProcess = Bun.spawn([command, ...args], {
@@ -413,19 +419,61 @@ export class ServiceManager {
     }
 
     /*
-     Parses a command string into command and arguments
+     Parses a command string into command and arguments, resolving relative paths
      @param commandString Full command string to parse
+     @param cwd Current working directory to resolve relative paths
+     @param isBackgroundService Whether this is for a background service (affects Windows batch handling)
      @returns Array with command as first element and arguments as rest
      */
-    private parseCommand(commandString: string): string[] {
+    private parseCommand(commandString: string, cwd?: string, isBackgroundService: boolean = false): string[] {
         // Simple parsing - split on spaces (doesn't handle quoted arguments)
         // For more complex parsing, could use a proper shell parser
         const parts = commandString.trim().split(/\s+/);
 
-        // If the command doesn't contain path separators, prefix with ./ to ensure
-        // it's found in the current directory (Bun.spawn PATH resolution differs from shell)
-        if (parts.length > 0 && !parts[0].includes('/') && !parts[0].includes('\\')) {
-            parts[0] = `./${parts[0]}`;
+        if (parts.length > 0) {
+            const command = parts[0];
+            let resolvedCommand = command;
+
+            // If it's already absolute, use as-is
+            if (isAbsolute(command)) {
+                resolvedCommand = command;
+            }
+            // If it starts with ./ or .\, resolve it to an absolute path
+            else if (command.startsWith('./') || command.startsWith('.\\')) {
+                const relativePath = command.slice(2);
+                if (cwd) {
+                    resolvedCommand = join(cwd, relativePath);
+                } else {
+                    resolvedCommand = join(process.cwd(), relativePath);
+                }
+            }
+            // If it doesn't contain path separators, it's a command in PATH - leave as-is
+            else if (!command.includes('/') && !command.includes('\\')) {
+                // Command in PATH, use as-is
+                resolvedCommand = command;
+            }
+            // Otherwise it's a relative path without ./ prefix - resolve it
+            else {
+                if (cwd) {
+                    resolvedCommand = join(cwd, command);
+                } else {
+                    resolvedCommand = join(process.cwd(), command);
+                }
+            }
+
+            // On Windows, batch files need to be executed via cmd.exe
+            const ext = resolvedCommand.toLowerCase().slice(resolvedCommand.lastIndexOf('.'));
+            if (PlatformDetector.isWindows() && (ext === '.bat' || ext === '.cmd')) {
+                // For background services, don't use /c as it waits for completion
+                // Just use cmd.exe to execute the batch file
+                if (isBackgroundService) {
+                    return ['cmd.exe', '/c', resolvedCommand, ...parts.slice(1)];
+                }
+                // For foreground, use cmd.exe /c to execute and return
+                return ['cmd.exe', '/c', resolvedCommand, ...parts.slice(1)];
+            }
+
+            parts[0] = resolvedCommand;
         }
 
         return parts;
@@ -496,8 +544,17 @@ export class ServiceManager {
     private async getServiceEnvironment(config: TestConfig): Promise<Record<string, string>> {
         const env = { ...process.env };
 
-        // Add local directory to PATH for service scripts
-        env.PATH = `.${delimiter}${process.env.PATH}`;
+        // On Windows, ensure System32 is first in PATH to prevent Unix commands from shadowing Windows commands
+        if (PlatformDetector.isWindows()) {
+            const system32 = 'C:\\Windows\\System32';
+            const currentPath = process.env.PATH || '';
+            // Remove System32 if it exists elsewhere in PATH, then add it at the beginning
+            const pathParts = currentPath.split(delimiter).filter(p => p.toLowerCase() !== system32.toLowerCase());
+            env.PATH = `${system32}${delimiter}.${delimiter}${pathParts.join(delimiter)}`;
+        } else {
+            // Add local directory to PATH for service scripts
+            env.PATH = `.${delimiter}${process.env.PATH}`;
+        }
 
         // Add environment variables from configuration with expansion
         if (config.env) {

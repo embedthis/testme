@@ -1,4 +1,4 @@
-import { PlatformDetector } from "../platform/detector.ts";
+import {PlatformDetector} from '../platform/detector.ts'
 
 /**
  * Provides helpful error messages and installation instructions for common failures
@@ -11,10 +11,10 @@ export class ErrorMessages {
      * @returns Formatted error message with installation instructions
      */
     static compilerNotFound(compilerName: string): string {
-        const platform = PlatformDetector.detectPlatform();
-        let instructions = "";
+        const platform = PlatformDetector.detectPlatform()
+        let instructions = ''
 
-        if (compilerName.includes("cl.exe") || compilerName.includes("cl")) {
+        if (compilerName.includes('cl.exe') || compilerName.includes('cl')) {
             // MSVC compiler
             instructions = `
 Microsoft Visual C++ compiler (cl.exe) not found.
@@ -35,10 +35,9 @@ Installation options:
 
 After installation, either:
 - Run TestMe from "Developer Command Prompt for VS 2022"
-- Or add cl.exe to your PATH manually`;
-
-        } else if (compilerName.includes("gcc")) {
-            if (platform === "windows") {
+- Or add cl.exe to your PATH manually`
+        } else if (compilerName.includes('gcc')) {
+            if (platform === 'windows') {
                 instructions = `
 GCC compiler not found on Windows.
 
@@ -54,9 +53,8 @@ Installation options:
    - Install GCC: sudo apt install build-essential
 
 3. Alternative: Use Visual Studio's MSVC compiler instead
-   - See cl.exe installation instructions above`;
-
-            } else if (platform === "macos") {
+   - See cl.exe installation instructions above`
+            } else if (platform === 'macos') {
                 instructions = `
 GCC compiler not found on macOS.
 
@@ -71,8 +69,7 @@ Installation options:
    - Configure TestMe to use 'clang' instead of 'gcc'
 
 Note: On macOS, the 'gcc' command is often aliased to Clang.
-Use 'gcc --version' to check what you have.`;
-
+Use 'gcc --version' to check what you have.`
             } else {
                 // Linux
                 instructions = `
@@ -84,11 +81,10 @@ Installation instructions:
 - Arch Linux: sudo pacman -S base-devel
 - openSUSE: sudo zypper install gcc gcc-c++
 
-After installation, verify with: gcc --version`;
+After installation, verify with: gcc --version`
             }
-
-        } else if (compilerName.includes("clang")) {
-            if (platform === "windows") {
+        } else if (compilerName.includes('clang')) {
+            if (platform === 'windows') {
                 instructions = `
 Clang compiler not found on Windows.
 
@@ -101,9 +97,8 @@ Installation options:
    - Install Visual Studio with "C++ Clang tools for Windows" component
    - Use from Developer Command Prompt
 
-3. Alternative: Use GCC or MSVC instead`;
-
-            } else if (platform === "macos") {
+3. Alternative: Use GCC or MSVC instead`
+            } else if (platform === 'macos') {
                 instructions = `
 Clang compiler not found on macOS.
 
@@ -116,8 +111,7 @@ This installs Apple Clang, the default C compiler on macOS.
 Verify installation:
   clang --version
 
-Note: Apple Clang is slightly different from LLVM Clang.`;
-
+Note: Apple Clang is slightly different from LLVM Clang.`
             } else {
                 // Linux
                 instructions = `
@@ -129,9 +123,8 @@ Installation instructions:
 - Arch Linux: sudo pacman -S clang
 - openSUSE: sudo zypper install clang
 
-Verify installation: clang --version`;
+Verify installation: clang --version`
             }
-
         } else {
             // Generic compiler
             instructions = `
@@ -149,13 +142,13 @@ Common solutions:
      }
    }
 
-4. Use a different compiler that is already installed`;
+4. Use a different compiler that is already installed`
         }
 
         return `❌ Compiler Not Found: ${compilerName}
 ${instructions}
 
-For more help, see: https://docs.embedthis.com/testme/installation/`;
+For more help, see: https://docs.embedthis.com/testme/installation/`
     }
 
     /**
@@ -172,8 +165,8 @@ The C test file includes <testme.h> but it cannot be found.
 Common causes and solutions:
 
 1. TestMe headers not installed globally:
-   Solution: Install TestMe headers to /usr/local/include
-   - Copy testme.h to /usr/local/include/testme.h
+   Solution: Install TestMe headers to ~/.local/include or /usr/local/include
+   - Copy testme.h to ~/.local/include/testme.h or /usr/local/include/testme.h
    - Or add -I flag pointing to testme.h location in testme.json5
 
 2. Using wrong include syntax:
@@ -193,9 +186,9 @@ Common causes and solutions:
 4. For local development:
    Copy testme.h to your test directory and use:
    #include "testme.h"
-${includePath ? `\nSearched in: ${includePath}` : ""}
+${includePath ? `\nSearched in: ${includePath}` : ''}
 
-For more help, see: https://docs.embedthis.com/testme/headers/`;
+For more help, see: https://docs.embedthis.com/testme/headers/`
     }
 
     /**
@@ -206,10 +199,10 @@ For more help, see: https://docs.embedthis.com/testme/headers/`;
      * @returns Formatted error message with debugging hints
      */
     static configFileError(configPath: string, error: unknown): string {
-        const errorMsg = error instanceof Error ? error.message : String(error);
+        const errorMsg = error instanceof Error ? error.message : String(error)
 
-        let hint = "";
-        if (errorMsg.includes("JSON") || errorMsg.includes("parse")) {
+        let hint = ''
+        if (errorMsg.includes('JSON') || errorMsg.includes('parse')) {
             hint = `
 Common JSON5 syntax errors:
 - Missing comma between properties
@@ -218,18 +211,18 @@ Common JSON5 syntax errors:
 - Comments not using // or /* */ syntax
 - Trailing commas in wrong places
 
-Tip: Use a JSON5 validator or linter to check your file.`;
-        } else if (errorMsg.includes("ENOENT")) {
+Tip: Use a JSON5 validator or linter to check your file.`
+        } else if (errorMsg.includes('ENOENT')) {
             hint = `
 The configuration file does not exist at this path.
 - Check the file path is correct
 - Verify the file exists: ls "${configPath}"
-- Create a new config: tm --init`;
-        } else if (errorMsg.includes("EACCES")) {
+- Create a new config: tm --init`
+        } else if (errorMsg.includes('EACCES')) {
             hint = `
 Permission denied reading the configuration file.
 - Check file permissions: ls -l "${configPath}"
-- Fix permissions: chmod 644 "${configPath}"`;
+- Fix permissions: chmod 644 "${configPath}"`
         }
 
         return `❌ Configuration Error in: ${configPath}
@@ -239,7 +232,7 @@ ${hint}
 
 Configuration file location: ${configPath}
 
-For configuration documentation, see: https://docs.embedthis.com/testme/configuration/`;
+For configuration documentation, see: https://docs.embedthis.com/testme/configuration/`
     }
 
     /**
@@ -249,11 +242,11 @@ For configuration documentation, see: https://docs.embedthis.com/testme/configur
      * @returns Formatted error message with installation instructions
      */
     static dependencyNotFound(dependency: string): string {
-        const platform = PlatformDetector.detectPlatform();
-        let instructions = "";
+        const platform = PlatformDetector.detectPlatform()
+        let instructions = ''
 
-        if (dependency === "python" || dependency === "python3") {
-            if (platform === "windows") {
+        if (dependency === 'python' || dependency === 'python3') {
+            if (platform === 'windows') {
                 instructions = `
 Install Python on Windows:
 1. Download from: https://www.python.org/downloads/
@@ -262,9 +255,8 @@ Install Python on Windows:
 
 Alternative:
 - Install via Microsoft Store
-- Install via Chocolatey: choco install python`;
-
-            } else if (platform === "macos") {
+- Install via Chocolatey: choco install python`
+            } else if (platform === 'macos') {
                 instructions = `
 Install Python on macOS:
 1. Via Homebrew (recommended):
@@ -273,8 +265,7 @@ Install Python on macOS:
 2. Download from python.org:
    https://www.python.org/downloads/macos/
 
-Verify installation: python3 --version`;
-
+Verify installation: python3 --version`
             } else {
                 instructions = `
 Install Python on Linux:
@@ -282,11 +273,10 @@ Install Python on Linux:
 - Fedora/RHEL: sudo dnf install python3
 - Arch Linux: sudo pacman -S python
 
-Verify installation: python3 --version`;
+Verify installation: python3 --version`
             }
-
-        } else if (dependency === "go") {
-            if (platform === "windows") {
+        } else if (dependency === 'go') {
+            if (platform === 'windows') {
                 instructions = `
 Install Go on Windows:
 1. Download from: https://go.dev/dl/
@@ -295,9 +285,8 @@ Install Go on Windows:
 4. Verify: go version
 
 Alternative:
-- Install via Chocolatey: choco install golang`;
-
-            } else if (platform === "macos") {
+- Install via Chocolatey: choco install golang`
+            } else if (platform === 'macos') {
                 instructions = `
 Install Go on macOS:
 1. Via Homebrew (recommended):
@@ -306,8 +295,7 @@ Install Go on macOS:
 2. Download from go.dev:
    https://go.dev/dl/
 
-Verify installation: go version`;
-
+Verify installation: go version`
             } else {
                 instructions = `
 Install Go on Linux:
@@ -321,9 +309,8 @@ Alternative:
 - Fedora/RHEL: sudo dnf install golang
 - Arch Linux: sudo pacman -S go
 
-Verify installation: go version`;
+Verify installation: go version`
             }
-
         } else {
             instructions = `
 '${dependency}' is not installed or not in PATH.
@@ -332,13 +319,13 @@ Installation steps:
 1. Install ${dependency} using your system's package manager
 2. Add ${dependency} to your PATH
 3. Restart your terminal/IDE
-4. Verify installation: ${dependency} --version`;
+4. Verify installation: ${dependency} --version`
         }
 
         return `❌ Missing Dependency: ${dependency}
 
 ${dependency} is required to run this test type but is not installed.
-${instructions}`;
+${instructions}`
     }
 
     /**
@@ -382,8 +369,8 @@ Common solutions:
 4. Check library name is correct:
    - Library file: lib${libraryName}.so or lib${libraryName}.a
    - Link flag: -l${libraryName}
-${compilerType ? `\nCompiler: ${compilerType}` : ""}
+${compilerType ? `\nCompiler: ${compilerType}` : ''}
 
-For more help, see: https://docs.embedthis.com/testme/libraries/`;
+For more help, see: https://docs.embedthis.com/testme/libraries/`
     }
 }
