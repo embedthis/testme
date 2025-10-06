@@ -23,7 +23,7 @@ test: build
 
 install: build
 	@echo Installing
-	bin/install.sh
+	bun bin/install.mjs
 
 #
 #  Old install method

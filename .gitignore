@@ -13,6 +13,7 @@ _.log
 .eslintcache
 .idea
 .local.mk
+.test/
 .testme
 *.lcov
 *.tgz
