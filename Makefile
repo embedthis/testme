@@ -40,6 +40,7 @@ dev-install: build
 clean: tidy
 	rm -f dist/tm
 	rm -fr test/.testme
+	rm -fr test/*/.testme
 
 #
 #  Remove bun artifacts
