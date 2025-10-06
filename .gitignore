@@ -21,7 +21,6 @@ _.log
 bun.lock
 coverage
 dist
-logs
 node_modules
 out
 tm

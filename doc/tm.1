@@ -297,12 +297,22 @@ Configure test discovery:
 Configure whether tests are enabled, minimum depth requirements, and setup delays:
 .nf
 {
-    enable: true,              // Enable or disable tests in this directory
+    enable: true,              // Enable, disable, or require explicit naming
     depth: 0,                  // Minimum depth required to run tests (default: 0)
 }
 .fi
 
+The \fBenable\fR setting accepts three values:
+.IP \(bu 4
+\fBtrue\fR (default): Tests run normally when discovered by pattern matching
+.IP \(bu 4
+\fBfalse\fR: Tests are completely disabled and skipped
+.IP \(bu 4
+\fB'manual'\fR: Tests only run when explicitly named by full path or base name (excludes directory-level or wildcard patterns)
+
 Set \fBenable: false\fR to disable all tests in a directory. Disabled directories are skipped during execution and excluded from \fB\-\-list\fR output. In verbose mode, disabled directories show a "🚫 Tests disabled" message.
+
+Set \fBenable: 'manual'\fR to require explicit test naming. Manual tests are excluded when using directory-level patterns (e.g., running \fBtm\fR in a directory) or wildcard patterns (e.g., \fB*.tst.c\fR), but will run when named explicitly (e.g., \fBtm math\fR or \fBtm test/slow.tst.c\fR). This is useful for slow tests, destructive tests, or tests requiring special setup that should not run automatically.
 
 Set \fBdepth: N\fR to require \fB\-\-depth N\fR or higher to run tests in this directory. This is useful for marking integration or resource-intensive tests that should only run when explicitly requested. Tests with higher depth requirements than the current \fB\-\-depth\fR value are skipped.
 

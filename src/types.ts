@@ -8,6 +8,8 @@ export type TestFile = {
   type: TestType;
   directory: string;
   artifactDir: string;
+  isManual?: boolean; // True if enable='manual' in config
+  configDir?: string; // Directory containing the config for this test
 }
 
 /*
@@ -26,7 +28,7 @@ export type TestResult = {
  Main configuration for the test runner
  */
 export type TestConfig = {
-  enable?: boolean; // Enable or disable tests in this directory
+  enable?: boolean | 'manual'; // Enable (true), disable (false), or run only when explicitly named ('manual')
   depth?: number; // Minimum depth required to run tests in this directory (default: 0)
   profile?: string; // Build profile (dev, prod, debug, release, etc.) - defaults to env.PROFILE or 'debug'
   compiler?: CompilerConfig;

@@ -31,6 +31,9 @@ async function handleInit(): Promise<void> {
      */
 
     // Enable or disable tests in this directory
+    // true: run tests normally (default)
+    // false: disable all tests
+    // 'manual': only run when explicitly named by full path or base name
     enable: true,
 
     // Minimum depth required to run tests (use tm --depth N)
@@ -262,6 +265,80 @@ class TestMeApp {
     }
 
     /*
+     Checks if a pattern is an explicit test reference (full path or base name)
+     Explicit patterns don't contain wildcards or directory separators
+     @param pattern Pattern to check
+     @returns true if pattern is explicit
+     */
+    private isExplicitPattern(pattern: string): boolean {
+        // Pattern is explicit if it's a specific file/base name without wildcards
+        // Examples: "math.tst.c", "math", "test/math.tst.c"
+        // Not explicit: "*.tst.c", "test*", "**/math*"
+        return !pattern.includes('*') && !pattern.includes('?');
+    }
+
+    /*
+     Checks if a test matches an explicit pattern (full path or base name)
+     @param test Test file to check
+     @param pattern Pattern to match
+     @param rootDir Root directory for relative path calculation
+     @returns true if test matches the pattern
+     */
+    private testMatchesExplicitPattern(test: TestFile, pattern: string, rootDir: string): boolean {
+        // Get base name without test extension
+        const baseName = this.getTestBaseName(test.name);
+
+        // Check if pattern matches base name
+        if (baseName === pattern) {
+            return true;
+        }
+
+        // Check if pattern matches full file name
+        if (test.name === pattern) {
+            return true;
+        }
+
+        // Check if pattern matches full path
+        if (test.path === pattern) {
+            return true;
+        }
+
+        // Check if pattern is a relative path that matches
+        const relativePath = test.path.startsWith(rootDir)
+            ? test.path.slice(rootDir.length).replace(/^[\/\\]/, '')
+            : test.path;
+        const normalizedRelativePath = relativePath.replace(/\\/g, '/');
+        const normalizedPattern = pattern.replace(/\\/g, '/');
+
+        if (normalizedRelativePath === normalizedPattern) {
+            return true;
+        }
+
+        // Also check without extension
+        const relativePathWithoutExt = normalizedRelativePath.slice(0, -test.extension.length);
+        if (relativePathWithoutExt === normalizedPattern) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /*
+     Extracts the base name from a test file name by removing the test extension
+     @param fileName Full test file name (e.g., "math.tst.c")
+     @returns Base name without test extension (e.g., "math")
+     */
+    private getTestBaseName(fileName: string): string {
+        const testExtensions = ['.tst.sh', '.tst.ps1', '.tst.bat', '.tst.cmd', '.tst.c', '.tst.js', '.tst.ts', '.tst.es', '.tst.py', '.tst.go'];
+        for (const ext of testExtensions) {
+            if (fileName.endsWith(ext)) {
+                return fileName.slice(0, -ext.length);
+            }
+        }
+        return fileName;
+    }
+
+    /*
      Executes tests hierarchically with proper configuration and services handling
      @param rootDir Root directory to start test discovery
      @param patterns Optional patterns to filter tests
@@ -311,6 +388,36 @@ class TestMeApp {
                 continue;
             }
 
+            // Filter manual tests - only run if explicitly named
+            let filteredTests = tests;
+            if (mergedConfig.enable === 'manual') {
+                // Check if any patterns were provided
+                const hasExplicitPatterns = patterns.length > 0 && patterns.some(p => this.isExplicitPattern(p));
+
+                if (hasExplicitPatterns) {
+                    // Only include tests that match explicit patterns
+                    filteredTests = tests.filter(test =>
+                        patterns.some(pattern =>
+                            this.isExplicitPattern(pattern) &&
+                            this.testMatchesExplicitPattern(test, pattern, rootDir)
+                        )
+                    );
+
+                    if (filteredTests.length === 0) {
+                        if (mergedConfig.output?.verbose) {
+                            console.log(`\n⏭️  Skipping manual tests in: ${relative(rootDir, configDir) || '.'} (not explicitly named)`);
+                        }
+                        continue;
+                    }
+                } else {
+                    // No explicit patterns - skip all manual tests
+                    if (mergedConfig.output?.verbose) {
+                        console.log(`\n⏭️  Skipping manual tests in: ${relative(rootDir, configDir) || '.'} (not explicitly named)`);
+                    }
+                    continue;
+                }
+            }
+
             // Check if depth requirement is met
             const requiredDepth = mergedConfig.depth ?? 0;
             const currentDepth = options.depth ?? 0;
@@ -332,7 +439,7 @@ class TestMeApp {
                 }
             }
 
-            console.log(`\n🧪 Running ${tests.length} test(s) in: ${relative(rootDir, configDir) || '.'}`);
+            console.log(`\n🧪 Running ${filteredTests.length} test(s) in: ${relative(rootDir, configDir) || '.'}`);
 
             try {
                 // Run services for this configuration group
@@ -345,7 +452,7 @@ class TestMeApp {
                 }
 
                 // Execute tests in this group
-                const results = await this.runner.executeTestsWithConfig(tests, mergedConfig, rootDir);
+                const results = await this.runner.executeTestsWithConfig(filteredTests, mergedConfig, rootDir);
 
                 allResults.push(...results);
                 const exitCode = this.runner.getExitCode(results);
@@ -381,6 +488,11 @@ class TestMeApp {
             // Find the nearest config directory for this test
             const configResult = await ConfigManager.findConfigFile(test.directory);
             const configDir = configResult.configDir || test.directory;
+
+            // Load config to check if test is marked as manual
+            const config = await ConfigManager.findConfig(test.directory);
+            test.isManual = config.enable === 'manual';
+            test.configDir = configDir;
 
             if (!groups.has(configDir)) {
                 groups.set(configDir, []);

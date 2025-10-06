@@ -94,6 +94,29 @@ export class CompilerManager {
                 compiler = "gcc";
                 type = CompilerType.GCC;
             }
+        } else if (compiler === 'msvc' || compiler === 'gcc' || compiler === 'clang' || compiler === 'mingw') {
+            // Handle compiler type names - detect and use actual compiler
+            const detected = await this.detectBestCompiler();
+            if (detected && detected.type === compiler) {
+                compiler = detected.path;
+                type = this.mapCompilerType(detected.type);
+                env = detected.env;
+            } else {
+                // Requested compiler not found, fall back to defaults
+                if (compiler === 'msvc') {
+                    compiler = "cl.exe";
+                    type = CompilerType.MSVC;
+                } else if (compiler === 'gcc') {
+                    compiler = "gcc";
+                    type = CompilerType.GCC;
+                } else if (compiler === 'clang') {
+                    compiler = "clang";
+                    type = CompilerType.Clang;
+                } else if (compiler === 'mingw') {
+                    compiler = "gcc";
+                    type = CompilerType.MinGW;
+                }
+            }
         } else {
             type = this.detectCompilerType(compiler);
         }

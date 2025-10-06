@@ -1,5 +1,32 @@
 # TestMe Changelog
 
+## 2025-10-07
+
+### Manual Test Mode
+
+-   **DEV**: Added `enable: 'manual'` configuration option for tests that should only run when explicitly named
+    -   Tests with `enable: 'manual'` are excluded from directory-level and wildcard pattern matching
+    -   Manual tests run when named by full path (e.g., `tm test/slow.tst.c`), base name (e.g., `tm slow`), or filename (e.g., `tm slow.tst.c`)
+    -   Useful for slow tests, destructive tests, or tests requiring special setup that should not run automatically
+    -   Updated `TestConfig.enable` type to accept `boolean | 'manual'` instead of just `boolean`
+    -   Enhanced test filtering logic in `executeHierarchically()` to support manual test exclusion
+    -   Improved pattern matching to distinguish explicit test names from wildcards
+    -   Added `isExplicitPattern()`, `testMatchesExplicitPattern()`, and `getTestBaseName()` helper methods
+    -   See documentation in man page (doc/tm.1) and configuration templates
+
+### Testing
+
+-   **TEST**: Added comprehensive test suite for manual test filtering
+    -   Created `test/config/manual-filtering.tst.ts` with 5 test scenarios
+    -   Created test fixtures in `test/config/manual_test/`
+    -   Tests verify that manual tests are excluded from wildcards but run when explicitly named
+    -   All 24 tests passing
+
+### Documentation
+
+-   **DOC**: Updated man page with detailed explanation of `enable: 'manual'` option
+-   **DOC**: Updated `--init` template with comments explaining all three `enable` values (true, false, 'manual')
+
 ## 2025-10-06
 
 ### Installation Changes

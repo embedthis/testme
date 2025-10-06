@@ -1,0 +1,8 @@
+{
+    // Manual tests should only run when explicitly named
+    enable: 'manual',
+
+    output: {
+        verbose: false,
+    },
+}
