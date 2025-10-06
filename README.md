@@ -36,24 +36,21 @@ TestMe is a powerful, multi-language test runner built with [Bun](https://bun.sh
 
 ## 🔧 Installation
 
-### Quick Install (NPM/Bun)
+### Prerequisites
+
+TestMe requires **Bun** to be installed:
+
+-   **[Bun](https://bun.sh)** - Fast JavaScript runtime with built-in TypeScript support
+    -   Installation: Visit [bun.sh](https://bun.sh) for installation instructions
+    -   Verify: `bun --version`
+
+### Quick Install
 
 ```bash
-# Using npm
-npm install -g @embedthis/testme
-
-# Using bun
 bun install -g @embedthis/testme
 ```
 
-### Manual Installation
-
-#### Prerequisites
-
--   [Bun](https://bun.sh) - JavaScript runtime (required)
--   C compiler (for C tests):
-    -   **macOS/Linux**: GCC or Clang
-    -   **Windows**: MSVC (Visual Studio), MinGW-w64, or LLVM/Clang
+### Manual Installation from GitHub
 
 #### Unix/Linux/macOS
 
@@ -66,8 +63,6 @@ bun install -g @embedthis/testme
 
     ```bash
     bun run build
-    # or
-    make
     ```
 
 4. Install the project (on MacOS/Linux only):
@@ -77,41 +72,7 @@ bun install -g @embedthis/testme
 
 #### Windows
 
-##### 1. Install Bun
-
-```powershell
-powershell -c "irm bun.sh/install.ps1 | iex"
-```
-
-Verify installation:
-
-```powershell
-bun --version
-```
-
-##### 2. Install a C Compiler (Optional)
-
-Choose one:
-
-**Visual Studio (Recommended):**
-
--   Download [Visual Studio 2022 Community](https://visualstudio.microsoft.com/) (free)
--   Select "Desktop development with C++" during installation
--   Run tests from "Developer Command Prompt for VS 2022"
-
-**MinGW-w64:**
-
-```powershell
-winget install mingw-w64
-```
-
-**LLVM/Clang:**
-
-```powershell
-winget install LLVM.LLVM
-```
-
-##### 3. Build and Install
+##### 1. Build and Install
 
 ```powershell
 # Install dependencies
@@ -126,7 +87,7 @@ make install
 copy tm.exe $env:USERPROFILE\.local\bin\
 ```
 
-##### 4. Add to PATH (if needed)
+##### 2. Add to PATH (if needed)
 
 ```powershell
 $binPath = "$env:USERPROFILE\.local\bin"

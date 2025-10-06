@@ -29,6 +29,7 @@
     },
     "files": [
         "bin/install.sh",
+        "bin/install.ps1",
         "bin/install.mjs",
         "src/**/*.ts",
         "src/**/*.js",
@@ -45,11 +46,14 @@
         "build": "bun build ./testme.ts --compile --outfile dist/tm",
         "build:win": "bun build ./testme.ts --compile --outfile dist/tm.exe",
         "build:unix": "bun build ./testme.ts --compile --outfile dist/tm",
-        "test": "tm test",
         "clean": "node -e \"require('fs').rmSync('dist', {recursive: true, force: true}); require('fs').rmSync('.testme', {recursive: true, force: true})\"",
         "clean:win": "if exist tm.exe del dist\\tm.exe && for /f %i in ('dir /b /a .*.bun-build 2^>nul') do del %i",
         "clean:unix": "rm -rf dist .testme dist/tm",
-        "postinstall": "sh bin/install.sh"
+        "install:win": "powershell -ExecutionPolicy Bypass -File bin/install.ps1",
+        "install:unix": "sh bin/install.sh",
+        "postinstall:win": "powershell -ExecutionPolicy Bypass -File bin/install.ps1",
+        "postinstall:unix": "sh bin/install.sh",
+        "test": "tm test"
     },
     "engines": {
         "node": ">=18.0.0",
