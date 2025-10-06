@@ -40,11 +40,11 @@ TestMe is a powerful, multi-language test runner built with [Bun](https://bun.sh
 
 TestMe requires **Bun** to be installed and operate.
 
--   **[Bun](https://bun.sh)** - Fast JavaScript runtime with built-in TypeScript support
-    -   Installation: Visit [bun.sh](https://bun.sh) for installation instructions
-    -   Verify: `bun --version`
+**[Bun](https://bun.sh)** - Fast JavaScript runtime with built-in TypeScript support
 
-Ensure the Bun binaries directory is in your path.
+For installation, visit [bun.sh](https://bun.sh) for installation instructions.
+
+Ensure the Bun bin directory is in your path.
 
 For Unix/Linux/macOS:
 
@@ -69,6 +69,7 @@ bun install -g @embedthis/testme
 #### Unix/Linux/macOS
 
 1. Clone or download the tm project
+
 2. Install dependencies:
     ```bash
     bun install
@@ -832,20 +833,12 @@ Machine-readable output for integration with other tools:
 
 ```bash
 bun run build
-
-or
-
-make
 ```
 
 ### Running Tests
 
 ```bash
 bun test
-
-or
-
-make test
 ```
 
 ### Development Mode
