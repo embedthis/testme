@@ -222,8 +222,22 @@ export class CTestHandler extends BaseTestHandler {
             const args: string[] = [];
 
             if (compilerConfig.type === CompilerType.MSVC) {
-                // MSVC syntax: cl.exe [flags] /Fe:output.exe input.c [/link libraries]
-                args.push(...flags);
+                // MSVC syntax: cl.exe [compiler flags] /Fe:output.exe input.c /link [linker flags]
+
+                // Separate compiler flags from linker flags
+                const compilerFlags: string[] = [];
+                const linkerFlags: string[] = [];
+
+                for (const flag of flags) {
+                    if (flag.startsWith('/LIBPATH:') || flag.endsWith('.lib') || flag.endsWith('.obj')) {
+                        linkerFlags.push(flag);
+                    } else {
+                        compilerFlags.push(flag);
+                    }
+                }
+
+                // Add compiler flags
+                args.push(...compilerFlags);
                 args.push(`/I${file.directory}`); // Include test directory
                 args.push(`/Fe:${binaryPath}`);
                 // Specify unique PDB file in artifact directory to avoid parallel build conflicts
@@ -231,11 +245,17 @@ export class CTestHandler extends BaseTestHandler {
                 args.push(`/Fd:${pdbPath}`);
                 args.push(file.path);
 
-                // Add linker options
+                // Add linker options (everything after /link)
                 const homeDir = os.homedir();
                 args.push("/link");
                 args.push(`/LIBPATH:${homeDir}\\.local\\lib`);
 
+                // Add user's linker flags
+                if (linkerFlags.length > 0) {
+                    args.push(...linkerFlags);
+                }
+
+                // Add library flags
                 if (libraryFlags.length > 0) {
                     args.push(...libraryFlags);
                 }
