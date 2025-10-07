@@ -2,21 +2,48 @@
 
 ## 2025-10-07
 
+### Cross-Platform Test Compatibility
+
+-   **DEV**: Converted shell-based tests to cross-platform JavaScript
+    -   Converted `test/config/manual_test/another.tst.sh` → `another.tst.js`
+    -   Converted `test/config/manual_test/manual.tst.sh` → `manual.tst.js`
+    -   Converted `test/ejscript/skip.sh` → `skip.js` with platform-aware command detection
+        -   Uses `which` on Unix and `where` on Windows to check for ejsc compiler
+    -   Updated `test/config/manual-filtering.tst.ts` to reference `.tst.js` files
+    -   Updated `test/ejscript/testme.json5` to use `skip.js`
+    -   Ensures all CI-critical tests run on Windows, macOS, and Linux
+
+### CI/CD Pipeline Enhancements
+
+-   **DEV**: Enhanced GitHub Actions CI workflow for multi-language testing
+    -   Added Python setup via `actions/setup-python@v5` with Python 3.x
+    -   Added Go setup via `actions/setup-go@v5` with stable Go version
+    -   Added verification steps to confirm Python and Go installation
+    -   Ensures Python (`.tst.py`) and Go (`.tst.go`) tests can execute in CI
+    -   Maintains existing C compiler, Bun runtime, and build verification
+
+-   **DEV**: Disabled automatic tag-based releases in `release.yml`
+    -   Commented out `push.tags` trigger to prevent automatic releases on tag creation
+    -   Release workflow now only runs via manual `workflow_dispatch`
+    -   Prevents accidental duplicate builds and allows controlled release process
+    -   Maintains ability to create tags for version tracking without triggering release
+
 ### CI/CD Pipeline
 
 -   **DEV**: Added GitHub Actions workflows for continuous integration and deployment
     -   Created `.github/workflows/ci.yml` for automated testing on push and pull requests
         -   Multi-platform testing on Ubuntu, macOS, and Windows
         -   Automatic C compiler installation (GCC, Clang, MSVC)
+        -   Python and Go runtime installation for multi-language tests
         -   Build verification and test execution
         -   Test artifact upload on failure for debugging
         -   Lint and format checking
         -   Package building on main branch commits
-    -   Created `.github/workflows/release.yml` for automated releases
-        -   Triggered by version tags (v*.*.*)
+    -   Created `.github/workflows/release.yml` for manual releases only
+        -   Manual workflow dispatch support with version input
         -   Automatic GitHub release creation with release notes
         -   Automated NPM package publishing
-        -   Manual workflow dispatch support
+        -   Tag-based triggers disabled (use manual dispatch only)
     -   All workflows use latest Bun runtime and actions versions
     -   Fail-fast disabled to see results on all platforms
 

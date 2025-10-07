@@ -205,9 +205,17 @@ export class TypeScriptTestHandler extends BaseTestHandler {
         console.log('3. Press F5 or Run > Start Debugging');
         console.log('4. Select "Debug Bun Test" configuration\n');
 
+        // Find the editor executable
+        const debuggers = await PlatformDetector.detectDebuggers();
+        const debuggerName = editorCommand === 'cursor' ? 'Cursor' : 'VS Code';
+        const editorDebugger = debuggers.find(d => d.name === debuggerName);
+
+        if (!editorDebugger) {
+            throw new Error(`${editorName} not found. Please install ${editorName} or add it to PATH`);
+        }
+
         // Launch editor with the directory (so .vscode is visible)
-        const command = PlatformDetector.isWindows() ? `${editorCommand}.cmd` : editorCommand;
-        await this.runCommand(command, [file.directory], {
+        await this.runCommand(editorDebugger.path, [file.directory], {
             cwd: file.directory,
         });
 

@@ -323,11 +323,65 @@ export class PlatformDetector {
         }
 
         // Check for VS Code (cross-platform)
-        const code = await this.findInPath(this.isWindows() ? "code.cmd" : "code");
+        let code = await this.findInPath(this.isWindows() ? "code.exe" : "code");
+
+        // On Windows, check common install locations if not in PATH
+        if (!code && this.isWindows()) {
+            const commonPaths = [
+                `${process.env.LOCALAPPDATA}\\Programs\\Microsoft VS Code\\Code.exe`,
+                `C:\\Program Files\\Microsoft VS Code\\Code.exe`,
+                `C:\\Program Files (x86)\\Microsoft VS Code\\Code.exe`,
+            ];
+
+            for (const path of commonPaths) {
+                try {
+                    const file = Bun.file(path);
+                    if (await file.exists()) {
+                        code = path;
+                        break;
+                    }
+                } catch {
+                    // Continue checking other paths
+                }
+            }
+        }
+
         if (code) {
             debuggers.push({
                 name: "VS Code",
                 path: code,
+                type: "vscode"
+            });
+        }
+
+        // Check for Cursor (cross-platform)
+        let cursor = await this.findInPath(this.isWindows() ? "cursor.exe" : "cursor");
+
+        // On Windows, check common install locations if not in PATH
+        if (!cursor && this.isWindows()) {
+            const commonPaths = [
+                `${process.env.LOCALAPPDATA}\\Programs\\Cursor\\Cursor.exe`,
+                `C:\\Program Files\\Cursor\\Cursor.exe`,
+                `C:\\Program Files (x86)\\Cursor\\Cursor.exe`,
+            ];
+
+            for (const path of commonPaths) {
+                try {
+                    const file = Bun.file(path);
+                    if (await file.exists()) {
+                        cursor = path;
+                        break;
+                    }
+                } catch {
+                    // Continue checking other paths
+                }
+            }
+        }
+
+        if (cursor) {
+            debuggers.push({
+                name: "Cursor",
+                path: cursor,
                 type: "vscode"
             });
         }
