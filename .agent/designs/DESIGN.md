@@ -319,6 +319,44 @@ Patterns support platform-specific additions that are deep blended with base pat
 -   Include: `**/*.tst.c`, `**/*.tst.js`, `**/*.tst.sh`
 -   Exclude: `**/node_modules/**`
 
+#### Discovery vs Skip Scripts: Separation of Concerns
+
+TestMe maintains a clear architectural distinction between test discovery and test execution:
+
+**Discovery Phase** (`--list` and initial test finding):
+-   Filters tests by **file extension compatibility** with the current platform
+-   Shows all tests that the platform can **technically compile and execute**
+-   Extension patterns (`.tst.c`, `.tst.sh`, `.tst.ps1`) determine capability
+
+**Execution Phase** (actual test running):
+-   Applies **skip scripts** for runtime policy decisions
+-   Determines if tests **should run** based on dynamic conditions
+
+**Key Architectural Decision:**
+
+A test file like `test/windows/wmath.tst.c` will appear in discovery output on macOS because:
+1. `.tst.c` is a cross-platform extension that macOS can compile and execute
+2. The file extension indicates capability, not policy
+3. The skip script in `test/windows/testme.json5` enforces the policy at runtime
+
+**User Experience:**
+
+```bash
+# Discovery shows the test as a candidate
+$ tm --list test/windows
+test/windows/wmath.tst.c
+
+# Execution skips it with explanation
+$ tm test/windows
+⏭️  Skipping tests in: test/windows - Skipping Windows-specific tests (not running on Windows)
+```
+
+**Rationale:**
+-   **Capability vs Policy**: Extension patterns answer "can this platform run it?", skip scripts answer "should we run it?"
+-   **Complete Visibility**: Users can see the full test suite across all platforms
+-   **Dynamic Decisions**: Skip scripts can check environment variables, dependencies, hardware availability
+-   **Consistent Semantics**: A `.tst.c` file is always discoverable on platforms with C compilers, regardless of directory location
+
 ```typescript
 // Test file structure
 type TestFile = {

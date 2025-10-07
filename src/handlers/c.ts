@@ -12,7 +12,7 @@ import { CompilerManager, CompilerType } from "../platform/compiler.ts";
 import { PermissionManager } from "../platform/permissions.ts";
 import { PlatformDetector } from "../platform/detector.ts";
 import { ErrorMessages } from "../utils/error-messages.ts";
-import { basename, resolve, isAbsolute } from "path";
+import { basename, resolve, isAbsolute, join } from "path";
 import os from "os";
 
 /*
@@ -223,6 +223,9 @@ export class CTestHandler extends BaseTestHandler {
                 args.push(...flags);
                 args.push(`/I${file.directory}`); // Include test directory
                 args.push(`/Fe:${binaryPath}`);
+                // Specify unique PDB file in artifact directory to avoid parallel build conflicts
+                const pdbPath = join(file.artifactDir, basename(binaryPath, '.exe') + '.pdb');
+                args.push(`/Fd:${pdbPath}`);
                 args.push(file.path);
 
                 // Add linker options

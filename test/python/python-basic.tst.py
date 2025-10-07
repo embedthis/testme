@@ -2,6 +2,13 @@
 """
 Basic Python test to verify Python test support
 """
+import sys
+import io
+
+# Ensure UTF-8 encoding for stdout on Windows
+if sys.platform == 'win32':
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 
 def test_arithmetic():
     """Test basic arithmetic operations"""

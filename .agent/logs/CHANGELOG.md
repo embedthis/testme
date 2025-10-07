@@ -2,6 +2,42 @@
 
 ## 2025-10-07
 
+### Windows CI Fixes
+
+-   **FIX**: Fixed MSVC PDB file conflicts when compiling C tests in parallel on Windows
+    -   Issue: `fatal error C1041: cannot open program database 'vc140.pdb'` in GitHub Actions CI
+    -   Root cause: Multiple parallel compilations writing to same default PDB file even with `/FS` flag
+    -   Solution: Added `/Fd:path` flag to specify unique PDB file for each test in its artifact directory
+    -   PDB path: `<artifactDir>/<testname>.pdb` (e.g., `test/portable/.testme/header/header.pdb`)
+    -   Each test now has isolated PDB file, eliminating parallel build conflicts
+    -   `/FS` flag still present for additional safety but `/Fd` provides the actual isolation
+
+-   **FIX**: Fixed Python test Unicode encoding error on Windows
+    -   Issue: `UnicodeEncodeError: 'charmap' codec can't encode character '\u2713'` (checkmark symbols)
+    -   Root cause: Windows Python defaults to CP1252 encoding which doesn't support Unicode checkmarks
+    -   Solution: Force UTF-8 encoding for stdout/stderr on Windows platform in Python test
+    -   Test now works correctly on Windows with Unicode symbols in output
+
+### Platform-Specific Pattern Filtering
+
+-   **FIX**: Fixed platform-specific test discovery to properly filter Windows-only tests on macOS/Linux
+    -   Issue: `tm --list test` on macOS was showing `.tst.ps1` and `.tst.bat` files that should only appear on Windows
+    -   Root cause: Configuration merging didn't apply platform filtering when no user config existed
+    -   Root cause: CLI patterns bypassed platform-specific extension filtering
+    -   Fixed `ConfigManager.mergeWithDefaults()` to apply platform filtering even with null user config
+    -   Fixed `ConfigManager.mergePlatformPatterns()` to always filter by current platform
+    -   Fixed `TestDiscovery.filterByPatterns()` to use AND logic: directory patterns AND extension patterns
+    -   Modified discovery to combine CLI patterns with platform-specific extension patterns
+    -   Now correctly shows only platform-appropriate test files (e.g., `.tst.sh` on macOS, `.tst.ps1` on Windows)
+    -   Cross-platform tests (`.tst.c`, `.tst.js`, `.tst.ts`) appear on all platforms regardless of directory location
+    -   Platform-specific tests are filtered by file extension during discovery, not by directory name
+
+-   **DOC**: Documented "Discovery vs Skip Scripts" architectural pattern in DESIGN.md
+    -   Discovery phase filters by file extension compatibility (capability)
+    -   Execution phase uses skip scripts for runtime policy decisions
+    -   Example: `test/windows/wmath.tst.c` appears in discovery on macOS (C is cross-platform) but skip script prevents execution
+    -   Clear separation of concerns: extension patterns = "can run", skip scripts = "should run"
+
 ### Cross-Platform Test Compatibility
 
 -   **DEV**: Converted shell-based tests to cross-platform JavaScript
