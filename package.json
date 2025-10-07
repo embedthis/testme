@@ -7,7 +7,7 @@
     "license": "GPL-2.0",
     "repository": {
         "type": "git",
-        "url": "https://github.com/embedthis/testme.git"
+        "url": "git+https://github.com/embedthis/testme.git"
     },
     "homepage": "https://github.com/embedthis/testme/",
     "bugs": {
@@ -34,6 +34,7 @@
         "src/**/*.ts",
         "src/**/*.js",
         "src/**/*.d.ts",
+        "!src/modules/js/node_modules",
         "src/modules/c/testme.h",
         "src/modules/es/testme.mod",
         "doc/tm.1",
