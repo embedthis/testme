@@ -2,4 +2,9 @@
     // Go tests require Go compiler
     enable: true,
     depth: 0,
+
+    // Skip tests if Go is not installed
+    services: {
+        skip: './skip.js',
+    },
 }

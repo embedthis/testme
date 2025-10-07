@@ -2,6 +2,106 @@
 
 ## 2025-10-07
 
+### Bug Fixes
+
+-   **FIX**: Fixed rpath using macOS-specific `@executable_path` on Linux
+    -   Issue: GitHub CI/CD on Linux failed with "error while loading shared libraries: libr.so: cannot open shared object file"
+    -   Root cause: rpath flags used macOS token `@executable_path` which Linux doesn't recognize
+    -   Solution: Added `CompilerManager.normalizePlatformRpaths()` to automatically convert rpath tokens
+    -   Linux: converts `@executable_path` → `$ORIGIN` and `@loader_path` → `$ORIGIN`
+    -   macOS: converts `$ORIGIN` → `@executable_path`
+    -   Windows: rpath not applicable (uses DLL search paths)
+    -   Files modified: [src/platform/compiler.ts](../../src/platform/compiler.ts:238-255), [src/handlers/c.ts](../../src/handlers/c.ts:208-209)
+    -   Updated documentation in [doc/testme.json5](../../doc/testme.json5) with rpath platform notes
+    -   Tests can now use either `@executable_path` or `$ORIGIN` in config, and TestMe converts to correct platform format
+
+-   **FIX**: Fixed `env` section not displayed in config output when using `showCommands`
+    -   Issue: When using `execution.showCommands: true`, the environment variables from `env` section were not shown in config dump
+    -   Root cause: `formatConfig()` method in C handler didn't include `env` property in display config
+    -   Solution: Added `env: config.env` to the display config object
+    -   Files modified: [src/handlers/c.ts](../../src/handlers/c.ts:615)
+    -   Environment variables are now visible in debug output for easier troubleshooting
+    -   Note: `env` variables were always being applied correctly via `getTestEnvironment()` in base handler
+
+-   **FIX**: Removed unnecessary wrapper scripts that caused Windows installation failures
+    -   Issue: Windows installation failed with "not a valid application for this OS platform" when running `tm.exe`
+    -   Root cause: Wrapper scripts (`.bat` on Windows, shell script on Unix) were unnecessary complexity
+    -   Discovery: Testing revealed `process.cwd()` already returns correct invocation directory in Bun compiled binaries
+    -   Solution: Removed wrapper script logic entirely - install binary directly
+    -   Files modified: [testme.ts](../../testme.ts:5-12), [bin/install.mjs](../../bin/install.mjs:60-88)
+    -   Benefits: Simpler installation, fixes Windows issues, reduces complexity
+    -   Note: Previous CHANGELOG entry about wrapper scripts is now superseded by this fix
+
+-   **FIX**: Fixed Bun compiled binary working directory issue
+    -   Issue: `tm --list` from `/Users/mob/c/r/test` showed "No tests discovered"
+    -   Root cause: Bun compiled binaries change working directory to embedded source location
+    -   Solution: Created shell wrapper script that captures invocation directory
+    -   Binary now installed as `tm-bin`, wrapper script as `tm`
+    -   Wrapper sets `TM_INVOCATION_DIR` environment variable with `$(pwd)`
+    -   Binary restores working directory on startup using `TM_INVOCATION_DIR`
+    -   Files modified: [testme.ts](../../testme.ts), [bin/install.mjs](../../bin/install.mjs)
+    -   Tests now correctly discovered from any working directory
+
+-   **FIX**: Fixed `profile` property from testme.json5 not being used for `${PROFILE}` expansion
+    -   Issue: `${PROFILE}` always defaulted to 'dev' even when `profile: 'xdev'` set in config
+    -   Root cause: `profile` property not preserved during config merging in `ConfigManager.mergeWithDefaults()`
+    -   Solution: Added `profile: userConfig.profile` to merged config object
+    -   Also added `depth: userConfig.depth` for consistency
+    -   Profile priority: CLI `--profile` > config `profile` > env `PROFILE` > default 'dev'
+    -   Files modified: [src/config.ts](../../src/config.ts:192)
+    -   Variable expansion now correctly uses config-specified profile
+
+-   **FIX**: Fixed format-truncation warning in testme.h
+    -   Issue: `warning: '%s' directive output may be truncated writing up to 4095 bytes`
+    -   Root cause: `snprintf(buf, sizeof(buf), "...", loc, buf)` used buf as source and destination
+    -   Solution: Added temporary buffer `tmp` to hold formatted message before concatenation
+    -   Changed flow: vsnprintf → tmp → snprintf(buf using tmp) instead of vsnprintf → buf → snprintf(buf using buf)
+    -   Files modified: [src/modules/c/testme.h](../../src/modules/c/testme.h:127)
+    -   Compiler warning eliminated, tests pass successfully
+
+### Configuration and Compiler Fixes
+
+-   **FIX**: Fixed default PROFILE variable from 'debug' to 'dev'
+    -   Changed default profile in glob expansion from 'debug' to 'dev'
+    -   Updated documentation (types.ts, man page) to reflect new default
+    -   Priority order remains: --profile CLI > env.PROFILE > 'dev' (default)
+
+-   **FIX**: Fixed Homebrew paths being added on non-macOS platforms
+    -   Issue: `/opt/homebrew/include` and `/opt/homebrew/lib` flags added on Linux
+    -   Root cause: GCC/Clang default flags included macOS-specific Homebrew paths unconditionally
+    -   Solution: Made Homebrew paths conditional using `PlatformDetector.isMacOS()`
+    -   Linux now correctly gets only `~/.local/include` and `~/.local/lib` without Homebrew paths
+    -   macOS gets both `~/.local` and `/opt/homebrew` paths
+
+-   **FIX**: Fixed compiler flag blending when using compiler-specific config
+    -   Issue: Generic `compiler.c.flags` were ignored when `compiler.c.gcc` config existed
+    -   Root cause: Compiler-specific config replaced generic flags instead of merging
+    -   Solution: Always start with generic flags, then add compiler-specific on top
+    -   Flag hierarchy now: defaults → generic → compiler-specific → platform-specific
+    -   Example: `c.flags` + `c.gcc.flags` + `c.gcc.linux.flags` all properly merged
+
+-   **FIX**: Fixed misleading "testme.h not found" error for linker failures
+    -   Issue: Error reported "testme.h not found" when linker failed with missing libraries
+    -   Root cause: Pattern matching found "testme.h" in warnings and "not found" in linker errors
+    -   Solution: Changed to regex patterns requiring both terms on same line
+    -   Now correctly distinguishes header errors from linker errors
+
+-   **FIX**: Fixed misleading include syntax guidance in error messages
+    -   Removed incorrect claim that `#include "testme.h"` is wrong
+    -   Both `<testme.h>` and `"testme.h"` work with system include paths
+    -   Updated error messages to focus on actual solutions (install paths, -I flags)
+
+### Documentation Updates
+
+-   **DOC**: Added comprehensive sample configuration file [doc/testme.json5](../../doc/testme.json5)
+    -   Documents all TestConfig properties with examples
+    -   Shows enable: true/false/'manual' options
+    -   Demonstrates profile configuration and priority
+    -   Includes all execution and output options
+    -   Referenced in DESIGN.md and REFERENCES.md
+
+## 2025-10-07 (earlier)
+
 ### NPM Package Fixes
 
 -   **FIX**: Fixed NPM package missing `testme.h` header file

@@ -4,11 +4,25 @@
 
 TestMe is a production-ready, cross-platform multi-language test runner with native support for Windows, macOS, and Linux. Core features are complete and well-documented.
 
-**Version**: 0.8.5+
+**Version**: 0.8.7
 **Last Updated**: 2025-10-07
 
 ## Recently Completed
 
+-   ✅ Critical bug fixes (2025-10-07)
+    -   Fixed Bun compiled binary working directory issue with shell wrapper
+    -   Fixed `profile` property from testme.json5 not being used for `${PROFILE}` expansion
+    -   Fixed format-truncation warning in testme.h
+    -   Fixed Ejscript module installation to `~/.local/lib/testme/testme.mod`
+-   ✅ Configuration system improvements (2025-10-07)
+    -   Fixed default PROFILE from 'debug' to 'dev'
+    -   Fixed compiler flag blending (generic + compiler-specific + platform-specific)
+    -   Fixed platform-specific include paths (Homebrew only on macOS)
+    -   Added comprehensive sample configuration [doc/testme.json5](../../doc/testme.json5)
+-   ✅ Error message improvements (2025-10-07)
+    -   Fixed misleading "testme.h not found" for linker errors
+    -   Improved include syntax guidance
+    -   Better error detection patterns
 -   ✅ Cross-platform test suite - All tests now work on Windows, macOS, and Linux
 -   ✅ CI/CD pipeline enhancements - Added Python and Go runtime support
 -   ✅ GitHub Actions CI/CD pipeline with multi-platform testing
@@ -54,12 +68,15 @@ TestMe is a production-ready, cross-platform multi-language test runner with nat
 
 **Priority**: High
 **Effort**: Medium
+**Status**: ✅ Completed 2025-10-07
 
 Improve error messages to be more actionable:
 
 -   [x] Better compiler not found messages with installation instructions
 -   [x] Clearer configuration error messages with file locations
 -   [x] Helpful hints for common mistakes (e.g., missing testme.h)
+-   [x] Fixed false positive testme.h errors for linker failures
+-   [x] Improved include syntax guidance
 
 ### 2. Configuration Validation
 

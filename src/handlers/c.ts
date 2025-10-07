@@ -154,10 +154,14 @@ export class CTestHandler extends BaseTestHandler {
                 const platform = PlatformDetector.isWindows() ? 'windows' :
                                PlatformDetector.isMacOS() ? 'macosx' : 'linux';
 
-                // Try compiler-specific config first
+                // Start with generic flags/libraries (if present)
+                userFlags = [...(cConfig.flags || [])];
+                rawLibraries = [...(cConfig.libraries || [])];
+
+                // Add compiler-specific config on top
                 if (compilerConfig.type === CompilerType.MSVC && cConfig.msvc) {
-                    userFlags = [...(cConfig.msvc.flags || [])];
-                    rawLibraries = [...(cConfig.msvc.libraries || [])];
+                    if (cConfig.msvc.flags) userFlags.push(...cConfig.msvc.flags);
+                    if (cConfig.msvc.libraries) rawLibraries.push(...cConfig.msvc.libraries);
                     // Check for platform-specific overrides
                     const platformSettings = cConfig.msvc[platform];
                     if (platformSettings) {
@@ -165,8 +169,8 @@ export class CTestHandler extends BaseTestHandler {
                         if (platformSettings.libraries) rawLibraries.push(...platformSettings.libraries);
                     }
                 } else if (compilerConfig.type === CompilerType.GCC && cConfig.gcc) {
-                    userFlags = [...(cConfig.gcc.flags || [])];
-                    rawLibraries = [...(cConfig.gcc.libraries || [])];
+                    if (cConfig.gcc.flags) userFlags.push(...cConfig.gcc.flags);
+                    if (cConfig.gcc.libraries) rawLibraries.push(...cConfig.gcc.libraries);
                     // Check for platform-specific overrides
                     const platformSettings = cConfig.gcc[platform];
                     if (platformSettings) {
@@ -174,18 +178,14 @@ export class CTestHandler extends BaseTestHandler {
                         if (platformSettings.libraries) rawLibraries.push(...platformSettings.libraries);
                     }
                 } else if (compilerConfig.type === CompilerType.Clang && cConfig.clang) {
-                    userFlags = [...(cConfig.clang.flags || [])];
-                    rawLibraries = [...(cConfig.clang.libraries || [])];
+                    if (cConfig.clang.flags) userFlags.push(...cConfig.clang.flags);
+                    if (cConfig.clang.libraries) rawLibraries.push(...cConfig.clang.libraries);
                     // Check for platform-specific overrides
                     const platformSettings = cConfig.clang[platform];
                     if (platformSettings) {
                         if (platformSettings.flags) userFlags.push(...platformSettings.flags);
                         if (platformSettings.libraries) rawLibraries.push(...platformSettings.libraries);
                     }
-                } else {
-                    // Fall back to default flags
-                    userFlags = cConfig.flags || [];
-                    rawLibraries = cConfig.libraries || [];
                 }
             }
 
@@ -205,8 +205,11 @@ export class CTestHandler extends BaseTestHandler {
             const expandedFlags = await GlobExpansion.expandArray(flags, baseDir, specialVars);
             const expandedLibraries = await GlobExpansion.expandArray(rawLibraries, baseDir, specialVars);
 
+            // Normalize rpath values for the current platform
+            const normalizedFlags = CompilerManager.normalizePlatformRpaths(expandedFlags);
+
             // Convert relative paths to absolute paths since we compile from artifact directory
-            flags = this.resolveRelativePaths(expandedFlags, baseDir);
+            flags = this.resolveRelativePaths(normalizedFlags, baseDir);
             const libraries = this.resolveRelativePaths(expandedLibraries, baseDir);
 
             // Process libraries based on compiler type
@@ -609,6 +612,7 @@ To debug:
             output: config.output,
             patterns: config.patterns,
             services: config.services,
+            env: config.env,
         };
 
         // Remove undefined values for cleaner output
@@ -1056,9 +1060,18 @@ ${!vscodeOpened ? '\nTip: Install VS Code CLI by opening VS Code > Command Palet
         let enhancedError = error;
         let hints: string[] = [];
 
-        // Check for missing testme.h
-        if (error.includes("testme.h") && (error.includes("No such file") ||
-            error.includes("not found") || error.includes("cannot find"))) {
+        // Check for missing testme.h (must be on same line to avoid false positives)
+        const testmeHeaderPatterns = [
+            /testme\.h.*No such file/i,
+            /testme\.h.*not found/i,
+            /testme\.h.*cannot find/i,
+            /No such file.*testme\.h/i,
+            /not found.*testme\.h/i,
+            /cannot find.*testme\.h/i,
+            /fatal error:.*testme\.h/i,  // Common compiler error format
+        ];
+
+        if (testmeHeaderPatterns.some(pattern => pattern.test(error))) {
             hints.push(ErrorMessages.testmeHeaderNotFound());
         }
 

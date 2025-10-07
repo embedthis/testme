@@ -164,17 +164,13 @@ The C test file includes <testme.h> but it cannot be found.
 
 Common causes and solutions:
 
-1. TestMe headers not installed globally:
-   Solution: Install TestMe headers to ~/.local/include or /usr/local/include
-   - Copy testme.h to ~/.local/include/testme.h or /usr/local/include/testme.h
-   - Or add -I flag pointing to testme.h location in testme.json5
+1. TestMe headers not installed:
+   Solution: Install TestMe headers to ~/.local/include (recommended)
+   - Run: npm install -g @embedthis/testme (installs to ~/.local/include/testme.h)
+   - Or manually copy testme.h to ~/.local/include/testme.h
 
-2. Using wrong include syntax:
-   ✗ Wrong: #include "testme.h"  (searches current directory)
-   ✓ Right: #include <testme.h>  (searches system include paths)
-
-3. TestMe headers in non-standard location:
-   Add to testme.json5:
+2. TestMe headers in non-standard location:
+   Add include path to testme.json5:
    {
      compiler: {
        c: {
@@ -183,9 +179,9 @@ Common causes and solutions:
      }
    }
 
-4. For local development:
-   Copy testme.h to your test directory and use:
-   #include "testme.h"
+3. For local development (alternative):
+   Copy testme.h to your test directory and use: #include "testme.h"
+   Or use: #include <testme.h> if installed in system paths
 ${includePath ? `\nSearched in: ${includePath}` : ''}
 
 For more help, see: https://docs.embedthis.com/testme/headers/`

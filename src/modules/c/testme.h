@@ -124,13 +124,16 @@ static void treport(int success, const char *loc, const char *expected, const ch
     const char *fmt, ...) {
     va_list     ap;
     char        buf[TM_MAX_BUFFER];
+    char        tmp[TM_MAX_BUFFER];
 
     if (fmt && *fmt) {
         va_start(ap, fmt);
-        vsnprintf(buf, sizeof(buf), fmt, ap);
+        vsnprintf(tmp, sizeof(tmp), fmt, ap);
         va_end(ap);
         if (!success) {
-            snprintf(buf, sizeof(buf), "Test failed at %s: %s", loc, buf);
+            snprintf(buf, sizeof(buf), "Test failed at %s: %s", loc, tmp);
+        } else {
+            snprintf(buf, sizeof(buf), "%s", tmp);
         }
     } else {
         if (success) {

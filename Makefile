@@ -1,6 +1,8 @@
 #
 #	Makefile - Build and install the TestMe project
 #
+MFLAGS := --no-print-directory
+
 all: build tidy
 
 #
@@ -15,9 +17,9 @@ prep:
 build:
 	node bin/update-version.mjs
 	bun build ./testme.ts --compile --outfile dist/tm
-	@make -C src/modules/c build
-	@make -C src/modules/js build
-	@make -C src/modules/es build
+	@make -C src/modules/c build $(MFLAGS)
+	@make -C src/modules/js build $(MFLAGS)
+	@make -C src/modules/es build $(MFLAGS)
 
 test: build
 	tm test
@@ -33,9 +35,9 @@ dev-install: build
 	bun --quiet link
 	cp dist/tm ~/.bun/bin
 	cp doc/tm.1 ~/.local/share/man/man1
-	@make -C src/modules/c install
-	@make -C src/modules/js install
-	@make -C src/modules/es install
+	@make -C src/modules/c install $(MFLAGS)
+	@make -C src/modules/js install $(MFLAGS)
+	@make -C src/modules/es install $(MFLAGS)
 
 clean: tidy
 	rm -f dist/tm

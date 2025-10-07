@@ -2,4 +2,9 @@
     // Python tests require Python 3.x
     enable: true,
     depth: 0,
+
+    // Skip tests if Python is not installed
+    services: {
+        skip: './skip.js',
+    },
 }

@@ -64,6 +64,8 @@
                     '-I..',
                     '-I${../build/${PLATFORM}-${PROFILE}/inc',
                     '-L${../build/${PLATFORM}-${PROFILE}/bin',
+                    // Runtime library search path - automatically converted to platform-specific format:
+                    // macOS: @executable_path, Linux: $ORIGIN, Windows: not applicable
                     '-Wl,-rpath,@executable_path/${CONFIGDIR}/../build/${PLATFORM}-${PROFILE}/bin',
                 ],
                 libraries: ['m', 'pthread'],
@@ -80,6 +82,8 @@
                     '-I..',
                     '-I${../build/${PLATFORM}-${PROFILE}/inc',
                     '-L${../build/${PLATFORM}-${PROFILE}/bin',
+                    // Runtime library search path - automatically converted to platform-specific format:
+                    // macOS: @executable_path, Linux: $ORIGIN, Windows: not applicable
                     '-Wl,-rpath,@executable_path/${CONFIGDIR}/../build/${PLATFORM}-${PROFILE}/bin',
                 ],
                 libraries: ['m', 'pthread'],

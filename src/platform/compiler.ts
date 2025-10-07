@@ -194,7 +194,7 @@ export class CompilerManager {
                 ];
             case CompilerType.GCC:
             case CompilerType.MinGW:
-                return [
+                const gccFlags = [
                     "-std=c99",         // C99 standard
                     "-Wall",            // Enable all warnings
                     "-Wextra",          // Enable extra warnings
@@ -205,11 +205,15 @@ export class CompilerManager {
                     "-I.",              // Include current directory
                     `-I${homeDir}/.local/include`, // Include ~/.local
                     `-L${homeDir}/.local/lib`, // Library path ~/.local
-                    "-I/opt/homebrew/include", // Include Homebrew (macOS)
-                    "-L/opt/homebrew/lib"  // Library path Homebrew (macOS)
                 ];
+                // Add Homebrew paths only on macOS
+                if (PlatformDetector.isMacOS()) {
+                    gccFlags.push("-I/opt/homebrew/include"); // Include Homebrew (macOS)
+                    gccFlags.push("-L/opt/homebrew/lib");     // Library path Homebrew (macOS)
+                }
+                return gccFlags;
             case CompilerType.Clang:
-                return [
+                const clangFlags = [
                     "-std=c99",         // C99 standard
                     "-Wall",            // Enable all warnings
                     "-Wextra",          // Enable extra warnings
@@ -219,12 +223,35 @@ export class CompilerManager {
                     "-I.",              // Include current directory
                     `-I${homeDir}/.local/include`, // Include ~/.local
                     `-L${homeDir}/.local/lib`, // Library path ~/.local
-                    "-I/opt/homebrew/include", // Include Homebrew (macOS)
-                    "-L/opt/homebrew/lib"  // Library path Homebrew (macOS)
                 ];
+                // Add Homebrew paths only on macOS
+                if (PlatformDetector.isMacOS()) {
+                    clangFlags.push("-I/opt/homebrew/include"); // Include Homebrew (macOS)
+                    clangFlags.push("-L/opt/homebrew/lib");     // Library path Homebrew (macOS)
+                }
+                return clangFlags;
             default:
                 return ["-std=c99", "-Wall"];
         }
+    }
+
+    /*
+     Normalizes rpath values to use platform-appropriate tokens
+     Converts @executable_path (macOS) to $ORIGIN (Linux) and vice versa
+     @param flags Array of compiler flags
+     @returns Array of flags with normalized rpath values
+     */
+    static normalizePlatformRpaths(flags: string[]): string[] {
+        return flags.map(flag => {
+            if (flag.includes('-rpath,')) {
+                if (PlatformDetector.isMacOS()) {
+                    return flag.replace(/\$ORIGIN/g, '@executable_path');
+                } else if (PlatformDetector.isLinux()) {
+                    return flag.replace(/@executable_path/g, '$ORIGIN').replace(/@loader_path/g, '$ORIGIN');
+                }
+            }
+            return flag;
+        });
     }
 
     /*

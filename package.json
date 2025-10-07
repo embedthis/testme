@@ -1,7 +1,7 @@
 {
     "name": "@embedthis/testme",
     "owner": "embedthis",
-    "version": "0.8.7",
+    "version": "0.8.8",
     "description": "Multi-language test runner for shell, C, JavaScript, TypeScript, Python, and Go tests",
     "author": "Embedthis Software",
     "license": "GPL-2.0",
@@ -18,9 +18,6 @@
     "types": "src/pkg/testme.d.ts",
     "type": "module",
     "private": false,
-    "bin": {
-        "tm": "./dist/tm"
-    },
     "exports": {
         ".": {
             "import": "./src/pkg/testme.js",

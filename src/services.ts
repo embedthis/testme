@@ -473,8 +473,8 @@ export class ServiceManager {
                 return ['cmd.exe', '/c', resolvedCommand, ...parts.slice(1)];
             }
 
-            // On Windows, JavaScript files need to be executed via bun (shebangs don't work)
-            if (PlatformDetector.isWindows() && (ext === '.js' || ext === '.ts')) {
+            // JavaScript/TypeScript files need to be executed via bun
+            if (ext === '.js' || ext === '.ts') {
                 return ['bun', resolvedCommand, ...parts.slice(1)];
             }
 

@@ -664,29 +664,74 @@ project/
 
 For a comprehensive example of all configuration options, see [doc/testme.json5](../../doc/testme.json5) which documents every available property with examples.
 
+**Compiler Flag Merging Hierarchy:**
+
+TestMe uses a hierarchical flag merging system that combines configuration at multiple levels:
+
+1. **Compiler Defaults** - Platform-appropriate base flags (e.g., `-std=c99 -Wall -I~/.local/include`)
+2. **Generic Config Flags** - `compiler.c.flags` - Applied to all compilers
+3. **Compiler-Specific Flags** - `compiler.c.gcc.flags` - Applied only to specific compiler
+4. **Platform-Specific Flags** - `compiler.c.gcc.linux.flags` - Applied to compiler on specific platform
+
+All levels are **merged** (not replaced), allowing fine-grained control:
+
+```json5
+{
+  compiler: {
+    c: {
+      flags: ['-I../include'],           // Always included for all compilers
+      libraries: ['m'],                  // Always included
+      gcc: {
+        flags: ['-I../gcc-headers'],    // Added only when using GCC
+        libraries: ['pthread'],          // Added only when using GCC
+        linux: {
+          flags: ['-D_GNU_SOURCE'],     // Added only for GCC on Linux
+          libraries: ['rt']              // Added only for GCC on Linux
+        }
+      }
+    }
+  }
+}
+```
+
+**Result on Linux with GCC:**
+- Defaults: `-std=c99 -Wall -Wextra -O0 -g -I. -I~/.local/include -L~/.local/lib`
+- + Generic: `-I../include`
+- + GCC-specific: `-I../gcc-headers`
+- + Platform-specific: `-D_GNU_SOURCE`
+- Libraries: `-lm -lpthread -lrt`
+
 ```typescript
 type TestConfig = {
     enable?: boolean | 'manual' // Enable (true), disable (false), or run only when explicitly named ('manual')
     depth?: number // Minimum depth required to run tests (default: 0)
+    profile?: string // Build profile (dev, prod, debug, release, etc.) - defaults to env.PROFILE or 'dev'
     compiler?: {
         c?: {
             compiler?: string // Optional: compiler path (auto-detects if not specified)
-            flags?: string[] // Common flags for all compilers (merged with defaults)
-            libraries?: string[]
+            flags?: string[] // Generic flags for all compilers (merged with defaults)
+            libraries?: string[] // Generic libraries for all compilers
             gcc?: {
                 // GCC-specific configuration
-                flags?: string[] // Merged with defaults: -std=c99 -Wall -Wextra -O0 -g
-                libraries?: string[] // e.g., ['m', 'pthread']
+                flags?: string[] // Added to generic flags when using GCC
+                libraries?: string[] // Added to generic libraries when using GCC
+                windows?: { flags?: string[], libraries?: string[] } // Platform-specific additions
+                macosx?: { flags?: string[], libraries?: string[] }
+                linux?: { flags?: string[], libraries?: string[] }
             }
             clang?: {
-                // Clang-specific configuration
-                flags?: string[] // Merged with defaults: -std=c99 -Wall -Wextra -O0 -g
+                // Clang-specific configuration (same structure as gcc)
+                flags?: string[]
                 libraries?: string[]
+                windows?: { flags?: string[], libraries?: string[] }
+                macosx?: { flags?: string[], libraries?: string[] }
+                linux?: { flags?: string[], libraries?: string[] }
             }
             msvc?: {
                 // MSVC-specific configuration (Windows)
-                flags?: string[] // Merged with defaults: /std:c11 /W4 /Od /Zi /nologo
+                flags?: string[] // Added to generic flags when using MSVC
                 libraries?: string[]
+                windows?: { flags?: string[], libraries?: string[] }
             }
         }
         es?: {
@@ -1011,8 +1056,14 @@ The package uses a dual-runtime wrapper approach to support both Bun and Node.js
     - Checks for Bun availability (required for building)
     - Builds the `tm` binary using `bun build --compile`
     - Platform detection and appropriate binary naming (`.exe` on Windows)
+    - Creates shell wrapper to preserve working directory:
+        - Actual binary installed as `tm-bin` (or `tm-bin.exe` on Windows)
+        - Wrapper script installed as `tm` (shell script on Unix, batch file on Windows)
+        - Wrapper captures current directory with `$(pwd)` and exports as `TM_INVOCATION_DIR`
+        - Binary restores working directory on startup using `TM_INVOCATION_DIR`
+        - Solves Bun compiled binary limitation where cwd changes to embedded source location
     - Installs binary to user-local locations (no sudo required):
-        - All platforms: `~/.bun/bin/tm` (or `tm.exe` on Windows)
+        - All platforms: `~/.bun/bin/tm-bin` (actual binary) and `~/.bun/bin/tm` (wrapper)
     - Installs support files:
         - C header: `~/.local/include/testme.h`
         - Man page: `~/.local/share/man/man1/tm.1` (Unix only)

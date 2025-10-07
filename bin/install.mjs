@@ -62,7 +62,6 @@ function installBinary() {
     const binarySrc = platform === 'win32' ? path.join('dist', 'tm.exe') : 'dist/tm'
     const binDir = path.join(os.homedir(), '.bun', 'bin')
     const binaryDest = path.join(binDir, platform === 'win32' ? 'tm.exe' : 'tm')
-    const binaryActual = path.join(binDir, platform === 'win32' ? 'tm-bin.exe' : 'tm-bin')
 
     try {
         log(`Installing tm binary to ${binDir}...`)
@@ -75,23 +74,13 @@ function installBinary() {
             throw new Error(`Source file not found: ${binarySrc}`)
         }
 
-        // Install the actual binary with -bin suffix
-        fs.copyFileSync(binarySrc, binaryActual)
-        fs.chmodSync(binaryActual, 0o755)
-
-        // Create wrapper script for Unix or batch file for Windows
-        if (platform === 'win32') {
-            // Windows batch wrapper
-            const wrapperContent = `@echo off\r\nset TM_INVOCATION_DIR=%CD%\r\n"${binaryActual}" %*\r\n`
-            fs.writeFileSync(binaryDest, wrapperContent, 'utf-8')
-        } else {
-            // Unix shell wrapper
-            const wrapperContent = `#!/bin/sh\nexport TM_INVOCATION_DIR="$(pwd)"\nexec "${binaryActual}" "$@"\n`
-            fs.writeFileSync(binaryDest, wrapperContent, 'utf-8')
+        // Install the binary directly (no wrapper needed - process.cwd() is correct at startup)
+        fs.copyFileSync(binarySrc, binaryDest)
+        if (platform !== 'win32') {
             fs.chmodSync(binaryDest, 0o755)
         }
 
-        log('Binary and wrapper installed successfully')
+        log('Binary installed successfully')
     } catch (err) {
         error(`Could not install binary to ${binDir}: ${err.message}`)
         error('You can manually copy the binary from dist/tm to your PATH.')

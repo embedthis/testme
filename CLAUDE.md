@@ -380,3 +380,4 @@ npm publish
 -   Tests in subdirectories need to have unique names to avoid conflicts with tests in the parent or sibling directories.
 -   Create new unit tests in well named sub-directories under test
 -   No need to document publicly Ejscript support.
+-   Do not generate shell test or skip scripts if the test needs to run cross-platform. Only use *.js in that case.
