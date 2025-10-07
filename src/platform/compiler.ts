@@ -188,7 +188,9 @@ export class CompilerManager {
                     "/W4",          // Warning level 4 (high)
                     "/Od",          // Disable optimizations (for debugging)
                     "/Zi",          // Generate debug info
-                    "/nologo"       // Suppress startup banner
+                    "/nologo",      // Suppress startup banner
+                    `/I${homeDir}\\.local\\include`, // Include ~/.local
+                    `/LIBPATH:${homeDir}\\.local\\lib` // Library path ~/.local
                 ];
             case CompilerType.GCC:
             case CompilerType.MinGW:

@@ -7,6 +7,6 @@
 
     // Skip these tests if not on Windows
     services: {
-        skip: './skip-if-not-windows.sh'
-    }
+        skip: './skip-if-not-windows.js',
+    },
 }
