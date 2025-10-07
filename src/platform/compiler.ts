@@ -188,9 +188,9 @@ export class CompilerManager {
                     "/W4",          // Warning level 4 (high)
                     "/Od",          // Disable optimizations (for debugging)
                     "/Zi",          // Generate debug info
+                    "/FS",          // Force synchronous PDB writes (for parallel builds)
                     "/nologo",      // Suppress startup banner
-                    `/I${homeDir}\\.local\\include`, // Include ~/.local
-                    `/LIBPATH:${homeDir}\\.local\\lib` // Library path ~/.local
+                    `/I${homeDir}\\.local\\include` // Include ~/.local
                 ];
             case CompilerType.GCC:
             case CompilerType.MinGW:
@@ -345,13 +345,17 @@ export class CompilerManager {
 
         // Build compiler arguments based on compiler type
         if (config.type === CompilerType.MSVC) {
-            // MSVC syntax: cl.exe [flags] /Fe:output.exe input.c [libraries]
+            // MSVC syntax: cl.exe [flags] /Fe:output.exe input.c /link [linker flags] [libraries]
             args.push(...config.flags);
             args.push(`/Fe:${finalOutputPath}`);
             args.push(sourcePath);
 
+            // Add linker options
+            const homeDir = os.homedir();
+            args.push("/link");
+            args.push(`/LIBPATH:${homeDir}\\.local\\lib`);
+
             if (config.libraries && config.libraries.length > 0) {
-                args.push("/link");
                 config.libraries.forEach(lib => {
                     args.push(lib.endsWith(".lib") ? lib : `${lib}.lib`);
                 });

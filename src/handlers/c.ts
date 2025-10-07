@@ -13,6 +13,7 @@ import { PermissionManager } from "../platform/permissions.ts";
 import { PlatformDetector } from "../platform/detector.ts";
 import { ErrorMessages } from "../utils/error-messages.ts";
 import { basename, resolve, isAbsolute } from "path";
+import os from "os";
 
 /*
  Handler for executing C program tests (.tst.c files)
@@ -224,8 +225,12 @@ export class CTestHandler extends BaseTestHandler {
                 args.push(`/Fe:${binaryPath}`);
                 args.push(file.path);
 
+                // Add linker options
+                const homeDir = os.homedir();
+                args.push("/link");
+                args.push(`/LIBPATH:${homeDir}\\.local\\lib`);
+
                 if (libraryFlags.length > 0) {
-                    args.push("/link");
                     args.push(...libraryFlags);
                 }
             } else {

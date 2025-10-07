@@ -353,9 +353,16 @@ class TestMeApp {
         options: any
     ): Promise<number> {
         // Discover all tests in the directory tree
+        // If CLI patterns are provided, combine them with platform-specific extension patterns
+        // This ensures that when specifying a directory like "test", only platform-appropriate
+        // test files are discovered (e.g., no .ps1 files on macOS)
+        const discoveryPatterns = patterns.length > 0
+            ? [...patterns, ...(baseConfig.patterns?.include || [])]
+            : baseConfig.patterns?.include || [];
+
         const allTests = await TestDiscovery.discoverTests({
             rootDir,
-            patterns: patterns.length > 0 ? patterns : baseConfig.patterns?.include || [],
+            patterns: discoveryPatterns,
             excludePatterns: baseConfig.patterns?.exclude || []
         });
 
@@ -724,12 +731,17 @@ class TestMeApp {
 
             // Handle list option
             if (options.list) {
+                // If CLI patterns are provided, combine them with platform-specific extension patterns
+                // This ensures that when specifying a directory like "test", only platform-appropriate
+                // test files are discovered (e.g., no .ps1 files on macOS)
+                const patterns = options.patterns.length
+                    ? [...options.patterns, ...(config.patterns?.include || [])]
+                    : config.patterns?.include || [];
+
                 await this.runner.listTests(
                     {
                         rootDir,
-                        patterns: options.patterns.length
-                            ? options.patterns
-                            : config.patterns?.include || [],
+                        patterns,
                         excludePatterns: config.patterns?.exclude || [],
                     },
                     config,

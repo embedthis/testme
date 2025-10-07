@@ -180,13 +180,13 @@ export class TestDiscovery {
     private static filterByPatterns(tests: TestFile[], patterns: string[], rootDir: string): TestFile[] {
         if (!patterns.length) return tests;
 
-        return tests.filter(test => {
-            return patterns.some(pattern => {
-                // If pattern is just an extension, match by type
-                if (pattern.startsWith('.tst.')) {
-                    return test.extension === pattern;
-                }
+        // Separate extension patterns from other patterns
+        const extensionPatterns = patterns.filter(p => p.startsWith('.tst.') || p.startsWith('**/*.tst.'));
+        const otherPatterns = patterns.filter(p => !p.startsWith('.tst.') && !p.startsWith('**/*.tst.'));
 
+        return tests.filter(test => {
+            // First check if test matches any non-extension pattern (or if there are no other patterns)
+            const matchesOtherPattern = otherPatterns.length === 0 || otherPatterns.some(pattern => {
                 // Get base name without test extension for matching
                 const baseName = this.getBaseNameWithoutTestExtension(test.name);
 
@@ -234,6 +234,22 @@ export class TestDiscovery {
                        this.matchesGlob(test.name, pattern) ||
                        this.matchesGlob(baseName, pattern);
             });
+
+            // If there are extension patterns, also check if test matches any of them
+            // This implements AND logic: test must match other patterns AND extension patterns
+            const matchesExtensionPattern = extensionPatterns.length === 0 || extensionPatterns.some(pattern => {
+                // Extension pattern like ".tst.c" or "**/*.tst.c"
+                if (pattern.startsWith('.tst.')) {
+                    return test.extension === pattern;
+                }
+                if (pattern.startsWith('**/*.tst.')) {
+                    const extension = pattern.substring(4); // Remove "***/" to get ".tst.c"
+                    return test.extension === extension;
+                }
+                return false;
+            });
+
+            return matchesOtherPattern && matchesExtensionPattern;
         });
     }
 

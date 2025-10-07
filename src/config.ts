@@ -221,7 +221,11 @@ export class ConfigManager {
                 ...userConfig.services
             },
             env: userConfig.env // Include environment variables from user config
-        } : { ...this.DEFAULT_CONFIG };
+        } : {
+            ...this.DEFAULT_CONFIG,
+            // Apply platform-specific pattern merging even when no user config exists
+            patterns: this.mergePlatformPatterns(this.DEFAULT_CONFIG.patterns!, null)
+        };
 
         // Add config directory to the configuration
         return {
@@ -301,40 +305,51 @@ export class ConfigManager {
      * Merges base patterns with user patterns and applies platform-specific overrides
      *
      * @param basePatterns - Default pattern configuration
-     * @param userPatterns - User-provided pattern configuration
+     * @param userPatterns - User-provided pattern configuration (can be null)
      * @returns Merged pattern configuration with platform-specific patterns blended
      *
      * @internal
      * @remarks
      * Platform-specific patterns are deep blended with base patterns:
      * 1. Start with base include/exclude patterns
-     * 2. Merge with user include/exclude patterns
+     * 2. Merge with user include/exclude patterns (if provided)
      * 3. Add platform-specific patterns (windows/macosx/linux) to the merged base
      * 4. Platform patterns augment rather than replace the base patterns
+     * 5. ALWAYS filters out non-current platform patterns from the result
      */
     private static mergePlatformPatterns(basePatterns: any, userPatterns: any): any {
-        if (!userPatterns) {
-            return basePatterns;
-        }
-
         // Determine current platform
         const platform = process.platform === 'win32' ? 'windows' :
                         process.platform === 'darwin' ? 'macosx' : 'linux';
 
-        // Merge base patterns
+        // Merge base patterns with user patterns (if provided)
         const merged = {
-            include: [...(basePatterns.include || []), ...(userPatterns.include || [])],
-            exclude: [...(basePatterns.exclude || []), ...(userPatterns.exclude || [])]
+            include: [...(basePatterns.include || []), ...(userPatterns?.include || [])],
+            exclude: [...(basePatterns.exclude || []), ...(userPatterns?.exclude || [])]
         };
 
-        // Deep blend platform-specific patterns
-        const platformPatterns = userPatterns[platform];
-        if (platformPatterns) {
-            if (platformPatterns.include) {
-                merged.include = [...merged.include, ...platformPatterns.include];
+        // Deep blend platform-specific patterns from both base and user configs
+        // Start with base platform patterns
+        const basePlatformPatterns = basePatterns[platform];
+        if (basePlatformPatterns) {
+            if (basePlatformPatterns.include) {
+                merged.include = [...merged.include, ...basePlatformPatterns.include];
             }
-            if (platformPatterns.exclude) {
-                merged.exclude = [...merged.exclude, ...platformPatterns.exclude];
+            if (basePlatformPatterns.exclude) {
+                merged.exclude = [...merged.exclude, ...basePlatformPatterns.exclude];
+            }
+        }
+
+        // Then add user platform patterns (if provided)
+        if (userPatterns) {
+            const userPlatformPatterns = userPatterns[platform];
+            if (userPlatformPatterns) {
+                if (userPlatformPatterns.include) {
+                    merged.include = [...merged.include, ...userPlatformPatterns.include];
+                }
+                if (userPlatformPatterns.exclude) {
+                    merged.exclude = [...merged.exclude, ...userPlatformPatterns.exclude];
+                }
             }
         }
 
