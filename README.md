@@ -501,58 +501,77 @@ This enables:
 -   Test-specific configuration closest to individual tests
 -   Automatic merging with CLI arguments preserved
 
-```json
+```json5
 {
-    "enable": true,
-    "depth": 0,
-    "compiler": {
-        "c": {
-            "compiler": "gcc",
-            "flags": ["-std=c99", "-Wall", "-Wextra", "-O2"]
+    enable: true,
+    depth: 0,
+    compiler: {
+        c: {
+            // Compiler selection: 'default' (auto-detect), string (e.g., 'gcc'), or platform map
+            compiler: {
+                windows: 'msvc',
+                macosx: 'clang',
+                linux: 'gcc',
+            },
+
+            gcc: {
+                flags: ['-I${../include}'],
+                libraries: ['m', 'pthread'],
+            },
+            clang: {
+                flags: ['-I${../include}'],
+                libraries: ['m', 'pthread'],
+            },
+            msvc: {
+                flags: ['/I${../include}'],
+                libraries: [],
+            },
         },
-        "es": {
-            "require": "testme"
-        }
+        es: {
+            require: 'testme',
+        },
     },
-    "execution": {
-        "timeout": 30000,
-        "parallel": true,
-        "workers": 4
+    execution: {
+        timeout: 30000,
+        parallel: true,
+        workers: 4,
     },
-    "output": {
-        "verbose": false,
-        "format": "simple",
-        "colors": true
+    output: {
+        verbose: false,
+        format: 'simple',
+        colors: true,
     },
-    "patterns": {
-        "include": [
-            "**/*.tst.sh",
-            "**/*.tst.c",
-            "**/*.tst.js",
-            "**/*.tst.ts",
-            "**/*.tst.es",
-            "**/*.tst.ps1",
-            "**/*.tst.bat",
-            "**/*.tst.cmd"
-        ],
-        "exclude": ["**/node_modules/**", "**/.testme/**", "**/.*/**"]
+    patterns: {
+        // Base patterns for all platforms
+        include: ['**/*.tst.c', '**/*.tst.js', '**/*.tst.ts'],
+
+        // Platform-specific additions (merged with base patterns)
+        windows: {
+            include: ['**/*.tst.ps1', '**/*.tst.bat', '**/*.tst.cmd'],
+        },
+        macosx: {
+            include: ['**/*.tst.sh'],
+        },
+        linux: {
+            include: ['**/*.tst.sh'],
+        },
     },
-    "services": {
-        "skip": "./check-requirements.sh",
-        "prep": "make build",
-        "setup": "docker-compose up -d",
-        "cleanup": "docker-compose down",
-        "skipTimeout": 30000,
-        "prepTimeout": 30000,
-        "setupTimeout": 30000,
-        "cleanupTimeout": 10000,
-        "delay": 3000
+    services: {
+        skip: './check-requirements.sh',
+        prep: 'make build',
+        setup: 'docker-compose up -d',
+        cleanup: 'docker-compose down',
+        skipTimeout: 30000,
+        prepTimeout: 30000,
+        setupTimeout: 30000,
+        cleanupTimeout: 10000,
+        delay: 3000,
     },
-    "env": {
-        "BIN": "${../build/*/bin}",
-        "LIB_PATH": "${../lib}",
-        "TEST_DATA": "${./test-data/*.json}"
-    }
+    env: {
+        BIN: '${../build/*/bin}',
+        LIB_PATH: '${../lib}',
+        TEST_DATA: '${./test-data/*.json}',
+    },
 }
 ```
 
@@ -623,7 +642,12 @@ Environment variables in compiler flags and paths support `${...}` expansion:
 {
     compiler: {
         c: {
-            compiler: 'default', // Auto-detect best compiler
+            // Auto-detect best compiler per platform
+            compiler: {
+                windows: 'msvc',
+                macosx: 'clang',
+                linux: 'gcc',
+            },
 
             gcc: {
                 flags: ['-I${../build/${PLATFORM}-${PROFILE}/inc}', '-L${../build/${PLATFORM}-${PROFILE}/bin}'],
@@ -634,7 +658,7 @@ Environment variables in compiler flags and paths support `${...}` expansion:
                 libraries: ['m', 'pthread'],
             },
             msvc: {
-                flags: ['/I${../build/${PLATFORM}-${PROFILE}/inc}'],
+                flags: ['/I${../build/${PLATFORM}-${PROFILE}/inc}', '/LIBPATH:${../build/${PLATFORM}-${PROFILE}/bin}'],
                 libraries: [],
             },
         },
