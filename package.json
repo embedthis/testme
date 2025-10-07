@@ -1,7 +1,7 @@
 {
     "name": "@embedthis/testme",
     "owner": "embedthis",
-    "version": "0.8.8",
+    "version": "0.8.9",
     "description": "Multi-language test runner for shell, C, JavaScript, TypeScript, Python, and Go tests",
     "author": "Embedthis Software",
     "license": "GPL-2.0",
@@ -47,6 +47,7 @@
         "start": "bun run src/index.ts",
         "prebuild": "node bin/update-version.mjs",
         "build": "bun build ./testme.ts --compile --outfile dist/tm",
+        "postbuild": "cd src/modules/js && bun link && cd ../../../test && bun link testme",
         "build:win": "bun build ./testme.ts --compile --outfile dist/tm.exe",
         "build:unix": "bun build ./testme.ts --compile --outfile dist/tm",
         "clean": "bun bin/clean.mjs",
