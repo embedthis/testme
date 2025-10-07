@@ -67,7 +67,11 @@ function installBinary() {
         log(`Installing tm binary to ${binaryDest}...`)
         // Create directory structure recursively if it doesn't exist
         if (!fs.existsSync(binDir)) {
+            log(`Creating directory ${binDir}...`)
             fs.mkdirSync(binDir, {recursive: true})
+        }
+        if (!fs.existsSync(binarySrc)) {
+            throw new Error(`Source file not found: ${binarySrc}`)
         }
         fs.copyFileSync(binarySrc, binaryDest)
         if (platform !== 'win32') {
@@ -75,7 +79,7 @@ function installBinary() {
         }
         log('Binary installed successfully')
     } catch (err) {
-        error(`Could not install binary to ${binaryDest}`)
+        error(`Could not install binary to ${binaryDest}: ${err.message}`)
         error('You can manually copy the binary from dist/tm to your PATH.')
     }
 }
@@ -91,12 +95,17 @@ function installSupportFiles() {
         log('Installing testme.h header to ~/.local/include...')
         const headerDir = path.dirname(headerDest)
         if (!fs.existsSync(headerDir)) {
+            log(`Creating directory ${headerDir}...`)
             fs.mkdirSync(headerDir, {recursive: true})
+        }
+        if (!fs.existsSync(headerSrc)) {
+            throw new Error(`Source file not found: ${headerSrc}`)
         }
         fs.copyFileSync(headerSrc, headerDest)
         log('Header installed successfully')
     } catch (err) {
-        error('Could not install testme.h header. You may need to install it manually.')
+        error(`Could not install testme.h header: ${err.message}`)
+        error('You may need to install it manually.')
     }
 
     // Install man page (Unix only)
@@ -108,12 +117,17 @@ function installSupportFiles() {
             log('Installing man page...')
             const manDir = path.dirname(manDest)
             if (!fs.existsSync(manDir)) {
+                log(`Creating directory ${manDir}...`)
                 fs.mkdirSync(manDir, {recursive: true})
+            }
+            if (!fs.existsSync(manSrc)) {
+                throw new Error(`Source file not found: ${manSrc}`)
             }
             fs.copyFileSync(manSrc, manDest)
             log('Man page installed successfully')
         } catch (err) {
-            error('Could not install man page. You may need to install it manually.')
+            error(`Could not install man page: ${err.message}`)
+            error('You may need to install it manually.')
         }
     }
 
@@ -141,9 +155,14 @@ function installSupportFiles() {
 
             log('Installing Ejscript testme.mod...')
 
+            if (!fs.existsSync(modSrc)) {
+                throw new Error(`Source file not found: ${modSrc}`)
+            }
+
             // Install to user .ejs directory
             const userModDir = path.dirname(userModDest)
             if (!fs.existsSync(userModDir)) {
+                log(`Creating directory ${userModDir}...`)
                 fs.mkdirSync(userModDir, {recursive: true})
             }
             fs.copyFileSync(modSrc, userModDest)
@@ -151,13 +170,15 @@ function installSupportFiles() {
             // Install to .local directory
             const localModDir = path.dirname(localModDest)
             if (!fs.existsSync(localModDir)) {
+                log(`Creating directory ${localModDir}...`)
                 fs.mkdirSync(localModDir, {recursive: true})
             }
             fs.copyFileSync(modSrc, localModDest)
 
             log('Ejscript testme.mod installed successfully')
         } catch (err) {
-            error('Could not install Ejscript testme.mod. You may need to install it manually.')
+            error(`Could not install Ejscript testme.mod: ${err.message}`)
+            error('You may need to install it manually.')
         }
     }
 }
