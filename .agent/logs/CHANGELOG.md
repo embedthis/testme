@@ -18,6 +18,12 @@
     -   Solution: Force UTF-8 encoding for stdout/stderr on Windows platform in Python test
     -   Test now works correctly on Windows with Unicode symbols in output
 
+-   **FIX**: Fixed Go test timeout on Windows (30s timeout)
+    -   Issue: Go test hanging/timing out on Windows CI
+    -   Root cause: Go `fmt.Printf` may block on Windows when outputting Unicode checkmarks to non-UTF-8 console
+    -   Solution: Replaced Unicode symbols (✓ ✗) with ASCII text (PASS/FAIL) in Go test output
+    -   Test now completes successfully on all platforms without Unicode-related blocking
+
 ### Platform-Specific Pattern Filtering
 
 -   **FIX**: Fixed platform-specific test discovery to properly filter Windows-only tests on macOS/Linux

@@ -19,10 +19,10 @@ func testArithmetic() bool {
 
 	for _, tt := range tests {
 		if tt.got != tt.expected {
-			fmt.Printf("✗ %s test failed: got %d, expected %d\n", tt.name, tt.got, tt.expected)
+			fmt.Printf("FAIL: %s test failed: got %d, expected %d\n", tt.name, tt.got, tt.expected)
 			return false
 		}
-		fmt.Printf("✓ %s test passed\n", tt.name)
+		fmt.Printf("PASS: %s test passed\n", tt.name)
 	}
 	return true
 }
@@ -31,17 +31,17 @@ func testStrings() bool {
 	s := "Hello World"
 
 	if len(s) != 11 {
-		fmt.Printf("✗ String length test failed: got %d, expected 11\n", len(s))
+		fmt.Printf("FAIL: String length test failed: got %d, expected 11\n", len(s))
 		return false
 	}
-	fmt.Println("✓ String length test passed")
+	fmt.Println("PASS: String length test passed")
 
 	expected := "Hello World"
 	if s != expected {
-		fmt.Printf("✗ String equality test failed: got %s, expected %s\n", s, expected)
+		fmt.Printf("FAIL: String equality test failed: got %s, expected %s\n", s, expected)
 		return false
 	}
-	fmt.Println("✓ String equality test passed")
+	fmt.Println("PASS: String equality test passed")
 
 	return true
 }
@@ -50,23 +50,23 @@ func testSlices() bool {
 	slice := []int{1, 2, 3, 4, 5}
 
 	if len(slice) != 5 {
-		fmt.Printf("✗ Slice length test failed: got %d, expected 5\n", len(slice))
+		fmt.Printf("FAIL: Slice length test failed: got %d, expected 5\n", len(slice))
 		return false
 	}
-	fmt.Println("✓ Slice length test passed")
+	fmt.Println("PASS: Slice length test passed")
 
 	if slice[0] != 1 {
-		fmt.Printf("✗ Slice indexing test failed: got %d, expected 1\n", slice[0])
+		fmt.Printf("FAIL: Slice indexing test failed: got %d, expected 1\n", slice[0])
 		return false
 	}
-	fmt.Println("✓ Slice indexing test passed")
+	fmt.Println("PASS: Slice indexing test passed")
 
 	slice = append(slice, 6)
 	if len(slice) != 6 {
-		fmt.Printf("✗ Slice append test failed: got %d, expected 6\n", len(slice))
+		fmt.Printf("FAIL: Slice append test failed: got %d, expected 6\n", len(slice))
 		return false
 	}
-	fmt.Println("✓ Slice append test passed")
+	fmt.Println("PASS: Slice append test passed")
 
 	return true
 }
@@ -78,22 +78,22 @@ func testMaps() bool {
 	}
 
 	if m["name"] != "TestMe" {
-		fmt.Printf("✗ Map access test failed: got %s, expected TestMe\n", m["name"])
+		fmt.Printf("FAIL: Map access test failed: got %s, expected TestMe\n", m["name"])
 		return false
 	}
-	fmt.Println("✓ Map access test passed")
+	fmt.Println("PASS: Map access test passed")
 
 	if _, ok := m["version"]; !ok {
-		fmt.Println("✗ Map key check test failed")
+		fmt.Println("FAIL: Map key check test failed")
 		return false
 	}
-	fmt.Println("✓ Map key check test passed")
+	fmt.Println("PASS: Map key check test passed")
 
 	if len(m) != 2 {
-		fmt.Printf("✗ Map length test failed: got %d, expected 2\n", len(m))
+		fmt.Printf("FAIL: Map length test failed: got %d, expected 2\n", len(m))
 		return false
 	}
-	fmt.Println("✓ Map length test passed")
+	fmt.Println("PASS: Map length test passed")
 
 	return true
 }
