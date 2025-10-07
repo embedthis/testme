@@ -188,6 +188,8 @@ export class ConfigManager {
     private static mergeWithDefaults(userConfig: Partial<TestConfig> | null, configDir: string | null): TestConfig {
         const baseConfig = userConfig ? {
             enable: userConfig.enable !== undefined ? userConfig.enable : this.DEFAULT_CONFIG.enable,
+            depth: userConfig.depth,
+            profile: userConfig.profile, // Include profile from user config
             compiler: {
                 ...this.DEFAULT_CONFIG.compiler,
                 ...userConfig.compiler,

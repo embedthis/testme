@@ -74,6 +74,7 @@
 - **GitHub Repository**: (to be added)
 - **NPM Package**: https://www.npmjs.com/package/@embedthis/testme
 - **Issue Tracker**: (to be added)
+- **Configuration Reference**: [doc/testme.json5](../../doc/testme.json5) - Comprehensive example of all configuration options
 
 ### Embedthis
 
