@@ -1035,15 +1035,33 @@ ${!vscodeOpened ? '\nTip: Install VS Code CLI by opening VS Code > Command Palet
     private resolveRelativePaths(flags: string[], baseDir: string): string[] {
         return flags.map((flag) => {
             // Check if this is an include or library path flag that starts with a relative path
-            if (
-                (flag.startsWith("-I") || flag.startsWith("-L") || flag.startsWith("/I")) &&
-                flag.length > 2
-            ) {
-                const pathStart = flag.startsWith("/I") ? 2 : 2;
-                const path = flag.substring(pathStart);
-                if (!isAbsolute(path)) {
-                    const resolvedPath = resolve(baseDir, path);
-                    return flag.substring(0, pathStart) + resolvedPath;
+            if (flag.startsWith("-I") || flag.startsWith("-L")) {
+                if (flag.length > 2) {
+                    const path = flag.substring(2);
+                    if (!isAbsolute(path)) {
+                        const resolvedPath = resolve(baseDir, path);
+                        return flag.substring(0, 2) + resolvedPath;
+                    }
+                }
+            }
+            // Handle MSVC /I flags separately
+            if (flag.startsWith("/I")) {
+                if (flag.length > 2) {
+                    const path = flag.substring(2);
+                    if (!isAbsolute(path)) {
+                        const resolvedPath = resolve(baseDir, path);
+                        return "/I" + resolvedPath;
+                    }
+                }
+            }
+            // Handle MSVC /LIBPATH: flags
+            if (flag.startsWith("/LIBPATH:")) {
+                if (flag.length > 9) {
+                    const path = flag.substring(9);
+                    if (!isAbsolute(path)) {
+                        const resolvedPath = resolve(baseDir, path);
+                        return "/LIBPATH:" + resolvedPath;
+                    }
                 }
             }
             return flag;
