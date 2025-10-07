@@ -29,6 +29,7 @@
         "bin/install.ps1",
         "bin/install.mjs",
         "bin/postinstall.mjs",
+        "bin/check-install.mjs",
         "bin/clean.mjs",
         "bin/update-version.mjs",
         "src/**/*.ts",

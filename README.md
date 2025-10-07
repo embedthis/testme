@@ -70,9 +70,25 @@ setx PATH "$($env:PATH);$env:USERPROFILE\.bun\bin"
 
 ### Quick Install
 
+**Important:** Bun requires the `--trust` flag to run postinstall scripts.
+
 ```bash
-bun install -g @embedthis/testme
+# Using Bun (recommended)
+bun install -g --trust @embedthis/testme
+
+# Using npm
+npm install -g @embedthis/testme
 ```
+
+**Verify installation:**
+```bash
+tm --version
+```
+
+**Troubleshooting:** If `tm` command is not found after installation with Bun:
+- You may have forgotten the `--trust` flag
+- Run the check script: `node node_modules/@embedthis/testme/bin/check-install.mjs`
+- Or manually install: `cd node_modules/@embedthis/testme && bun bin/install.mjs`
 
 ### Manual Installation from GitHub
 
