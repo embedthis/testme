@@ -168,9 +168,9 @@ export class ProcessManager {
 
         // On Windows, ensure PATH includes current directory for local scripts
         if (PlatformDetector.isWindows()) {
-            env.PATH = `.;${env.PATH}`;
+            env.PATH = `.;${env.PATH || process.env.PATH || ''}`;
         } else {
-            env.PATH = `.:${env.PATH}`;
+            env.PATH = `.:${env.PATH || process.env.PATH || ''}`;
         }
 
         return Bun.spawn([command, ...args], {

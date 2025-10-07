@@ -55,7 +55,7 @@ async function testProcessSpawning(): Promise<TestResult[]> {
     const isWindows = PlatformDetector.isWindows();
 
     // Test basic command execution
-    const command = isWindows ? "cmd.exe" : "echo";
+    const command = isWindows ? "C:\\Windows\\System32\\cmd.exe" : "echo";
     const args = isWindows ? ["/c", "echo", "test"] : ["test"];
 
     try {
@@ -93,7 +93,7 @@ async function testProcessEnvironment(): Promise<TestResult[]> {
     const envVarName = "TESTME_PROCESS_TEST";
     const envVarValue = "test-value-123";
 
-    const command = isWindows ? "cmd.exe" : "sh";
+    const command = isWindows ? "C:\\Windows\\System32\\cmd.exe" : "sh";
     const args = isWindows
         ? ["/c", "echo", `%${envVarName}%`]
         : ["-c", `echo $${envVarName}`];
@@ -132,7 +132,7 @@ async function testProcessWorkingDirectory(): Promise<TestResult[]> {
     await writeFile(testFilePath, "test", "utf-8");
 
     // Test working directory
-    const command = isWindows ? "cmd.exe" : "sh";
+    const command = isWindows ? "C:\\Windows\\System32\\cmd.exe" : "sh";
     const args = isWindows
         ? ["/c", "dir", "/b", testFileName]
         : ["-c", `ls ${testFileName}`];
@@ -197,11 +197,12 @@ async function testProcessKilling(): Promise<TestResult[]> {
     const results: TestResult[] = [];
     const isWindows = PlatformDetector.isWindows();
 
-    // Spawn a long-running process
-    const command = isWindows ? "cmd.exe" : "sh";
+    // Spawn a long-running process directly (not through shell)
+    // On Windows, use ping to localhost as a delay mechanism (pings 30 times with 1s delay)
+    const command = isWindows ? "C:\\Windows\\System32\\PING.EXE" : "sleep";
     const args = isWindows
-        ? ["/c", "timeout", "/t", "30", "/nobreak"]
-        : ["-c", "sleep 30"];
+        ? ["127.0.0.1", "-n", "30"]
+        : ["30"];
 
     const proc = ProcessManager.spawn(command, args);
     const pid = proc.pid;

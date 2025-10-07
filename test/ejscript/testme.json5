@@ -3,7 +3,7 @@
     // Tests are skipped if ejsc compiler is not found
 
     services: {
-        skip: './skip.sh',
+        skip: './skip.js',
     },
 
     compiler: {

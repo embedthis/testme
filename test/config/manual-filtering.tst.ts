@@ -35,15 +35,16 @@ async function test() {
     // Test 1: Running tm without patterns should NOT run manual tests
     console.log('\n1. Running tm without patterns (should skip manual tests)...');
     const result1 = await runTm([]);
-    // Should have no tests to run (all skipped)
-    if (!result1.stdout.includes('No tests discovered')) {
-        throw new Error('Manual tests should not run without explicit naming - expected "No tests discovered"');
+    // Should have no tests to run (all skipped) - check for Total: 0
+    if (!result1.stdout.includes('Total:   0')) {
+        console.log('STDOUT:', result1.stdout);
+        throw new Error('Manual tests should not run without explicit naming - expected "Total: 0"');
     }
     console.log('✓ Manual tests correctly skipped');
 
     // Test 2: Running tm with wildcard pattern should NOT run manual tests
-    console.log('\n2. Running tm with wildcard pattern *.tst.sh (should skip manual tests)...');
-    const result2 = await runTm(['*.tst.sh']);
+    console.log('\n2. Running tm with wildcard pattern *.tst.js (should skip manual tests)...');
+    const result2 = await runTm(['*.tst.js']);
     if (!result2.stdout.includes('No tests discovered') && !result2.stdout.includes('Total:   0')) {
         console.log('STDOUT:', result2.stdout);
         throw new Error('Manual tests should not run with wildcard patterns - expected "No tests discovered" or "Total: 0"');
@@ -62,8 +63,8 @@ async function test() {
     console.log('✓ Manual test correctly ran with explicit base name');
 
     // Test 4: Running tm with explicit full name should run the test
-    console.log('\n4. Running tm with explicit full name "manual.tst.sh" (should run manual test)...');
-    const result4 = await runTm(['manual.tst.sh']);
+    console.log('\n4. Running tm with explicit full name "manual.tst.js" (should run manual test)...');
+    const result4 = await runTm(['manual.tst.js']);
     if (!result4.stdout.includes('PASSED') || result4.exitCode !== 0) {
         throw new Error('Manual test should run and pass when explicitly named by full name');
     }
@@ -72,7 +73,7 @@ async function test() {
     // Test 5: List command should show manual tests
     console.log('\n5. Running tm --list with explicit pattern (should show manual tests)...');
     const result5 = await runTm(['--list', 'manual']);
-    if (!result5.stdout.includes('manual.tst.sh')) {
+    if (!result5.stdout.includes('manual.tst.js')) {
         console.log('STDOUT:', result5.stdout);
         throw new Error('Manual tests should appear in --list output when explicitly named');
     }
