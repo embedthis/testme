@@ -70,13 +70,11 @@ jobs:
 
             - name: Run test suite (Unix)
               if: runner.os != 'Windows'
-              run: |
-                  ../dist/tm test
+              run: dist/tm test
 
             - name: Run test suite (Windows)
               if: runner.os == 'Windows'
-              run: |
-                  ..\dist\tm.exe test
+              run: dist\tm.exe test
 
             - name: Upload test results
               if: failure()
