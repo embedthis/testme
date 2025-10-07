@@ -662,6 +662,8 @@ project/
 
 **Configuration Structure:**
 
+For a comprehensive example of all configuration options, see [doc/testme.json5](../../doc/testme.json5) which documents every available property with examples.
+
 ```typescript
 type TestConfig = {
     enable?: boolean | 'manual' // Enable (true), disable (false), or run only when explicitly named ('manual')

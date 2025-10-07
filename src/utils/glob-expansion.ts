@@ -140,8 +140,8 @@ export class GlobExpansion {
             cc = 'clang';
         }
 
-        // Determine profile (use provided, or from environment, or default to 'debug')
-        const profileValue = profile || process.env.PROFILE || 'debug';
+        // Determine profile (use provided, or from environment, or default to 'dev')
+        const profileValue = profile || process.env.PROFILE || 'dev';
 
         return {
             TESTDIR: testDirRel,

@@ -30,7 +30,7 @@ export type TestResult = {
 export type TestConfig = {
   enable?: boolean | 'manual'; // Enable (true), disable (false), or run only when explicitly named ('manual')
   depth?: number; // Minimum depth required to run tests in this directory (default: 0)
-  profile?: string; // Build profile (dev, prod, debug, release, etc.) - defaults to env.PROFILE or 'debug'
+  profile?: string; // Build profile (dev, prod, debug, release, etc.) - defaults to env.PROFILE or 'dev'
   compiler?: CompilerConfig;
   debug?: DebugConfig;
   execution?: ExecutionConfig;

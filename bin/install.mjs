@@ -60,11 +60,12 @@ function buildBinary() {
 function installBinary() {
     const platform = os.platform()
     const binarySrc = platform === 'win32' ? path.join('dist', 'tm.exe') : 'dist/tm'
-    const binaryDest = path.join(os.homedir(), '.bun', 'bin', platform == 'win32' ? 'tm.exe' : 'tm')
+    const binDir = path.join(os.homedir(), '.bun', 'bin')
+    const binaryDest = path.join(binDir, platform === 'win32' ? 'tm.exe' : 'tm')
+    const binaryActual = path.join(binDir, platform === 'win32' ? 'tm-bin.exe' : 'tm-bin')
 
     try {
-        const binDir = path.dirname(binaryDest)
-        log(`Installing tm binary to ${binaryDest}...`)
+        log(`Installing tm binary to ${binDir}...`)
         // Create directory structure recursively if it doesn't exist
         if (!fs.existsSync(binDir)) {
             log(`Creating directory ${binDir}...`)
@@ -73,13 +74,26 @@ function installBinary() {
         if (!fs.existsSync(binarySrc)) {
             throw new Error(`Source file not found: ${binarySrc}`)
         }
-        fs.copyFileSync(binarySrc, binaryDest)
-        if (platform !== 'win32') {
+
+        // Install the actual binary with -bin suffix
+        fs.copyFileSync(binarySrc, binaryActual)
+        fs.chmodSync(binaryActual, 0o755)
+
+        // Create wrapper script for Unix or batch file for Windows
+        if (platform === 'win32') {
+            // Windows batch wrapper
+            const wrapperContent = `@echo off\r\nset TM_INVOCATION_DIR=%CD%\r\n"${binaryActual}" %*\r\n`
+            fs.writeFileSync(binaryDest, wrapperContent, 'utf-8')
+        } else {
+            // Unix shell wrapper
+            const wrapperContent = `#!/bin/sh\nexport TM_INVOCATION_DIR="$(pwd)"\nexec "${binaryActual}" "$@"\n`
+            fs.writeFileSync(binaryDest, wrapperContent, 'utf-8')
             fs.chmodSync(binaryDest, 0o755)
         }
-        log('Binary installed successfully')
+
+        log('Binary and wrapper installed successfully')
     } catch (err) {
-        error(`Could not install binary to ${binaryDest}: ${err.message}`)
+        error(`Could not install binary to ${binDir}: ${err.message}`)
         error('You can manually copy the binary from dist/tm to your PATH.')
     }
 }

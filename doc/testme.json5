@@ -4,7 +4,9 @@
 {
     /*
         Enable or disable tests in this directory
-        Set to false to disable all tests in this directory
+        - true: Enable tests (default)
+        - false: Disable tests completely
+        - 'manual': Only run when explicitly named on command line
      */
     enable: true,
 
@@ -13,6 +15,13 @@
         Use tm --depth N to run tests with depth <= N
      */
     depth: 0,
+
+    /*
+        Build profile (dev, prod, debug, release, etc.)
+        Priority: --profile CLI arg > env.PROFILE > 'dev' (default)
+        Used in ${PROFILE} variable expansion
+     */
+    profile: 'dev',
 
     /*
          Compiler configuration for different languages
@@ -130,13 +139,20 @@
         timeout: 30000, // Timeout per test in milliseconds
         parallel: true, // Run tests in parallel
         workers: 4, // Number of parallel workers
+        // keepArtifacts: false, // Keep .testme directories after tests (CLI: --keep)
+        // stepMode: false, // Pause after each test (CLI: --step)
+        // depth: 0, // Minimum depth to run tests (CLI: --depth)
+        // debugMode: false, // Run tests under debugger (CLI: --debug)
+        // showCommands: false, // Show compiler/debugger commands (CLI: --show)
     },
 
     // Output formatting options
     output: {
-        verbose: false, // Show detailed output
+        verbose: false, // Show detailed output (CLI: --verbose)
         format: 'simple', // Output format: simple, detailed, json
         colors: true, // Enable colored output
+        // quiet: false, // Suppress all output except errors (CLI: --quiet)
+        // errorsOnly: false, // Show only failed tests (CLI: --errors-only)
     },
 
     // File discovery patterns
