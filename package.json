@@ -1,7 +1,7 @@
 {
     "name": "@embedthis/testme",
     "owner": "embedthis",
-    "version": "0.8.5",
+    "version": "0.8.6",
     "description": "Multi-language test runner for shell, C, JavaScript, TypeScript, Python, and Go tests",
     "author": "Embedthis Software",
     "license": "GPL-2.0",
@@ -37,8 +37,8 @@
         "src/**/*.ts",
         "src/**/*.js",
         "src/**/*.d.ts",
+        "src/modules/c/testme.h",
         "src/modules/es/testme.mod",
-        "test/testme.h",
         "doc/tm.1",
         "testme.ts",
         "README.md",

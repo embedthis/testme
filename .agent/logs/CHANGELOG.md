@@ -2,6 +2,15 @@
 
 ## 2025-10-07
 
+### NPM Package Fixes
+
+-   **FIX**: Fixed NPM package missing `testme.h` header file
+    -   Issue: `[testme install] ERROR: Could not install testme.h header: Source file not found`
+    -   Root cause: `package.json` files array listed incorrect path `test/testme.h` instead of `src/modules/c/testme.h`
+    -   Solution: Updated files array to include correct path `src/modules/c/testme.h`
+    -   Removed incorrect `test/testme.h` entry that was never a valid path
+    -   Package now includes both C header (`testme.h`) and Ejscript module (`testme.mod`) for installation
+
 ### Windows CI Fixes
 
 -   **FIX**: Fixed MSVC PDB file conflicts when compiling C tests in parallel on Windows
