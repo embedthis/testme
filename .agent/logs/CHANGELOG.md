@@ -4,6 +4,12 @@
 
 ### Windows PATH Handling and Environment Variable Type Safety
 
+-   **FIX**: Sanitize corrupted PATH entries on Windows
+    -   Fixed issue where double backslashes in `process.env.PATH` (e.g., `C:\\ghcup\bin`) break PATH resolution
+    -   GitHub Actions Windows runners have corrupted PATH entries that prevent executables from being found
+    -   When expanding `${PATH}`, automatically fix double backslashes: `C:\\dir` → `C:\dir` ([src/utils/glob-expansion.ts](../../src/utils/glob-expansion.ts:226-229))
+    -   Preserves UNC paths (network paths starting with `\\`) which legitimately use double backslashes
+    -   Fixes cleanup script failures when custom PATH is prepended to system PATH
 -   **FIX**: Fixed PATH handling on Windows to be robust against corrupted environment variables
     -   Modified `runCommand()` to explicitly copy environment variables instead of spreading ([src/handlers/base.ts](../../src/handlers/base.ts:65-88))
     -   On Windows, when custom PATH is defined in config, removes all case variants (Path, path) to ensure only uppercase PATH is used
