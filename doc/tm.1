@@ -23,6 +23,9 @@ Clean all .testme artifact directories. Removes compilation outputs and temporar
 .BR \-c ", " \-\-config " " \fIFILE\fR
 Use specific configuration file instead of searching for testme.json5.
 .TP
+.BR \-\-continue
+Continue running tests even if some fail, and always exit with status 0. Useful for CI/CD environments where you want to collect all test results regardless of failures.
+.TP
 .BR \-d ", " \-\-debug
 Launch debugger for C tests. Uses GDB on Linux and Xcode on macOS.
 .TP
@@ -339,19 +342,32 @@ The skip command runs first to determine if tests should be executed. Exit code 
 The prep command runs once before all tests begin and waits for completion. The setup command starts a background service that runs during test execution. The \fBdelay\fR field specifies milliseconds to wait after the setup service starts before beginning test execution, allowing time for service initialization. The cleanup command runs after all tests complete to clean up resources.
 
 .SS Environment Variables
-Configure environment variables available to all tests during execution:
+Configure environment variables available to all tests during execution. Supports platform-specific overrides via \fBwindows\fR, \fBmacosx\fR, and \fBlinux\fR keys:
 .nf
 {
     env: {
-        BIN: "${../build/*/bin}",           // Expands to build directory
-        LIB_PATH: "${../lib}",              // Points to library directory
-        TEST_DATA: "${./test-data/*.json}", // Expands to test data files
-        API_URL: "http://localhost:8080"    // Static values work too
+        // Base environment variables (all platforms)
+        TEST_MODE: "integration",
+        BIN: "${../build/*/bin}",
+
+        // Platform-specific variables (merged with base)
+        windows: {
+            PATH: "${../build/*/bin};%PATH%",
+            LIB_EXT: ".dll"
+        },
+        linux: {
+            LD_LIBRARY_PATH: "${../build/*/bin}:$LD_LIBRARY_PATH",
+            LIB_EXT: ".so"
+        },
+        macosx: {
+            DYLD_LIBRARY_PATH: "${../build/*/bin}:$DYLD_LIBRARY_PATH",
+            LIB_EXT: ".dylib"
+        }
     }
 }
 .fi
 
-Environment variable values support \fB${...}\fR expansion using glob patterns. Paths are resolved relative to the configuration file's directory. This is useful for providing dynamic paths to build artifacts, libraries, and test data.
+Environment variable values support \fB${...}\fR expansion using glob patterns. Paths are resolved relative to the configuration file's directory. Platform-specific variables are merged with base variables, with platform values overriding base values on matching platforms. This is useful for providing dynamic paths to build artifacts, libraries, and test data.
 
 .SS Special Variables
 TestMe provides special variables that can be used in compiler flags, library paths, and environment variables:
