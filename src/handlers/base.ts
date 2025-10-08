@@ -62,9 +62,31 @@ export abstract class BaseTestHandler implements TestHandler {
             env?: Record<string, string>;
         } = {}
     ): Promise<{ exitCode: number; stdout: string; stderr: string }> {
+        // Build environment - be defensive about PATH handling
+        const spawnEnv: Record<string, string> = {};
+
+        // Copy process.env, but skip PATH variants to avoid corruption
+        for (const [key, value] of Object.entries(process.env)) {
+            if (key.toUpperCase() !== 'PATH') {
+                spawnEnv[key] = value || '';
+            }
+        }
+
+        // Then add our options.env (which may include clean PATH)
+        for (const [key, value] of Object.entries(options.env || {})) {
+            spawnEnv[key] = value;
+        }
+
+        // On Windows, normalize PATH key and ensure it's set correctly
+        if (PlatformDetector.isWindows() && spawnEnv.PATH) {
+            // Remove any case variants, keep only uppercase PATH
+            delete spawnEnv.Path;
+            delete spawnEnv.path;
+        }
+
         const proc = Bun.spawn([command, ...args], {
             cwd: options.cwd,
-            env: { ...process.env, ...options.env },
+            env: spawnEnv,
             stdout: "pipe",
             stderr: "pipe",
             stdin: "ignore",
@@ -201,11 +223,13 @@ Original error: ${error}`;
                     baseDir,
                     specialVars
                 );
-                // Convert path separators for PATH variable on Windows
-                if (key === 'PATH' && PlatformDetector.isWindows()) {
+                // Normalize PATH variable on Windows (Path, path -> PATH)
+                let envKey = key;
+                if (PlatformDetector.isWindows() && key.toUpperCase() === 'PATH') {
+                    envKey = 'PATH';
                     expandedValue = this.convertPathSeparators(expandedValue);
                 }
-                env[key] = expandedValue;
+                env[envKey] = expandedValue;
             }
 
             // Then, merge platform-specific environment variables
@@ -217,11 +241,13 @@ Original error: ${error}`;
                         baseDir,
                         specialVars
                     );
-                    // Convert path separators for PATH variable on Windows
-                    if (key === 'PATH' && PlatformDetector.isWindows()) {
+                    // Normalize PATH variable on Windows (Path, path -> PATH)
+                    let envKey = key;
+                    if (PlatformDetector.isWindows() && key.toUpperCase() === 'PATH') {
+                        envKey = 'PATH';
                         expandedValue = this.convertPathSeparators(expandedValue);
                     }
-                    env[key] = expandedValue;
+                    env[envKey] = expandedValue;
                 }
             }
         }
