@@ -568,9 +568,19 @@ This enables:
         delay: 3000,
     },
     env: {
-        BIN: '${../build/*/bin}',
-        LIB_PATH: '${../lib}',
-        TEST_DATA: '${./test-data/*.json}',
+        // Common environment variables for all platforms
+        TEST_MODE: 'integration',
+
+        // Platform-specific environment variables (merged with base)
+        windows: {
+            PATH: '${../build/*/bin};%PATH%',
+        },
+        linux: {
+            LD_LIBRARY_PATH: '${../build/*/bin}:$LD_LIBRARY_PATH',
+        },
+        macosx: {
+            DYLD_LIBRARY_PATH: '${../build/*/bin}:$DYLD_LIBRARY_PATH',
+        },
     },
 }
 ```
@@ -782,17 +792,32 @@ On macOS/Linux, the effective patterns would be:
 -   `env` - Object defining environment variables to set during test execution
 -   Environment variable values support `${...}` expansion using glob patterns
 -   Paths are resolved relative to the configuration file's directory
+-   Supports platform-specific overrides via `windows`, `macosx`, and `linux` keys
+-   Platform-specific variables are merged with base variables (platform values override base)
 -   Useful for providing dynamic paths to build artifacts, libraries, and test data
 
 **Examples:**
 
-```json
+```json5
 {
-    "env": {
-        "BIN": "${../build/*/bin}", // Expands to build directory path
-        "LIB_PATH": "${../lib}", // Points to library directory
-        "TEST_DATA": "${./test-data/*.json}", // Expands to test data files
-        "API_URL": "http://localhost:8080" // Static values work too
+    env: {
+        // Base environment variables (all platforms)
+        TEST_MODE: 'integration',
+        BIN: '${../build/*/bin}',
+
+        // Platform-specific overrides (merged with base)
+        windows: {
+            PATH: '${../build/*/bin};%PATH%',
+            LIB_EXT: '.dll',
+        },
+        linux: {
+            LD_LIBRARY_PATH: '${../build/*/bin}:$LD_LIBRARY_PATH',
+            LIB_EXT: '.so',
+        },
+        macosx: {
+            DYLD_LIBRARY_PATH: '${../build/*/bin}:$DYLD_LIBRARY_PATH',
+            LIB_EXT: '.dylib',
+        },
     }
 }
 ```

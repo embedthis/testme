@@ -648,17 +648,33 @@ TestMe implements a hierarchical configuration system that supports nested `test
 -   **Configuration merging**: Test-specific configurations are merged with global settings, with test-specific values taking precedence
 -   **CLI preservation**: Command-line arguments override both test-specific and project-wide configuration values
 
-This allows project-wide defaults at the repository root with test-specific overrides in subdirectories. For example:
+**Configuration Inheritance:**
+
+TestMe supports explicit inheritance from parent configurations using the `inherit` field:
+
+-   **`inherit: true`** - Inherit all keys from parent config (compiler, debug, execution, output, patterns, services, env, profile)
+-   **`inherit: ['env', 'compiler']`** - Selective inheritance of specified keys only
+-   **`inherit: false` or omitted** - No inheritance (default behavior, uses only nearest config)
+
+Inheritance features:
+-   **Recursive**: Parent configs can also inherit from their parents, creating a chain
+-   **Deep merge for objects**: Environment variables and compiler settings are combined (child + parent)
+-   **Array concatenation**: Flags and libraries lists append parent items first, then child items
+-   **Child overrides**: Primitive values from child always override parent values
+
+Example with inheritance:
 
 ```
 project/
-├── testme.json5          # Project defaults
+├── testme.json5          # Project-wide settings (env, compiler flags)
 ├── module-a/
-│   ├── testme.json5      # Module-specific settings
-│   └── test.tst.c
+│   ├── testme.json5      # inherit: ['env', 'compiler'] + module-specific additions
+│   └── test.tst.c        # Gets both project and module settings
 └── module-b/
-    └── test.tst.c        # Uses project defaults
+    └── test.tst.c        # Uses only project defaults (no inherit)
 ```
+
+Without `inherit`, only the nearest `testme.json5` is used. With `inherit`, child configs can build upon parent settings.
 
 **Configuration Structure:**
 
@@ -700,6 +716,46 @@ All levels are **merged** (not replaced), allowing fine-grained control:
 - + GCC-specific: `-I../gcc-headers`
 - + Platform-specific: `-D_GNU_SOURCE`
 - Libraries: `-lm -lpthread -lrt`
+
+**Variable Expansion System:**
+
+TestMe supports `${...}` patterns in configuration values with multiple expansion modes:
+
+1. **Special Variables** (highest priority):
+   - `${TESTDIR}` - Relative path from executable to test directory
+   - `${CONFIGDIR}` - Relative path from executable to config directory
+   - `${OS}` - Operating system (macosx, linux, windows)
+   - `${ARCH}` - CPU architecture (arm64, x64, x86)
+   - `${PLATFORM}` - Combined OS-ARCH (e.g., macosx-arm64)
+   - `${CC}` - Compiler name (gcc, clang, msvc)
+   - `${PROFILE}` - Build profile (priority: CLI --profile > config > env.PROFILE > 'dev')
+
+2. **Environment Variables** (middle priority):
+   - `${PATH}` - Current system PATH
+   - `${HOME}` - User home directory
+   - `${USER}` - Current username
+   - Any other environment variable via `${VAR_NAME}`
+
+3. **Glob Patterns** (lowest priority):
+   - `${../build/*/bin}` - Glob expansion to matching paths
+
+**Expansion Priority**: Special variables → Environment variables → Glob patterns
+
+**Expansion Capabilities and Limitations:**
+- **Multiple variables**: `PATH: '${HOME}/bin:${PATH}'` - both expand independently
+- **Sequential expansion**: Variables can reference other variables defined earlier
+- **NOT supported**: Nested expansion like `${${VAR}}` - only single-level expansion
+- **Single-pass**: Each variable is expanded once, not recursively re-evaluated
+
+**Cross-Platform PATH Handling:**
+
+TestMe automatically converts path separators for the PATH environment variable on Windows:
+- Configuration uses Unix-style `:` separators on all platforms
+- Windows automatically converts `:` to `;` for PATH variable only
+- Preserves drive letters (C:\, D:\) during conversion
+- Example: `PATH: 'mydir:${PATH}'` becomes `mydir;C:\Windows\System32` on Windows
+
+This enables cross-platform configuration files without platform-specific PATH syntax.
 
 ```typescript
 type TestConfig = {

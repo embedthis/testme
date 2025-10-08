@@ -1,5 +1,184 @@
 # TestMe Changelog
 
+## 2025-10-08
+
+### Configuration Inheritance System
+
+-   **DEV**: Added hierarchical configuration inheritance
+    -   Child configs can now inherit settings from parent directory's testme.json5
+    -   `inherit: true` - inherit all keys from parent (compiler, debug, execution, output, patterns, services, env, profile)
+    -   `inherit: ['env', 'compiler']` - selective inheritance of specified keys only
+    -   `inherit: false` or omitted - no inheritance (default behavior)
+    -   Recursive inheritance - parent configs can also inherit from their parents
+    -   Deep merge for objects (env variables, compiler settings) - child and parent values combined
+    -   Array concatenation for lists (flags, libraries) - parent items first, then child items
+    -   Primitives from child always override parent values
+    -   Added `inherit` field to TestConfig type ([src/types.ts](../../src/types.ts:34))
+    -   Implemented in ConfigManager ([src/config.ts](../../src/config.ts:132-305)):
+        -   `loadParentConfig()` - recursively loads parent configurations
+        -   `mergeInheritedConfig()` - merges child with parent based on inherit settings
+        -   `deepMerge()` - deep merges objects and concatenates arrays
+    -   Example: parent has `flags: ['-O2']`, child has `inherit: ['compiler']` and `flags: ['-g']`, result has both `-O2` and `-g`
+    -   Updated documentation in [doc/testme.json5](../../doc/testme.json5:26-41)
+    -   Added comprehensive unit test ([test/config/inherit/child/test-inherit.tst.ts](../../test/config/inherit/child/test-inherit.tst.ts))
+
+### Environment Variable Expansion
+
+-   **DEV**: Added environment variable fallback in ${...} expansion
+    -   Any `${VAR}` pattern now checks `process.env.VAR` if not a special variable or glob
+    -   Supports common environment variables: `${PATH}`, `${HOME}`, `${USER}`, etc.
+    -   Priority order: Special variables (${TESTDIR}, ${OS}) → Environment variables (${PATH}) → Glob patterns
+    -   Added `substituteEnvironmentVariables()` method ([src/utils/glob-expansion.ts](../../src/utils/glob-expansion.ts:206-220))
+    -   Updated expansion order in `expandString()` ([src/utils/glob-expansion.ts](../../src/utils/glob-expansion.ts:36-41))
+    -   Example: `env: { PATH: 'mydir:${PATH}' }` expands ${PATH} to current PATH value
+    -   Added unit test ([test/portable/env-path.tst.ts](../../test/portable/env-path.tst.ts))
+
+### Automatic PATH Separator Conversion for Windows
+
+-   **DEV**: Added automatic path separator conversion for Windows
+    -   Unix-style `:` separators automatically converted to `;` on Windows for PATH variable
+    -   Only affects PATH environment variable on Windows platform
+    -   Preserves drive letters (e.g., `C:\`, `D:\`) during conversion
+    -   Added `convertPathSeparators()` method ([src/handlers/base.ts](../../src/handlers/base.ts:221-225))
+    -   Applied in `getTestEnvironment()` when setting PATH ([src/handlers/base.ts](../../src/handlers/base.ts:190-192, 205-207))
+    -   Enables cross-platform configuration: write `PATH: 'bin:${PATH}'` once, works on all platforms
+    -   Updated documentation ([doc/testme.json5](../../doc/testme.json5:207-210))
+
+### Environment Variable Tracing with --show
+
+-   **DEV**: Enhanced --show flag to display environment variables
+    -   `--show` now displays TestMe-defined environment variables before compilation
+    -   `--show --verbose` displays full environment (all system variables)
+    -   Shows during C test compilation for debugging configuration issues
+    -   Added to C handler ([src/handlers/c.ts](../../src/handlers/c.ts:278-295))
+    -   Output format:
+        ```
+        🌍 TestMe environment variables:
+           BIN=/path/to/bin
+           TEST_VAR=value
+
+        🌍 Full environment (96 variables):  # with --verbose
+           PATH=/usr/bin:/bin
+           ...
+        ```
+
+### Debugger Environment Support
+
+-   **DEV**: Added environment variable support to all debuggers
+    -   **Xcode**: Environment variables included in generated project scheme with platform-specific merging
+        -   Updated Xcode project generation ([src/artifacts.ts](../../src/artifacts.ts:300-343))
+        -   Properly merges base and platform-specific env vars for macOS
+    -   **VS Code**: Environment variables added to launch.json configuration
+        -   Updated VS Code debug config ([src/handlers/c.ts](../../src/handlers/c.ts:1022-1024))
+        -   Uses `getTestEnvironment()` to get fully-expanded variables
+    -   **GDB/LLDB**: Already supported via runCommand() env parameter (verified)
+    -   **Go debuggers**: Already supported for Delve and VS Code (verified)
+    -   **Visual Studio**: Launched via GUI, environment must be set in project properties
+    -   All debuggers now receive TestMe environment variables automatically during debug sessions
+
+### Bug Fixes
+
+-   **FIX**: Fixed Go test timeout on Windows
+    -   Added `stdin: "ignore"` to `Bun.spawn()` to prevent commands hanging while waiting for stdin
+    -   Go tests no longer timeout at 30 seconds on Windows CI
+    -   Updated base handler ([src/handlers/base.ts](../../src/handlers/base.ts:70))
+
+-   **FIX**: Enhanced error reporting for silent test failures
+    -   Tests that fail with no output now show diagnostic help message
+    -   Helpful hints for silent crashes, access violations, missing DLLs on Windows
+    -   Added to reporter ([src/reporter.ts](../../src/reporter.ts:161-171))
+    -   Message includes common causes and troubleshooting steps
+
+### Documentation Updates
+
+-   **DOC**: Updated testme.json5 documentation with inheritance examples
+-   **DOC**: Documented environment variable expansion and PATH conversion
+-   **DOC**: Updated all debugger sections to mention environment variable support
+-   **DOC**: Added cross-platform PATH configuration examples
+
+### Test Coverage
+
+-   **TEST**: Added environment variable expansion test ([test/portable/env-path.tst.ts](../../test/portable/env-path.tst.ts))
+-   **TEST**: Added configuration inheritance test ([test/config/inherit/child/test-inherit.tst.ts](../../test/config/inherit/child/test-inherit.tst.ts))
+-   All tests passing: 27/27 (including 2 new tests)
+
+## 2025-10-08 (earlier)
+
+### Platform-Specific Environment Variables
+
+-   **DEV**: Added platform-specific environment variable support
+    -   Environment variables now support `windows`, `macosx`, and `linux` subsections
+    -   Platform-specific variables are merged with base variables (additive)
+    -   Platform values override base values for matching keys
+    -   Example: `env: { TEST_MODE: 'dev', windows: { PATH: '...' }, linux: { LD_LIBRARY_PATH: '...' } }`
+    -   Updated TypeScript types ([src/types.ts](../../src/types.ts:169-180))
+    -   Modified `getTestEnvironment()` in BaseTestHandler ([src/handlers/base.ts](../../src/handlers/base.ts:154-205))
+    -   Updated documentation: [README.md](../../README.md), [doc/testme.json5](../../doc/testme.json5:197-226), [doc/tm.1](../../doc/tm.1)
+    -   Allows platform-specific library paths (PATH, LD_LIBRARY_PATH, DYLD_LIBRARY_PATH)
+    -   All tests pass with new functionality
+
+### MSVC Compiler Fixes
+
+-   **FIX**: Fixed `/LIBPATH:` relative path resolution for MSVC
+    -   Added support for resolving relative paths in `/LIBPATH:` flags
+    -   `/LIBPATH:../build/...` now correctly resolves to absolute paths based on config directory
+    -   Updated `resolveRelativePaths()` method ([src/handlers/c.ts](../../src/handlers/c.ts:1077-1086))
+    -   Ensures library paths are correctly resolved during Windows builds
+
+-   **FIX**: Fixed MSVC linker flag ordering
+    -   Separated compiler flags from linker flags to ensure proper MSVC command structure
+    -   `/LIBPATH:`, `.lib`, and `.obj` files now correctly placed after `/link` separator
+    -   Command structure: `cl.exe [compiler flags] /Fe:output.exe input.c /link [linker flags] [libraries]`
+    -   Updated compilation logic ([src/handlers/c.ts](../../src/handlers/c.ts:227-261))
+    -   Prevents linker errors from flags appearing in wrong order
+
+-   **FIX**: Fixed MSVC library name handling - removed incorrect "lib" prefix stripping
+    -   Library name `libr` now correctly becomes `libr.lib` instead of `r.lib`
+    -   MSVC library files keep their exact names without prefix manipulation
+    -   GCC/Clang still correctly strips "lib" prefix (`libr` → `-lr`)
+    -   Updated `processLibraries()` method ([src/platform/compiler.ts](../../src/platform/compiler.ts:496-505))
+    -   Fixes linker errors when libraries have "lib" prefix on Windows
+
+### Installation Improvements
+
+-   **FIX**: Improved installation error messages
+    -   Enhanced error reporting in `bin/install.mjs` to show actual error details
+    -   Added stderr capture and display for `bun link` failures
+    -   Added error code display for filesystem operations
+    -   Changed `stdio: 'ignore'` to `stdio: 'pipe'` for better error visibility
+    -   Helps users diagnose installation failures more easily
+
+-   **FIX**: Fixed postinstall error handling to only fail on actual errors
+    -   Updated `bin/postinstall.mjs` to check exit code instead of catching all exceptions
+    -   Only fails installation if exit code is non-zero
+    -   Prevents false failures from stderr output that doesn't indicate actual errors
+    -   Improves installation reliability
+
+-   **FIX**: Removed circular dependency causing Bun installation loop
+    -   Removed `trustedDependencies` from `package.json` that referenced the package itself
+    -   Fixes "Package has a dependency loop" error during `bun install -g`
+    -   Installation now works correctly with both npm and Bun
+
+### CLI Enhancements
+
+-   **DEV**: Added `--continue` flag for CI/CD environments
+    -   Tests continue running even if some fail
+    -   Always exits with status code 0 when `--continue` is used
+    -   Useful for collecting all test results in CI pipelines
+    -   Test failures are still reported in output, only exit code changes
+    -   Added to CliOptions type ([src/types.ts](../../src/types.ts:204))
+    -   Added CLI parsing ([src/cli.ts](../../src/cli.ts:165-168))
+    -   Modified exit logic ([src/index.ts](../../src/index.ts:484))
+    -   Updated help text and man page
+    -   Tested and verified working correctly
+
+### Documentation Updates
+
+-   **DOC**: Updated README.md with platform-specific environment variable examples
+-   **DOC**: Updated doc/testme.json5 with comprehensive env platform sections
+-   **DOC**: Updated man page (doc/tm.1) with env platform documentation and `--continue` flag
+-   **DOC**: Updated all documentation to reflect MSVC linker fixes
+
 ## 2025-10-07
 
 ### Bug Fixes
