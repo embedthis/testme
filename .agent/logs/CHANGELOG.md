@@ -2,6 +2,28 @@
 
 ## 2025-10-08
 
+### Windows PATH Handling and Environment Variable Type Safety
+
+-   **FIX**: Fixed PATH handling on Windows to be robust against corrupted environment variables
+    -   Modified `runCommand()` to explicitly copy environment variables instead of spreading ([src/handlers/base.ts](../../src/handlers/base.ts:65-88))
+    -   On Windows, when custom PATH is defined in config, removes all case variants (Path, path) to ensure only uppercase PATH is used
+    -   Prevents corrupted `process.env.PATH` from interfering with test execution
+    -   Allows configs like `PATH: '${PATH};./bin'` to correctly append to existing PATH
+    -   When no custom PATH defined, uses `process.env.PATH` so executables can be found
+-   **FIX**: Added type guards to prevent non-string values from being passed to GlobExpansion functions
+    -   Fixed TypeError: `input.includes is not a function` when platform-specific env config present
+    -   Added type checks in `getTestEnvironment()` ([src/handlers/base.ts](../../src/handlers/base.ts:220))
+    -   Added type checks in `getServiceEnvironment()` with platform-specific handling ([src/services.ts](../../src/services.ts:575,588))
+    -   Added type checks in artifact generation ([src/artifacts.ts](../../src/artifacts.ts:318,329))
+    -   Added defensive type guards in `expandSingle()` and `expandString()` with detailed error messages ([src/utils/glob-expansion.ts](../../src/utils/glob-expansion.ts:97,32))
+    -   All locations now skip platform-specific keys (windows/macosx/linux) and non-string values
+-   **DEV**: Normalized PATH variable name handling on Windows
+    -   All PATH variants (PATH, Path, path) normalized to uppercase PATH on Windows ([src/handlers/base.ts](../../src/handlers/base.ts:206-209, 227-234))
+    -   Ensures consistent PATH handling across different Windows environments
+    -   PATH separator conversion (`:` to `;`) applied automatically after normalization
+
+## 2025-10-08 (Earlier)
+
 ### Configuration Inheritance System
 
 -   **DEV**: Added hierarchical configuration inheritance

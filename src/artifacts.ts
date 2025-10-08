@@ -314,8 +314,8 @@ export class ArtifactManager implements IArtifactManager {
 
             // First, add base environment variables
             for (const [key, value] of Object.entries(config.env)) {
-                // Skip platform-specific keys
-                if (key === 'windows' || key === 'macosx' || key === 'linux') {
+                // Skip platform-specific keys and non-string values
+                if (key === 'windows' || key === 'macosx' || key === 'linux' || typeof value !== 'string') {
                     continue;
                 }
                 allEnvVars[key] = value;
@@ -325,6 +325,10 @@ export class ArtifactManager implements IArtifactManager {
             const platformEnv = config.env[platform];
             if (platformEnv) {
                 for (const [key, value] of Object.entries(platformEnv)) {
+                    // Skip non-string values
+                    if (typeof value !== 'string') {
+                        continue;
+                    }
                     allEnvVars[key] = value;
                 }
             }

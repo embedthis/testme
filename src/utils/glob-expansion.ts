@@ -28,6 +28,11 @@ export class GlobExpansion {
      @returns Promise resolving to array of expanded strings
      */
     static async expandString(input: string, baseDir: string = process.cwd(), specialVars?: SpecialVariables): Promise<string[]> {
+        // Type guard - ensure input is a string
+        if (typeof input !== 'string') {
+            throw new TypeError(`expandString expects a string, got ${typeof input}: ${JSON.stringify(input)}`);
+        }
+
         // If no ${...} pattern found, return input as-is
         if (!input.includes('${')) {
             return [input];
@@ -88,6 +93,11 @@ export class GlobExpansion {
      @returns Promise resolving to the first expanded string
      */
     static async expandSingle(input: string, baseDir: string = process.cwd(), specialVars?: SpecialVariables): Promise<string> {
+        // Type guard - ensure input is a string
+        if (typeof input !== 'string') {
+            throw new TypeError(`expandSingle expects a string, got ${typeof input}: ${JSON.stringify(input)}`);
+        }
+
         // If no ${...} pattern, return input as-is without expansion
         if (!input.includes('${')) {
             return input;

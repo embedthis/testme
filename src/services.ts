@@ -565,10 +565,33 @@ export class ServiceManager {
         if (config.env) {
             const baseDir = config.configDir || process.cwd();
 
+            // Determine current platform
+            const platform = process.platform === 'darwin' ? 'macosx' :
+                           process.platform === 'win32' ? 'windows' : 'linux';
+
+            // First, process base environment variables (exclude platform keys)
             for (const [key, value] of Object.entries(config.env)) {
+                // Skip platform-specific keys and non-string values
+                if (key === 'windows' || key === 'macosx' || key === 'linux' || typeof value !== 'string') {
+                    continue;
+                }
                 // Expand ${...} references in environment variable values
                 const expandedValue = await GlobExpansion.expandSingle(value, baseDir);
                 env[key] = expandedValue;
+            }
+
+            // Then, merge platform-specific environment variables
+            const platformEnv = config.env[platform];
+            if (platformEnv) {
+                for (const [key, value] of Object.entries(platformEnv)) {
+                    // Skip non-string values
+                    if (typeof value !== 'string') {
+                        continue;
+                    }
+                    // Expand ${...} references in environment variable values
+                    const expandedValue = await GlobExpansion.expandSingle(value, baseDir);
+                    env[key] = expandedValue;
+                }
             }
         }
 

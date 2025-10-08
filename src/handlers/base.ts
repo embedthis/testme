@@ -216,8 +216,8 @@ Original error: ${error}`;
 
             // First, process base environment variables (exclude platform keys)
             for (const [key, value] of Object.entries(config.env)) {
-                // Skip platform-specific keys
-                if (key === 'windows' || key === 'macosx' || key === 'linux') {
+                // Skip platform-specific keys and non-string values
+                if (key === 'windows' || key === 'macosx' || key === 'linux' || typeof value !== 'string') {
                     continue;
                 }
                 // Expand ${...} references in environment variable values
