@@ -298,13 +298,39 @@ export class ArtifactManager implements IArtifactManager {
         }
 
         // Generate environment variables for the scheme
+        // Note: We can't use getTestEnvironment() here as it's in BaseTestHandler
+        // So we replicate the logic for platform-specific env var merging
         let environmentVariables = '';
-        if (config.env && Object.keys(config.env).length > 0) {
+        if (config.env) {
             const baseDir = config.configDir || testFile.directory;
             const envVars: string[] = [];
 
+            // Determine current platform
+            const platform = process.platform === 'darwin' ? 'macosx' :
+                           process.platform === 'win32' ? 'windows' : 'linux';
+
+            // Collect all environment variables (base + platform-specific)
+            const allEnvVars: Record<string, string> = {};
+
+            // First, add base environment variables
             for (const [key, value] of Object.entries(config.env)) {
-                // Expand ${...} references in environment variable values
+                // Skip platform-specific keys
+                if (key === 'windows' || key === 'macosx' || key === 'linux') {
+                    continue;
+                }
+                allEnvVars[key] = value;
+            }
+
+            // Then, merge platform-specific environment variables
+            const platformEnv = config.env[platform];
+            if (platformEnv) {
+                for (const [key, value] of Object.entries(platformEnv)) {
+                    allEnvVars[key] = value;
+                }
+            }
+
+            // Expand ${...} references in environment variable values
+            for (const [key, value] of Object.entries(allEnvVars)) {
                 const expandedValue = await GlobExpansion.expandSingle(value, baseDir);
                 envVars.push(`        ${key}: "${expandedValue}"`);
             }

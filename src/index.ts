@@ -480,7 +480,8 @@ class TestMeApp {
             this.runner.reportFinalResults(allResults, baseConfig, rootDir);
         }
 
-        return totalExitCode;
+        // If --continue flag is set, always return 0 (success)
+        return options.continue ? 0 : totalExitCode;
     }
 
     /*

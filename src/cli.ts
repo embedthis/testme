@@ -25,6 +25,7 @@ export class CliParser {
             quiet: false,
             show: false,
             init: false,
+            continue: false,
         };
 
         let i = 0;
@@ -161,6 +162,11 @@ export class CliParser {
                     }
                     break;
 
+                case "--continue":
+                    options.continue = true;
+                    i++;
+                    break;
+
                 default:
                     if (arg.startsWith("-")) {
                         throw new Error(`Unknown option: ${arg}`);
@@ -200,6 +206,7 @@ OPTIONS:
         --chdir <DIR>      Change to directory before running tests
         --clean            Clean all .testme artifact directories
     -c, --config <FILE>    Use specific configuration file
+        --continue         Continue running tests even if some fail, always exit with 0
     -d, --debug            Launch debugger (GDB on Linux, Xcode on macOS)
         --depth <NUMBER>   Run tests with depth requirement <= NUMBER (default: 0)
     -h, --help             Show this help message

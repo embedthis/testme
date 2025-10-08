@@ -494,18 +494,17 @@ export class CompilerManager {
      */
     static processLibraries(libraries: string[], compilerType: CompilerType): string[] {
         if (compilerType === CompilerType.MSVC) {
-            // MSVC uses .lib files directly or via /link
+            // MSVC uses .lib files directly - just add .lib extension if not present
+            // Do NOT strip "lib" prefix - Windows library files keep their exact names
             return libraries.map(lib => {
                 if (lib.endsWith(".lib")) {
                     return lib;
-                } else if (lib.startsWith("lib")) {
-                    return lib.slice(3) + ".lib";
                 } else {
                     return lib + ".lib";
                 }
             });
         } else {
-            // GCC/Clang use -l flag
+            // GCC/Clang use -l flag and strip "lib" prefix if present
             return libraries.map(lib => {
                 if (lib.startsWith("-l")) {
                     return lib;

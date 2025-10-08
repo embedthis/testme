@@ -7,6 +7,7 @@ import {
 } from "../types.ts";
 import { GlobExpansion } from "../utils/glob-expansion.ts";
 import { ErrorMessages } from "../utils/error-messages.ts";
+import { PlatformDetector } from "../platform/detector.ts";
 
 /*
  Abstract base class for all test handlers
@@ -66,6 +67,7 @@ export abstract class BaseTestHandler implements TestHandler {
             env: { ...process.env, ...options.env },
             stdout: "pipe",
             stderr: "pipe",
+            stdin: "ignore",
         });
 
         let timeoutId: Timer | undefined;
@@ -169,17 +171,57 @@ Original error: ${error}`;
         if (config.env) {
             const baseDir = config.configDir || process.cwd();
 
+            // Determine current platform
+            const platform = PlatformDetector.isWindows() ? 'windows' :
+                           PlatformDetector.isMacOS() ? 'macosx' : 'linux';
+
+            // First, process base environment variables (exclude platform keys)
             for (const [key, value] of Object.entries(config.env)) {
+                // Skip platform-specific keys
+                if (key === 'windows' || key === 'macosx' || key === 'linux') {
+                    continue;
+                }
                 // Expand ${...} references in environment variable values
-                const expandedValue = await GlobExpansion.expandSingle(
+                let expandedValue = await GlobExpansion.expandSingle(
                     value,
                     baseDir
                 );
+                // Convert path separators for PATH variable on Windows
+                if (key === 'PATH' && PlatformDetector.isWindows()) {
+                    expandedValue = this.convertPathSeparators(expandedValue);
+                }
                 env[key] = expandedValue;
+            }
+
+            // Then, merge platform-specific environment variables
+            const platformEnv = config.env[platform];
+            if (platformEnv) {
+                for (const [key, value] of Object.entries(platformEnv)) {
+                    let expandedValue = await GlobExpansion.expandSingle(
+                        value,
+                        baseDir
+                    );
+                    // Convert path separators for PATH variable on Windows
+                    if (key === 'PATH' && PlatformDetector.isWindows()) {
+                        expandedValue = this.convertPathSeparators(expandedValue);
+                    }
+                    env[key] = expandedValue;
+                }
             }
         }
 
         return env;
+    }
+
+    /*
+     Converts Unix path separators (:) to Windows path separators (;)
+     @param path Path string with Unix-style separators
+     @returns Path string with Windows-style separators
+     */
+    private convertPathSeparators(path: string): string {
+        // Replace : with ; but avoid replacing : in drive letters (e.g., C:)
+        // Windows drive letters are followed by \ or / or end of string
+        return path.replace(/:(?![\\\/]|$)/g, ';');
     }
 
     /*

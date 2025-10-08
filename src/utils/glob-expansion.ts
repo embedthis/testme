@@ -33,10 +33,14 @@ export class GlobExpansion {
             return [input];
         }
 
-        // First, substitute special variables
+        // First, substitute special variables (${TESTDIR}, ${OS}, etc.)
+        // These take priority over environment variables
         let processed = this.substituteSpecialVariables(input, specialVars);
 
-        // If all ${...} patterns were special variables, we're done
+        // Then, substitute environment variables (${PATH}, ${HOME}, etc.)
+        processed = this.substituteEnvironmentVariables(processed);
+
+        // If all ${...} patterns were substituted, we're done
         if (!processed.includes('${')) {
             return [processed];
         }
@@ -88,6 +92,7 @@ export class GlobExpansion {
         if (!input.includes('${')) {
             return input;
         }
+
         const expanded = await this.expandString(input, baseDir, specialVars);
         return expanded[0] || input;
     }
@@ -191,6 +196,28 @@ export class GlobExpansion {
         }
 
         return result;
+    }
+
+    /*
+     Substitutes environment variables in a string
+     Checks process.env for any ${VAR} pattern and replaces with the env var value
+     @param input String potentially containing environment variables like ${PATH}
+     @returns String with environment variables replaced
+     */
+    private static substituteEnvironmentVariables(input: string): string {
+        // Match ${VAR} patterns that are not glob patterns (don't contain / or *)
+        const envVarRegex = /\$\{([A-Z_][A-Z0-9_]*)\}/g;
+
+        return input.replace(envVarRegex, (match, varName) => {
+            // Check if this environment variable exists
+            const envValue = process.env[varName];
+            if (envValue !== undefined) {
+                return envValue;
+            }
+            // If not found in environment, keep the original ${VAR} pattern
+            // so it can potentially be processed as a glob pattern later
+            return match;
+        });
     }
 
     /*

@@ -274,6 +274,24 @@ export class CTestHandler extends BaseTestHandler {
                 console.log(this.formatConfig(config));
                 console.log(`🔧 Compiler: ${compilerConfig.compiler} (${compilerConfig.type})`);
                 console.log(`📋 Compile command: ${compilerConfig.compiler} ${args.join(" ")}`);
+
+                // Show environment variables defined by TestMe
+                const testEnv = await this.getTestEnvironment(config);
+                if (Object.keys(testEnv).length > 0) {
+                    console.log(`\n🌍 TestMe environment variables:`);
+                    for (const [key, value] of Object.entries(testEnv)) {
+                        console.log(`   ${key}=${value}`);
+                    }
+                }
+
+                // Show full environment if verbose mode is enabled
+                if (config.output?.verbose) {
+                    console.log(`\n🌍 Full environment (${Object.keys(process.env).length} variables):`);
+                    const sortedKeys = Object.keys(process.env).sort();
+                    for (const key of sortedKeys) {
+                        console.log(`   ${key}=${process.env[key]}`);
+                    }
+                }
             }
 
             // Build environment for MSVC if needed
@@ -1001,6 +1019,10 @@ ${!vscodeOpened ? '\nTip: Install VS Code CLI by opening VS Code > Command Palet
             // Use cppdbg debugger type for Windows (works with both GDB and MSVC)
             const debuggerType = "cppdbg";
 
+            // Get test environment variables
+            const testEnv = await this.getTestEnvironment(config);
+            const environment = Object.entries(testEnv).map(([name, value]) => ({ name, value }));
+
             const launchConfig = {
                 version: "0.2.0",
                 configurations: [
@@ -1012,7 +1034,7 @@ ${!vscodeOpened ? '\nTip: Install VS Code CLI by opening VS Code > Command Palet
                         args: [],
                         stopAtEntry: true,
                         cwd: file.directory,
-                        environment: [],
+                        environment,
                         externalConsole: false,
                         MIMode: debuggerType === "cppdbg" ? "gdb" : undefined,
                         miDebuggerPath: debuggerType === "cppdbg" ? "gdb.exe" : undefined,

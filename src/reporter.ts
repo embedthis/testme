@@ -157,6 +157,18 @@ export class TestReporter {
       const convertedError = this.convertPathsToRelative(result.error);
       this.printIndented(convertedError, '     ');
     }
+
+    // If test failed/errored but has no output or error message, show diagnostic help
+    if ((result.status === TestStatus.Failed || result.status === TestStatus.Error) &&
+        !result.output && !result.error && result.exitCode !== 0) {
+      console.log('   Note:');
+      console.log('     Test failed with no output captured.');
+      console.log('     This may indicate:');
+      console.log('     - Program crashed or encountered an access violation');
+      console.log('     - Missing DLL or shared library dependency');
+      console.log('     - Segmentation fault or other fatal error');
+      console.log('     Try running the test binary directly to see native error messages.');
+    }
   }
 
   private printIndented(text: string, indent: string): void {

@@ -126,10 +126,19 @@ export class ConfigManager {
      * @remarks
      * This method walks up the directory tree starting from `startDir`, looking for
      * the first testme.json5 file. The found configuration is merged with default
-     * values to ensure all required properties are present.
+     * values to ensure all required properties are present. If the config specifies
+     * inheritance, parent configs are loaded and merged.
      */
     static async findConfig(startDir: string): Promise<TestConfig> {
         const { config, configDir } = await this.findConfigFile(startDir);
+
+        // If config has inherit field, load parent config and merge
+        if (config && config.inherit !== undefined && config.inherit !== false) {
+            const parentConfig = configDir ? await this.loadParentConfig(configDir) : null;
+            const inheritedConfig = this.mergeInheritedConfig(config, parentConfig);
+            return this.mergeWithDefaults(inheritedConfig, configDir);
+        }
+
         return this.mergeWithDefaults(config, configDir);
     }
 
@@ -170,6 +179,139 @@ export class ConfigManager {
         }
 
         return { config: null, configDir: null };
+    }
+
+    /**
+     * Loads parent configuration from parent directory
+     *
+     * @param currentConfigDir - Directory containing current config file
+     * @returns Parent configuration or null if no parent config found
+     *
+     * @internal
+     * @remarks
+     * Searches for testme.json5 in parent directories, starting from the parent
+     * of the current config directory. Parent configs can also have inherit,
+     * creating a chain of inheritance.
+     */
+    private static async loadParentConfig(currentConfigDir: string): Promise<Partial<TestConfig> | null> {
+        const parentDir = dirname(currentConfigDir);
+
+        // If we're at the root, no parent config
+        if (parentDir === currentConfigDir) {
+            return null;
+        }
+
+        // Search for config in parent directory and above
+        const { config: parentConfig, configDir: parentConfigDir } = await this.findConfigFile(parentDir);
+
+        if (!parentConfig) {
+            return null;
+        }
+
+        // If parent config also has inherit, recursively load its parent
+        if (parentConfig.inherit !== undefined && parentConfig.inherit !== false) {
+            const grandparentConfig = parentConfigDir ? await this.loadParentConfig(parentConfigDir) : null;
+            if (grandparentConfig) {
+                return this.mergeInheritedConfig(parentConfig, grandparentConfig);
+            }
+        }
+
+        return parentConfig;
+    }
+
+    /**
+     * Merges child config with parent config based on inherit settings
+     *
+     * @param childConfig - Child configuration with inherit field
+     * @param parentConfig - Parent configuration to inherit from
+     * @returns Merged configuration with inherited values
+     *
+     * @internal
+     * @remarks
+     * Inheritance modes:
+     * - inherit: true → inherit all keys from parent
+     * - inherit: ['env', 'compiler'] → inherit only specified keys
+     * - inherit: false or undefined → no inheritance
+     *
+     * Child settings always override parent settings (deep merge for objects).
+     */
+    private static mergeInheritedConfig(
+        childConfig: Partial<TestConfig>,
+        parentConfig: Partial<TestConfig> | null
+    ): Partial<TestConfig> {
+        if (!parentConfig || !childConfig.inherit) {
+            return childConfig;
+        }
+
+        // Determine which keys to inherit
+        const keysToInherit: string[] = childConfig.inherit === true
+            ? ['compiler', 'debug', 'execution', 'output', 'patterns', 'services', 'env', 'profile']
+            : Array.isArray(childConfig.inherit)
+            ? childConfig.inherit
+            : [];
+
+        const inherited: Partial<TestConfig> = { ...childConfig };
+
+        // Inherit specified keys from parent
+        for (const key of keysToInherit) {
+            if (key === 'compiler' && parentConfig.compiler) {
+                inherited.compiler = this.deepMerge(parentConfig.compiler, childConfig.compiler || {});
+            } else if (key === 'debug' && parentConfig.debug) {
+                inherited.debug = this.deepMerge(parentConfig.debug, childConfig.debug || {});
+            } else if (key === 'execution' && parentConfig.execution) {
+                inherited.execution = { ...parentConfig.execution, ...childConfig.execution };
+            } else if (key === 'output' && parentConfig.output) {
+                inherited.output = { ...parentConfig.output, ...childConfig.output };
+            } else if (key === 'patterns' && parentConfig.patterns) {
+                inherited.patterns = this.deepMerge(parentConfig.patterns, childConfig.patterns || {});
+            } else if (key === 'services' && parentConfig.services) {
+                inherited.services = { ...parentConfig.services, ...childConfig.services };
+            } else if (key === 'env' && parentConfig.env) {
+                inherited.env = this.deepMerge(parentConfig.env, childConfig.env || {});
+            } else if (key === 'profile' && parentConfig.profile && !childConfig.profile) {
+                inherited.profile = parentConfig.profile;
+            }
+        }
+
+        return inherited;
+    }
+
+    /**
+     * Deep merges two objects, with child values taking precedence
+     *
+     * @param parent - Parent object
+     * @param child - Child object (overrides parent)
+     * @returns Merged object
+     *
+     * @internal
+     * @remarks
+     * Arrays are concatenated (parent items first, then child items).
+     * Objects are recursively merged.
+     * Primitives from child override parent.
+     */
+    private static deepMerge(parent: any, child: any): any {
+        if (!parent) return child;
+        if (!child) return parent;
+
+        const result = { ...parent };
+
+        for (const key in child) {
+            if (child[key] !== undefined) {
+                if (Array.isArray(child[key])) {
+                    // Concatenate arrays (parent first, then child)
+                    const parentArray = Array.isArray(parent[key]) ? parent[key] : [];
+                    result[key] = [...parentArray, ...child[key]];
+                } else if (typeof child[key] === 'object' && child[key] !== null) {
+                    // Recursively merge objects
+                    result[key] = this.deepMerge(parent[key], child[key]);
+                } else {
+                    // Primitives from child override parent
+                    result[key] = child[key];
+                }
+            }
+        }
+
+        return result;
     }
 
     /**

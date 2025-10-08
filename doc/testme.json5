@@ -24,6 +24,23 @@
     profile: 'dev',
 
     /*
+        Inherit configuration from parent directory's testme.json5
+        - inherit: true → inherit all keys from parent (compiler, debug, execution, output, patterns, services, env, profile)
+        - inherit: ['env', 'compiler'] → inherit only specified keys
+        - inherit: false or omitted → no inheritance (default)
+
+        Inheritance is recursive - parent configs can also inherit from their parents.
+        Child settings always override parent settings (deep merge for objects like env and compiler).
+
+        Example use cases:
+        - Project root has common compiler flags and env vars
+        - Subdirectory inherits and adds module-specific settings
+        - Test directory inherits but overrides timeout for slow tests
+     */
+    // inherit: true,
+    // inherit: ['env', 'compiler', 'debug'],
+
+    /*
          Compiler configuration for different languages
      */
     compiler: {
@@ -194,9 +211,48 @@
         delay: 0, // Delay in milliseconds after setup before running tests
     },
 
-    // Environment variables to set for test execution
+    /*
+        Environment variables to set for test execution
+        Supports platform-specific overrides via windows, macosx, linux keys
+        Platform-specific variables are merged with base variables
+
+        Variable expansion:
+        - ${VAR} expands to environment variable VAR (e.g., ${PATH}, ${HOME})
+        - ${path/pattern} expands using glob patterns
+        - ${TESTDIR}, ${CONFIGDIR}, ${OS}, ${ARCH}, ${PLATFORM}, ${CC}, ${PROFILE} are special variables
+        - Expansion priority: Special variables → Environment variables → Glob patterns
+        - Multiple variables in one value: 'DIR: ${HOME}/bin:${PATH}' (both expand)
+        - Sequential expansion: Define BASE first, then use ${BASE} in other variables
+        - NOTE: Nested expansion like ${${VAR}} is NOT supported
+
+        Path separators:
+        - Use Unix-style : separators on all platforms
+        - Windows automatically converts : to ; for PATH variable
+        - Example: PATH: 'mydir:${PATH}' becomes 'mydir;C:\Windows;...' on Windows
+     */
     env: {
+        // Base environment variables (all platforms)
+        TEST_MODE: 'integration',
         BIN: '${../build/${PLATFORM}-${PROFILE}/bin}',
         HTTP: 'http://localhost:4100',
+
+        // Windows-specific environment variables (merged with base on Windows)
+        windows: {
+            // Use Unix-style : separator - automatically converted to ; on Windows
+            PATH: '${../build/${PLATFORM}-${PROFILE}/bin}:${PATH}',
+            LIB_EXT: '.dll',
+        },
+
+        // Linux-specific environment variables (merged with base on Linux)
+        linux: {
+            LD_LIBRARY_PATH: '${../build/${PLATFORM}-${PROFILE}/bin}:${LD_LIBRARY_PATH}',
+            LIB_EXT: '.so',
+        },
+
+        // macOS-specific environment variables (merged with base on macOS)
+        macosx: {
+            DYLD_LIBRARY_PATH: '${../build/${PLATFORM}-${PROFILE}/bin}:${DYLD_LIBRARY_PATH}',
+            LIB_EXT: '.dylib',
+        },
     },
 }

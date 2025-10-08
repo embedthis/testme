@@ -31,6 +31,7 @@ export type TestConfig = {
   enable?: boolean | 'manual'; // Enable (true), disable (false), or run only when explicitly named ('manual')
   depth?: number; // Minimum depth required to run tests in this directory (default: 0)
   profile?: string; // Build profile (dev, prod, debug, release, etc.) - defaults to env.PROFILE or 'dev'
+  inherit?: boolean | string[]; // Inherit from parent config: true (all), false (none), or array of keys to inherit
   compiler?: CompilerConfig;
   debug?: DebugConfig;
   execution?: ExecutionConfig;
@@ -164,9 +165,19 @@ export type ServiceConfig = {
 
 /*
  Configuration for environment variables to set during test execution
+ Supports platform-specific overrides via windows, macosx, linux keys
  */
 export type EnvironmentConfig = {
   [key: string]: string;
+  windows?: {
+    [key: string]: string;
+  };
+  macosx?: {
+    [key: string]: string;
+  };
+  linux?: {
+    [key: string]: string;
+  };
 }
 
 /*
@@ -191,6 +202,7 @@ export type CliOptions = {
   profile?: string;
   init: boolean;
   new?: string;
+  continue: boolean;
 }
 
 /*
