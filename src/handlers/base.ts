@@ -62,26 +62,29 @@ export abstract class BaseTestHandler implements TestHandler {
             env?: Record<string, string>;
         } = {}
     ): Promise<{ exitCode: number; stdout: string; stderr: string }> {
-        // Build environment - be defensive about PATH handling
+        // Build environment - be defensive about PATH handling on Windows
         const spawnEnv: Record<string, string> = {};
 
-        // Copy process.env, but skip PATH variants to avoid corruption
+        // Copy all environment variables
         for (const [key, value] of Object.entries(process.env)) {
-            if (key.toUpperCase() !== 'PATH') {
-                spawnEnv[key] = value || '';
+            if (value !== undefined) {
+                spawnEnv[key] = value;
             }
         }
 
-        // Then add our options.env (which may include clean PATH)
+        // Merge options.env
         for (const [key, value] of Object.entries(options.env || {})) {
             spawnEnv[key] = value;
         }
 
-        // On Windows, normalize PATH key and ensure it's set correctly
-        if (PlatformDetector.isWindows() && spawnEnv.PATH) {
-            // Remove any case variants, keep only uppercase PATH
-            delete spawnEnv.Path;
-            delete spawnEnv.path;
+        // On Windows, if we have a custom PATH, ensure it completely replaces any variants
+        if (PlatformDetector.isWindows() && options.env?.PATH) {
+            // Remove any case variants from process.env, keep only our uppercase PATH
+            for (const key of Object.keys(spawnEnv)) {
+                if (key !== 'PATH' && key.toUpperCase() === 'PATH') {
+                    delete spawnEnv[key];
+                }
+            }
         }
 
         const proc = Bun.spawn([command, ...args], {
