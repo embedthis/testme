@@ -1,0 +1,18 @@
+// Parent config
+{
+    env: {
+        PARENT_VAR: 'from_parent',
+        SHARED_VAR: 'parent_value',
+    },
+    compiler: {
+        c: {
+            flags: ['-DPARENT_FLAG'],
+            libraries: ['m'],
+        }
+    },
+    execution: {
+        timeout: 5000,
+        workers: 2,
+    },
+    profile: 'parent_profile',
+}

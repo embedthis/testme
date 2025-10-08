@@ -1,0 +1,17 @@
+// Child config - inherits env and compiler from parent
+{
+    inherit: ['env', 'compiler'],
+
+    env: {
+        CHILD_VAR: 'from_child',
+        SHARED_VAR: 'child_value', // Overrides parent
+    },
+    compiler: {
+        c: {
+            flags: ['-DCHILD_FLAG'], // Adds to parent flags
+        }
+    },
+    execution: {
+        timeout: 10000, // Not inherited, so uses default or this value
+    }
+}
