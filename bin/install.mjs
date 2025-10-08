@@ -83,6 +83,9 @@ function installBinary() {
         log('Binary installed successfully')
     } catch (err) {
         error(`Could not install binary to ${binDir}: ${err.message}`)
+        if (err.code) {
+            error(`  Error code: ${err.code}`)
+        }
         error('You can manually copy the binary from dist/tm to your PATH.')
     }
 }
@@ -108,6 +111,9 @@ function installSupportFiles() {
         log('Header installed successfully')
     } catch (err) {
         error(`Could not install testme.h header: ${err.message}`)
+        if (err.code) {
+            error(`  Error code: ${err.code}`)
+        }
         error('You may need to install it manually.')
     }
 
@@ -130,6 +136,9 @@ function installSupportFiles() {
             log('Man page installed successfully')
         } catch (err) {
             error(`Could not install man page: ${err.message}`)
+            if (err.code) {
+                error(`  Error code: ${err.code}`)
+            }
             error('You may need to install it manually.')
         }
     }
@@ -140,12 +149,17 @@ function installSupportFiles() {
         log('Linking JavaScript testme module via bun link...')
         execSync('bun link', {
             cwd: jsModuleDir,
-            stdio: 'ignore',
+            stdio: 'pipe',
         })
         log('JavaScript testme module linked successfully')
     } catch (err) {
         error('Could not link JavaScript testme module. You may need to run "bun link" manually.')
         error(`  cd ${path.join(__dirname, '..', 'src', 'modules', 'js')} && bun link`)
+        if (err.stderr) {
+            error(`  Error: ${err.stderr.toString().trim()}`)
+        } else if (err.message) {
+            error(`  Error: ${err.message}`)
+        }
     }
 
     // Install legacy Ejscript testme.mod if ejsc is available
@@ -181,6 +195,9 @@ function installSupportFiles() {
             log('Ejscript testme.mod installed successfully')
         } catch (err) {
             error(`Could not install Ejscript testme.mod: ${err.message}`)
+            if (err.code) {
+                error(`  Error code: ${err.code}`)
+            }
             error('You may need to install it manually.')
         }
     }
