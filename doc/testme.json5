@@ -225,6 +225,12 @@
         - Sequential expansion: Define BASE first, then use ${BASE} in other variables
         - NOTE: Nested expansion like ${${VAR}} is NOT supported
 
+        Undefined variable behavior:
+        - Special variables: kept as ${VAR} if undefined (e.g., no file context)
+        - Environment variables: kept as ${VAR} if not in process.env
+        - Glob patterns: wrapper removed if no matches (${pattern} → pattern)
+        - WARNING: Undefined env vars remain as literal ${VAR} in output
+
         Path separators:
         - Use Unix-style : separators on all platforms
         - Windows automatically converts : to ; for PATH variable

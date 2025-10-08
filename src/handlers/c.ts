@@ -72,7 +72,8 @@ export class CTestHandler extends BaseTestHandler {
             return await this.launchDebugger(
                 file,
                 config,
-                compileResult.duration
+                compileResult.duration,
+                compileResult.compiler
             );
         }
 
@@ -83,7 +84,7 @@ export class CTestHandler extends BaseTestHandler {
             return await this.runCommand(binaryPath, [], {
                 cwd: file.directory, // Always run test with CWD set to test directory
                 timeout: config.execution?.timeout || 30000,
-                env: await this.getTestEnvironment(config),
+                env: await this.getTestEnvironment(config, file, compileResult.compiler),
             });
         });
 
@@ -133,6 +134,7 @@ export class CTestHandler extends BaseTestHandler {
         duration: number;
         output: string;
         error?: string;
+        compiler?: string;
     }> {
         const { result, duration } = await this.measureExecution(async () => {
             const binaryPath = this.getBinaryPath(file);
@@ -276,7 +278,10 @@ export class CTestHandler extends BaseTestHandler {
                 console.log(`📋 Compile command: ${compilerConfig.compiler} ${args.join(" ")}`);
 
                 // Show environment variables defined by TestMe
-                const testEnv = await this.getTestEnvironment(config);
+                const compilerName = compilerConfig.type === CompilerType.GCC ? 'gcc' :
+                                    compilerConfig.type === CompilerType.Clang ? 'clang' :
+                                    compilerConfig.type === CompilerType.MSVC ? 'msvc' : undefined;
+                const testEnv = await this.getTestEnvironment(config, file, compilerName);
                 if (Object.keys(testEnv).length > 0) {
                     console.log(`\n🌍 TestMe environment variables:`);
                     for (const [key, value] of Object.entries(testEnv)) {
@@ -343,7 +348,15 @@ ${result.stderr}`;
             // Ignore write errors - compilation log is not critical
         }
 
-        return { success, duration, output, error };
+        // Get compiler name for special variable expansion
+        const compilerConfig = await CompilerManager.getDefaultCompilerConfig(
+            config.compiler?.c?.compiler
+        );
+        const compilerName = compilerConfig.type === CompilerType.GCC ? 'gcc' :
+                            compilerConfig.type === CompilerType.Clang ? 'clang' :
+                            compilerConfig.type === CompilerType.MSVC ? 'msvc' : undefined;
+
+        return { success, duration, output, error, compiler: compilerName };
     }
 
     /*
@@ -391,12 +404,14 @@ ${result.stderr}`;
      @param file C test file to debug
      @param config Test execution configuration
      @param compileDuration Duration of compilation phase
+     @param compiler Compiler name for special variables (gcc, clang, msvc)
      @returns Promise resolving to test results
      */
     private async launchDebugger(
         file: TestFile,
         config: TestConfig,
-        compileDuration: number
+        compileDuration: number,
+        compiler?: string
     ): Promise<TestResult> {
         try {
             // Get debugger from config or auto-detect based on platform
@@ -407,13 +422,13 @@ ${result.stderr}`;
                 case 'xcode':
                     return await this.launchXcodeDebugger(file, config, compileDuration);
                 case 'lldb':
-                    return await this.launchLldbDebugger(file, config, compileDuration);
+                    return await this.launchLldbDebugger(file, config, compileDuration, compiler);
                 case 'gdb':
-                    return await this.launchGdbDebugger(file, config, compileDuration);
+                    return await this.launchGdbDebugger(file, config, compileDuration, compiler);
                 case 'vs':
                     return await this.launchVisualStudioDebugger(file, config, compileDuration);
                 case 'vscode':
-                    return await this.launchVSCodeDebugger(file, config, compileDuration);
+                    return await this.launchVSCodeDebugger(file, config, compileDuration, compiler);
                 default:
                     // If it's not a known alias, treat it as a path to a debugger executable
                     return this.createTestResult(
@@ -693,7 +708,8 @@ To debug:
     private async launchLldbDebugger(
         file: TestFile,
         config: TestConfig,
-        compileDuration: number
+        compileDuration: number,
+        compiler?: string
     ): Promise<TestResult> {
         const binaryPath = this.getBinaryPath(file);
 
@@ -713,7 +729,7 @@ To debug:
             const lldb = await this.runCommand("lldb", [binaryPath], {
                 cwd: file.directory,
                 timeout: 0, // No timeout for interactive debugging
-                env: await this.getTestEnvironment(config),
+                env: await this.getTestEnvironment(config, file, compiler),
             });
 
             const output = `LLDB debugging session completed.
@@ -747,7 +763,8 @@ ${lldb.stdout}`;
     private async launchGdbDebugger(
         file: TestFile,
         config: TestConfig,
-        compileDuration: number
+        compileDuration: number,
+        compiler?: string
     ): Promise<TestResult> {
         const binaryPath = this.getBinaryPath(file);
 
@@ -767,7 +784,7 @@ ${lldb.stdout}`;
             const gdb = await this.runCommand("gdb", [binaryPath], {
                 cwd: file.directory, // Always run with CWD set to test directory
                 timeout: 0, // No timeout for interactive debugging
-                env: await this.getTestEnvironment(config),
+                env: await this.getTestEnvironment(config, file, compiler),
             });
 
             const output = `GDB debugging session completed.
@@ -934,14 +951,15 @@ ${vsOpened ? '3' : '4'}. Start debugging (F5)`;
     private async launchVSCodeDebugger(
         file: TestFile,
         config: TestConfig,
-        compileDuration: number
+        compileDuration: number,
+        compiler?: string
     ): Promise<TestResult> {
         const binaryPath = this.getBinaryPath(file);
         const testBaseName = basename(file.name, ".tst.c");
 
         try {
             // Create VS Code launch configuration
-            const vscodeConfigCreated = await this.createVSCodeDebugConfig(file, config);
+            const vscodeConfigCreated = await this.createVSCodeDebugConfig(file, config, compiler);
 
             if (vscodeConfigCreated) {
                 console.log("🛠️  VS Code debug configuration created");
@@ -1000,11 +1018,13 @@ ${!vscodeOpened ? '\nTip: Install VS Code CLI by opening VS Code > Command Palet
      Creates VS Code debug configuration for C test
      @param file C test file
      @param config Test execution configuration
+     @param compiler Compiler name for special variables
      @returns Promise resolving to true if successful
      */
     private async createVSCodeDebugConfig(
         file: TestFile,
-        config: TestConfig
+        config: TestConfig,
+        compiler?: string
     ): Promise<boolean> {
         try {
             const testBaseName = basename(file.name, ".tst.c");
@@ -1020,7 +1040,7 @@ ${!vscodeOpened ? '\nTip: Install VS Code CLI by opening VS Code > Command Palet
             const debuggerType = "cppdbg";
 
             // Get test environment variables
-            const testEnv = await this.getTestEnvironment(config);
+            const testEnv = await this.getTestEnvironment(config, file, compiler);
             const environment = Object.entries(testEnv).map(([name, value]) => ({ name, value }));
 
             const launchConfig = {

@@ -747,6 +747,33 @@ TestMe supports `${...}` patterns in configuration values with multiple expansio
 - **NOT supported**: Nested expansion like `${${VAR}}` - only single-level expansion
 - **Single-pass**: Each variable is expanded once, not recursively re-evaluated
 
+**Undefined Variable Behavior:**
+
+Variables that cannot be resolved are handled differently based on type:
+
+1. **Special Variables** (${PLATFORM}, ${OS}, ${CC}, etc.):
+   - If undefined (e.g., no file context): Pattern remains as-is: `${PLATFORM}` → `${PLATFORM}`
+   - Example: When called without file context, special vars are not expanded
+
+2. **Environment Variables** (${PATH}, ${HOME}, custom ${VAR}):
+   - If not found in process.env: Pattern remains as-is: `${UNDEFINED}` → `${UNDEFINED}`
+   - Kept as literal string (may be processed as glob pattern later)
+   - **Note**: This can result in literal `${UNDEFINED}` in final output
+
+3. **Glob Patterns** (${../build/*/bin}):
+   - If no files match: Wrapper removed but pattern kept: `${../build/*/bin}` → `../build/*/bin`
+   - "Graceful degradation" - path might still be valid even without matches
+
+**Example with undefined variables:**
+```json5
+env: {
+    PATH: '${HOME}/bin:${UNDEFINED}:${../missing/*/path}:${PATH}'
+}
+```
+Results in: `C:\Users\mob/bin:${UNDEFINED}:../missing/*/path;C:\Windows\System32;...`
+
+**Future Enhancement**: Consider making undefined variable handling more consistent (warn, remove, or error on undefined variables). See PLAN.md for details.
+
 **Cross-Platform PATH Handling:**
 
 TestMe automatically converts path separators for the PATH environment variable on Windows:

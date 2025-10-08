@@ -196,6 +196,17 @@ Help users create tests:
 -   [ ] Refactor glob expansion to support nested variables
 -   [ ] Optimize path normalization performance
 -   [ ] Simplify test handler registration
+-   [ ] Improve undefined variable handling consistency
+    -   Current behavior is inconsistent:
+        - Special variables: kept as `${VAR}` if undefined
+        - Environment variables: kept as `${VAR}` if undefined
+        - Glob patterns: wrapper removed to `pattern` if no matches
+    -   Consider options:
+        1. Remove undefined variables entirely (treat as empty string)
+        2. Warn about undefined variables (log warning but keep)
+        3. Remove `${...}` wrapper uniformly (like glob patterns)
+        4. Error on undefined variables (strict mode)
+    -   See DESIGN.md "Undefined Variable Behavior" section for details
 
 ### Low Priority
 

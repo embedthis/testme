@@ -153,7 +153,9 @@ Original error: ${error}`;
      @returns Promise resolving to environment variables object to pass to test processes
      */
     protected async getTestEnvironment(
-        config: TestConfig
+        config: TestConfig,
+        file?: TestFile,
+        compiler?: string
     ): Promise<Record<string, string>> {
         const env: Record<string, string> = {};
 
@@ -165,6 +167,18 @@ Original error: ${error}`;
         // Set TESTME_DEPTH if depth is specified
         if (config.execution?.depth !== undefined) {
             env.TESTME_DEPTH = config.execution.depth.toString();
+        }
+
+        // Create special variables for expansion if we have file context
+        let specialVars;
+        if (file) {
+            specialVars = GlobExpansion.createSpecialVariables(
+                file.artifactDir,
+                file.directory,
+                config.configDir || file.directory,
+                compiler,
+                config.profile
+            );
         }
 
         // Add environment variables from configuration with expansion
@@ -184,7 +198,8 @@ Original error: ${error}`;
                 // Expand ${...} references in environment variable values
                 let expandedValue = await GlobExpansion.expandSingle(
                     value,
-                    baseDir
+                    baseDir,
+                    specialVars
                 );
                 // Convert path separators for PATH variable on Windows
                 if (key === 'PATH' && PlatformDetector.isWindows()) {
@@ -199,7 +214,8 @@ Original error: ${error}`;
                 for (const [key, value] of Object.entries(platformEnv)) {
                     let expandedValue = await GlobExpansion.expandSingle(
                         value,
-                        baseDir
+                        baseDir,
+                        specialVars
                     );
                     // Convert path separators for PATH variable on Windows
                     if (key === 'PATH' && PlatformDetector.isWindows()) {
