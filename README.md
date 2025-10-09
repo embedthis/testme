@@ -12,6 +12,8 @@
 
 TestMe is a powerful, multi-language test runner built with [Bun](https://bun.sh) that can discover, compile, and execute tests across different programming languages with configurable patterns and parallel execution.
 
+TestMe is under very active development at this and may be a little unstable. Please report any issues you find and we will try to fix them quickly.
+
 ## 🚀 Features
 
 -   **Multi-language Support**: Shell (`.tst.sh`), PowerShell (`.tst.ps1`), Batch (`.tst.bat`, `.tst.cmd`), C (`.tst.c`), JavaScript (`.tst.js`), TypeScript (`.tst.ts`), Python (`.tst.py`), and Go (`.tst.go`).
@@ -81,14 +83,16 @@ npm install -g @embedthis/testme
 ```
 
 **Verify installation:**
+
 ```bash
 tm --version
 ```
 
 **Troubleshooting:** If `tm` command is not found after installation with Bun:
-- You may have forgotten the `--trust` flag
-- Run the check script: `node node_modules/@embedthis/testme/bin/check-install.mjs`
-- Or manually install: `cd node_modules/@embedthis/testme && bun bin/install.mjs`
+
+-   You may have forgotten the `--trust` flag
+-   Run the check script: `node node_modules/@embedthis/testme/bin/check-install.mjs`
+-   Or manually install: `cd node_modules/@embedthis/testme && bun bin/install.mjs`
 
 ### Manual Installation from GitHub
 
@@ -818,7 +822,7 @@ On macOS/Linux, the effective patterns would be:
             DYLD_LIBRARY_PATH: '${../build/*/bin}:$DYLD_LIBRARY_PATH',
             LIB_EXT: '.dylib',
         },
-    }
+    },
 }
 ```
 
@@ -1187,12 +1191,12 @@ bun --hot src/index.ts
 
 ### Troubleshooting
 
-| Problem                   | Solution                                                                                                                                                                         |
-| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Problem                   | Solution                                                                                                                                                              |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Tests not discovered**  | Check file extensions (`.tst.sh`, `.tst.c`, `.tst.js`, `.tst.ts`)<br>Use `--list` to see what's found<br>Check `enable: false` in config<br>Verify depth requirements |
-| **C compilation failing** | Check GCC/Clang is in PATH<br>Review `.testme/compile.log`<br>Use `-s` to see compile commands                                                                                   |
-| **Permission errors**     | Make shell scripts executable: `chmod +x *.tst.sh`<br>Check directory permissions                                                                                                |
-| **Tests skipped**         | Check skip script exit code<br>Verify `--depth` is sufficient<br>Run with `-v` for details                                                                                       |
+| **C compilation failing** | Check GCC/Clang is in PATH<br>Review `.testme/compile.log`<br>Use `-s` to see compile commands                                                                        |
+| **Permission errors**     | Make shell scripts executable: `chmod +x *.tst.sh`<br>Check directory permissions                                                                                     |
+| **Tests skipped**         | Check skip script exit code<br>Verify `--depth` is sufficient<br>Run with `-v` for details                                                                            |
 
 ### Windows-Specific Issues
 
