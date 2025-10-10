@@ -474,8 +474,9 @@ export class ServiceManager {
             }
 
             // JavaScript/TypeScript files need to be executed via bun
+            // Use process.execPath to get the current Bun executable path
             if (ext === '.js' || ext === '.ts') {
-                return ['bun', resolvedCommand, ...parts.slice(1)];
+                return [process.execPath, resolvedCommand, ...parts.slice(1)];
             }
 
             parts[0] = resolvedCommand;

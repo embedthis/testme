@@ -868,26 +868,25 @@ ${gdb.stdout}`;
                 }
             }
 
-            // Get test environment with expanded variables
-            const compilerName = compilerConfig.type === CompilerType.MSVC ? 'msvc' : undefined;
-            const testEnv = await this.getTestEnvironment(config, file, compilerName);
-
             // Try to launch Visual Studio with debugger
             let vsOpened = false;
             try {
                 console.log("🚀 Launching Visual Studio...");
 
-                // Use Windows 'start' command to launch devenv detached
-                // start requires: start "title" "program" args
-                // The first quoted string is the window title, second is the program
-                // Note: We use 'start' which launches the process detached automatically
-                Bun.spawn(["cmd", "/c", "start", "Visual Studio Debugger", devenvPath, binaryPath], {
+                // Use 'start' command to launch Visual Studio detached
+                // The 'start' command on Windows launches processes independently
+                // This prevents VS from being killed when the test runner exits
+                // Note: We don't pass a custom env here - VS will inherit the natural environment
+                // The test environment is configured in VS's debug settings, not at launch time
+                const proc = Bun.spawn(["cmd", "/c", "start", "Visual Studio Debugger", devenvPath, binaryPath], {
                     cwd: file.directory,
                     stdout: "ignore",
                     stderr: "ignore",
                     stdin: "ignore",
-                    env: { ...process.env, ...testEnv },
                 });
+
+                // Unref so the cmd process doesn't keep the test runner alive
+                proc.unref();
 
                 // Give it a moment to start
                 await new Promise(resolve => setTimeout(resolve, 1500));
