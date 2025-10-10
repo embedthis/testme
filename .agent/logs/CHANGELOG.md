@@ -2,6 +2,38 @@
 
 ## 2025-10-10
 
+### Fixed PATH Environment Variable Resolution on Windows
+
+-   **FIX**: Corrected environment variable path resolution for Windows
+    -   **Issue**: When using `${CONFIGDIR}` in PATH environment variables, relative paths were incorrectly resolved
+    -   **Root Cause**: `${CONFIGDIR}` expands to a relative path from executable to config directory (e.g., `../..`), which when combined with `../build/...` resulted in incorrect path calculations
+    -   **Example Problem**:
+        -   Config at: `C:\Users\mob\json\test\testme.json5`
+        -   PATH setting: `${CONFIGDIR}/../build/${PLATFORM}-${PROFILE}/bin`
+        -   Incorrect result: `C:\Users\build\windows-x64-dev\bin` (missing `mob\json`)
+        -   Correct result: `C:\Users\mob\json\build\windows-x64-dev\bin`
+    -   **Solution**: Remove `${CONFIGDIR}` prefix from environment PATH variables
+        -   Environment variables are already resolved relative to config directory
+        -   `${CONFIGDIR}` is intended for runtime paths (rpath) in compiled executables, not environment variables
+        -   Correct usage: `PATH: '../build/${PLATFORM}-${PROFILE}/bin;...'`
+    -   **Documentation**: Updated to clarify proper usage of `${CONFIGDIR}` vs relative paths
+    -   Related: [src/handlers/base.ts](../../src/handlers/base.ts), [src/utils/glob-expansion.ts](../../src/utils/glob-expansion.ts)
+
+### Fixed Visual Studio Debugger Environment and Working Directory
+
+-   **FIX**: Visual Studio debugger now uses correct environment variables and working directory
+    -   **Environment Issue**: VS debugger was not receiving processed environment from testme.json5
+        -   Missing expanded `${PLATFORM}`, `${PROFILE}`, and other variables
+        -   Missing resolved relative paths from config
+    -   **Working Directory Issue**: Confirmed working directory was already correct (test file directory, not artifact directory)
+    -   **Solution**:
+        -   Call `await this.getTestEnvironment(config, file, compilerName)` to get fully processed environment
+        -   Pass environment to spawn via `env: { ...process.env, ...testEnv }`
+        -   Added debug output showing working directory: `📂 Working Directory: ${file.directory}`
+    -   **Consistency**: Now matches behavior of other debuggers (LLDB, GDB, VS Code)
+    -   Files modified: [src/handlers/c.ts](../../src/handlers/c.ts) `launchVisualStudioDebugger()` method
+    -   Impact: Windows users can now debug tests with proper PATH to find DLLs and correct working directory
+
 ### Enhanced Test Macro System
 
 -   **DEV**: Comprehensive improvements to C and JavaScript test macros for better type safety and error reporting

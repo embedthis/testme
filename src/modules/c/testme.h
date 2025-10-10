@@ -27,6 +27,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stddef.h>
 #include <string.h>
 #include <sys/types.h>
 
@@ -205,13 +206,13 @@ static void tReport(int success, const char *loc, const char *expected, const ch
     }
 
 /**
-    Helper macro for size_t/ssize comparisons, converting to strings for reporting
+    Helper macro for size_t/ptrdiff_t comparisons, converting to strings for reporting
  */
 #define tReportSize(success, loc, received, expected, ...) \
     if (1) { \
         char ebuf[80], rbuf[80]; \
-        snprintf(ebuf, sizeof(ebuf), "%zd", (ssize_t)(expected)); \
-        snprintf(rbuf, sizeof(rbuf), "%zd", (ssize_t)(received)); \
+        snprintf(ebuf, sizeof(ebuf), "%td", (ptrdiff_t)(expected)); \
+        snprintf(rbuf, sizeof(rbuf), "%td", (ptrdiff_t)(received)); \
         tReport((int) (success), loc, ebuf, rbuf, "" __VA_ARGS__) ; \
     }
 

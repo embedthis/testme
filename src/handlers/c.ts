@@ -850,6 +850,7 @@ ${gdb.stdout}`;
             console.log("🛠️  Preparing Visual Studio debugger...");
             console.log(`📁 Binary: ${binaryPath}`);
             console.log(`📄 Source: ${file.path}`);
+            console.log(`📂 Working Directory: ${file.directory}`);
 
             // Get compiler config to find devenv path from MSVC installation
             const compilerConfig = await CompilerManager.getDefaultCompilerConfig(
@@ -867,6 +868,10 @@ ${gdb.stdout}`;
                 }
             }
 
+            // Get test environment with expanded variables
+            const compilerName = compilerConfig.type === CompilerType.MSVC ? 'msvc' : undefined;
+            const testEnv = await this.getTestEnvironment(config, file, compilerName);
+
             // Try to launch Visual Studio with debugger
             let vsOpened = false;
             try {
@@ -875,16 +880,14 @@ ${gdb.stdout}`;
                 // Use Windows 'start' command to launch devenv detached
                 // start requires: start "title" "program" args
                 // The first quoted string is the window title, second is the program
-                const proc = Bun.spawn(["cmd", "/c", "start", "Visual Studio Debugger", devenvPath, binaryPath], {
+                // Note: We use 'start' which launches the process detached automatically
+                Bun.spawn(["cmd", "/c", "start", "Visual Studio Debugger", devenvPath, binaryPath], {
                     cwd: file.directory,
                     stdout: "ignore",
                     stderr: "ignore",
                     stdin: "ignore",
-                    detached: true,
+                    env: { ...process.env, ...testEnv },
                 });
-
-                // Unref the process so it doesn't keep the test runner alive
-                proc.unref();
 
                 // Give it a moment to start
                 await new Promise(resolve => setTimeout(resolve, 1500));

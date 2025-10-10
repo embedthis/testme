@@ -5,6 +5,11 @@
 - [Overview](#overview)
 - [Architecture](#architecture)
 - [Design Patterns](#design-patterns)
+- [Implementation Details](#implementation-details)
+  - [Test Discovery Process](#test-discovery-process)
+  - [C Test Compilation Pipeline](#c-test-compilation-pipeline)
+  - [Integrated Debugging Support](#integrated-debugging-support)
+  - [Platform Abstraction Layer](#platform-abstraction-layer)
 - [Test Macro System](MACRO_IMPROVEMENTS.md) - Type-specific assertion macros for C and JavaScript
 
 ## Overview
@@ -440,6 +445,138 @@ return await this.runCommand(binaryPath, [], {
 })
 ```
 
+### Integrated Debugging Support
+
+TestMe provides integrated debugging support for all test languages using the `--debug` flag. The debugging system uses platform-appropriate debuggers and properly configures the environment and working directory.
+
+#### C Language Debugging
+
+C tests can be debugged with multiple debuggers based on platform:
+
+**Platform Defaults:**
+- **Windows**: Visual Studio (vs) for MSVC, VS Code (vscode) for GCC/MinGW
+- **macOS**: Xcode (xcode) or LLDB (lldb)
+- **Linux**: GDB (gdb)
+
+**Debugger Configuration:**
+
+Configure debugger in testme.json5:
+```json5
+{
+    debug: {
+        c: 'vs',           // Use Visual Studio
+        // or: 'vscode'    // Use VS Code
+        // or: 'gdb'       // Use GDB
+        // or: 'lldb'      // Use LLDB
+        // or: 'xcode'     // Use Xcode (macOS)
+    }
+}
+```
+
+**Environment and Working Directory:**
+
+All debuggers receive:
+1. **Processed environment** from testme.json5 via `getTestEnvironment()`:
+   - Expanded `${PLATFORM}`, `${PROFILE}`, and other special variables
+   - Resolved relative paths (e.g., `../build/...` → absolute paths)
+   - Merged with system environment
+   - Proper PATH for finding DLLs/shared libraries
+
+2. **Correct working directory**:
+   - Set to test file directory (`file.directory`)
+   - NOT the artifact directory (`.testme/test/`)
+   - Allows tests to access relative files from test location
+
+**Visual Studio Debugger (Windows):**
+
+```typescript
+// Implementation: src/handlers/c.ts - launchVisualStudioDebugger()
+const testEnv = await this.getTestEnvironment(config, file, 'msvc');
+Bun.spawn(["cmd", "/c", "start", "Visual Studio Debugger", devenvPath, binaryPath], {
+    cwd: file.directory,        // Test file directory, not .testme/
+    env: { ...process.env, ...testEnv },  // Merged environment
+});
+```
+
+**VS Code Debugger (Cross-platform):**
+
+Creates `.vscode/launch.json` with:
+- Program path to compiled executable
+- Working directory set to test file directory
+- Environment variables from testme.json5
+- Platform-specific debugger type (cppvsdbg for MSVC, cppdbg for GCC/Clang)
+
+**Interactive Debuggers (GDB, LLDB):**
+
+Launch in terminal with full environment:
+```typescript
+await this.runCommand("gdb", [binaryPath], {
+    cwd: file.directory,
+    env: await this.getTestEnvironment(config, file, compiler),
+});
+```
+
+#### JavaScript/TypeScript Debugging
+
+Uses Bun's built-in debugger or VS Code with proper environment:
+```json5
+{
+    debug: {
+        js: 'vscode',  // VS Code debugger
+        ts: 'vscode'   // VS Code debugger
+    }
+}
+```
+
+#### Python Debugging
+
+Supports pdb (interactive) or VS Code:
+```json5
+{
+    debug: {
+        py: 'pdb'      // Python debugger
+        // or: 'vscode' // VS Code debugger
+    }
+}
+```
+
+#### Go Debugging
+
+Supports Delve or VS Code:
+```json5
+{
+    debug: {
+        go: 'delve'    // Delve debugger
+        // or: 'vscode' // VS Code debugger
+    }
+}
+```
+
+#### Environment Variable Processing
+
+The `getTestEnvironment()` method in BaseTestHandler:
+
+1. **Expands special variables**: `${PLATFORM}`, `${PROFILE}`, `${CC}`, etc.
+2. **Expands environment variables**: `${PATH}`, `${HOME}`, etc.
+3. **Resolves relative paths**: `../build/...` relative to config directory
+4. **Converts path separators**: Unix `:` to Windows `;` for PATH
+5. **Merges platform-specific settings**: Windows/macOS/Linux sections
+
+**Common Issue - ${CONFIGDIR} in Environment Variables:**
+
+Do NOT use `${CONFIGDIR}` in environment PATH:
+```json5
+// WRONG - ${CONFIGDIR} is a relative path from executable
+env: {
+    PATH: '${CONFIGDIR}/../build/${PLATFORM}-${PROFILE}/bin;${PATH}'
+}
+
+// CORRECT - relative paths automatically resolved from config directory
+env: {
+    PATH: '../build/${PLATFORM}-${PROFILE}/bin;${PATH}'
+}
+```
+
 ### Platform Abstraction Layer
 
 TestMe implements a comprehensive cross-platform abstraction layer in `src/platform/` that enables native support for Windows, macOS, and Linux without requiring emulation layers like WSL.
@@ -729,13 +866,36 @@ All levels are **merged** (not replaced), allowing fine-grained control:
 TestMe supports `${...}` patterns in configuration values with multiple expansion modes:
 
 1. **Special Variables** (highest priority):
-   - `${TESTDIR}` - Relative path from executable to test directory
-   - `${CONFIGDIR}` - Relative path from executable to config directory
+   - `${TESTDIR}` - Relative path from executable to test directory (use in rpath/runtime paths)
+   - `${CONFIGDIR}` - Relative path from executable to config directory (use in rpath/runtime paths)
    - `${OS}` - Operating system (macosx, linux, windows)
    - `${ARCH}` - CPU architecture (arm64, x64, x86)
    - `${PLATFORM}` - Combined OS-ARCH (e.g., macosx-arm64)
    - `${CC}` - Compiler name (gcc, clang, msvc)
    - `${PROFILE}` - Build profile (priority: CLI --profile > config > env.PROFILE > 'dev')
+
+   **IMPORTANT - ${CONFIGDIR} and ${TESTDIR} Usage:**
+   - These expand to **relative paths** from the compiled executable location to the directory
+   - Example: executable at `.testme/test/test.exe`, config at `./testme.json5` → `${CONFIGDIR}` = `../..`
+   - **Correct usage**: Runtime paths (rpath) in compiled executables
+     ```json5
+     gcc: {
+       flags: ['-Wl,-rpath,$ORIGIN/${CONFIGDIR}/../build/${PLATFORM}-${PROFILE}/bin']
+     }
+     ```
+   - **INCORRECT usage**: Environment variables like PATH
+     ```json5
+     // WRONG - results in incorrect path calculation
+     env: {
+       PATH: '${CONFIGDIR}/../build/${PLATFORM}-${PROFILE}/bin;${PATH}'
+     }
+     // CORRECT - relative paths in env are already resolved from config directory
+     env: {
+       PATH: '../build/${PLATFORM}-${PROFILE}/bin;${PATH}'
+     }
+     ```
+   - Environment variable paths are **automatically resolved relative to config directory**
+   - No need to use `${CONFIGDIR}` in environment variables
 
 2. **Environment Variables** (middle priority):
    - `${PATH}` - Current system PATH
