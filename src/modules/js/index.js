@@ -72,12 +72,132 @@ function tfail(message = '') {
     treport(false, getStack(), message)
 }
 
+//  Type-specific equality functions for better error messages
+
+function teqi(received, expected, message = '') {
+    treport(received === expected, getStack(), message, received, expected)
+}
+
+function teql(received, expected, message = '') {
+    treport(received === expected, getStack(), message, received, expected)
+}
+
+function teqll(received, expected, message = '') {
+    treport(BigInt(received) === BigInt(expected), getStack(), message, received, expected)
+}
+
+function teqz(received, expected, message = '') {
+    treport(received === expected, getStack(), message, received, expected)
+}
+
+function tequ(received, expected, message = '') {
+    treport(received === expected, getStack(), message, received, expected)
+}
+
+function teqp(received, expected, message = '') {
+    treport(received === expected, getStack(), message, received, expected)
+}
+
+//  Type-specific inequality functions
+
+function tneqi(received, expected, message = '') {
+    treport(received !== expected, getStack(), message, received, expected)
+}
+
+function tneql(received, expected, message = '') {
+    treport(received !== expected, getStack(), message, received, expected)
+}
+
+function tneqll(received, expected, message = '') {
+    treport(BigInt(received) !== BigInt(expected), getStack(), message, received, expected)
+}
+
+function tneqz(received, expected, message = '') {
+    treport(received !== expected, getStack(), message, received, expected)
+}
+
+function tnequ(received, expected, message = '') {
+    treport(received !== expected, getStack(), message, received, expected)
+}
+
+function tneqp(received, expected, message = '') {
+    treport(received !== expected, getStack(), message, received, expected)
+}
+
+//  Comparison functions (greater than)
+
+function tgti(received, expected, message = '') {
+    treport(received > expected, getStack(), message, received, expected)
+}
+
+function tgtl(received, expected, message = '') {
+    treport(received > expected, getStack(), message, received, expected)
+}
+
+function tgtz(received, expected, message = '') {
+    treport(received > expected, getStack(), message, received, expected)
+}
+
+//  Comparison functions (greater than or equal)
+
+function tgtei(received, expected, message = '') {
+    treport(received >= expected, getStack(), message, received, expected)
+}
+
+function tgtel(received, expected, message = '') {
+    treport(received >= expected, getStack(), message, received, expected)
+}
+
+function tgtez(received, expected, message = '') {
+    treport(received >= expected, getStack(), message, received, expected)
+}
+
+//  Comparison functions (less than)
+
+function tlti(received, expected, message = '') {
+    treport(received < expected, getStack(), message, received, expected)
+}
+
+function tltl(received, expected, message = '') {
+    treport(received < expected, getStack(), message, received, expected)
+}
+
+function tltz(received, expected, message = '') {
+    treport(received < expected, getStack(), message, received, expected)
+}
+
+//  Comparison functions (less than or equal)
+
+function tltei(received, expected, message = '') {
+    treport(received <= expected, getStack(), message, received, expected)
+}
+
+function tltel(received, expected, message = '') {
+    treport(received <= expected, getStack(), message, received, expected)
+}
+
+function tltez(received, expected, message = '') {
+    treport(received <= expected, getStack(), message, received, expected)
+}
+
+//  NULL checking functions
+
+function tnull(value, message = '') {
+    treport(value === null, getStack(), message, value, null)
+}
+
+function tnotnull(value, message = '') {
+    treport(value !== null, getStack(), message, value, null)
+}
+
+//  Legacy deprecated functions (kept for backward compatibility)
+
 function teq(received, expected, message = '') {
-    treport(received == expected, getStack(), message, received, expected)
+    return teqi(received, expected, message)
 }
 
 function tneq(received, expected, message = '') {
-    treport(received != expected, getStack(), message, received, expected)
+    return tneqi(received, expected, message)
 }
 
 function tmatch(string, pattern, message = '') {
@@ -131,13 +251,39 @@ export {
     tdebug,
     tdepth,
     teq,
+    teqi,
+    teql,
+    teqll,
+    teqz,
+    tequ,
+    teqp,
     tfalse,
     tfail,
     tget,
+    tgti,
+    tgtl,
+    tgtz,
+    tgtei,
+    tgtel,
+    tgtez,
     thas,
     tinfo,
+    tlti,
+    tltl,
+    tltz,
+    tltei,
+    tltel,
+    tltez,
     tmatch,
     tneq,
+    tneqi,
+    tneql,
+    tneqll,
+    tneqz,
+    tnequ,
+    tneqp,
+    tnull,
+    tnotnull,
     tskip,
     ttrue,
     tverbose,
@@ -151,13 +297,39 @@ export default {
     tdebug,
     tdepth,
     teq,
+    teqi,
+    teql,
+    teqll,
+    teqz,
+    tequ,
+    teqp,
     tfalse,
     tfail,
     tget,
+    tgti,
+    tgtl,
+    tgtz,
+    tgtei,
+    tgtel,
+    tgtez,
     thas,
     tinfo,
+    tlti,
+    tltl,
+    tltz,
+    tltei,
+    tltel,
+    tltez,
     tmatch,
     tneq,
+    tneqi,
+    tneql,
+    tneqll,
+    tneqz,
+    tnequ,
+    tneqp,
+    tnull,
+    tnotnull,
     tskip,
     ttrue,
     tverbose,

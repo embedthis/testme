@@ -1,5 +1,54 @@
 # TestMe Changelog
 
+## 2025-10-10
+
+### Enhanced Test Macro System
+
+-   **DEV**: Comprehensive improvements to C and JavaScript test macros for better type safety and error reporting
+    -   **Type-Specific Equality Macros**: Replaced generic `teq`/`tneq` with type-specific variants
+        -   `teqi`, `tneqi` - int equality/inequality with %d formatting
+        -   `teql`, `tneql` - long equality/inequality with %ld formatting
+        -   `teqll`, `tneqll` - long long equality/inequality with %lld formatting
+        -   `teqz`, `tneqz` - size_t/ssize equality/inequality with %zd formatting
+        -   `tequ`, `tnequ` - unsigned int equality/inequality with %u formatting
+        -   `teqp`, `tneqp` - pointer equality/inequality with %p formatting
+    -   **Comparison Macros**: Added greater/less than comparisons for numeric types
+        -   Greater than: `tgti`, `tgtl`, `tgtz` (int, long, size)
+        -   Greater or equal: `tgtei`, `tgtel`, `tgtez` (int, long, size)
+        -   Less than: `tlti`, `tltl`, `tltz` (int, long, size)
+        -   Less or equal: `tltei`, `tltel`, `tltez` (int, long, size)
+    -   **NULL Checking Macros**: Dedicated pointer NULL checks
+        -   `tnull(ptr, msg)` - assert pointer is NULL
+        -   `tnotnull(ptr, msg)` - assert pointer is not NULL
+    -   **Internal Improvements**: Cleaner implementation with consistent naming
+        -   Renamed `treport` → `tReport` for consistency
+        -   Renamed `treportx` → `tReportString` for clarity
+        -   Added type-specific helpers: `tReportInt`, `tReportLong`, `tReportLongLong`, `tReportSize`, `tReportUnsigned`, `tReportPtr`
+    -   **Backward Compatibility**: Legacy macros maintained as aliases
+        -   `teq` now aliases to `teqi` (marked deprecated)
+        -   `tneq` now aliases to `tneqi` (marked deprecated)
+    -   **JavaScript Parity**: Applied same improvements to JavaScript/TypeScript test module
+        -   Added all type-specific macros to [src/modules/js/index.js](../../src/modules/js/index.js)
+        -   Uses strict equality (`===`) for type safety
+        -   `teqll` uses BigInt for proper long long handling
+    -   **Documentation**: Comprehensive JSDoc comments on all macros with examples
+        -   Every macro documented with parameter descriptions
+        -   Usage examples for each assertion type
+        -   Clear warnings about type requirements (e.g., teqi only for integers)
+    -   **Testing**: Created comprehensive test demonstrating all new macros
+        -   [test/portable/new-macros.tst.c](../../test/portable/new-macros.tst.c) - 60+ assertions testing all new functionality
+        -   All 28 existing tests continue to pass
+    -   Files modified: [src/modules/c/testme.h](../../src/modules/c/testme.h), [src/modules/js/index.js](../../src/modules/js/index.js)
+    -   Created design document: [.agent/designs/MACRO_IMPROVEMENTS.md](../designs/MACRO_IMPROVEMENTS.md)
+
+### Benefits of New Macro System
+
+-   **Better Error Messages**: Type-specific formatting shows values in appropriate format (decimal for int, hex for pointers, etc.)
+-   **Type Safety**: Eliminates issues with wrong printf format specifiers causing undefined behavior
+-   **Clearer Intent**: Macro names indicate expected types (teqi = int, teql = long, teqp = pointer)
+-   **More Comprehensive**: Covers common test scenarios that previously required verbose code
+-   **Backward Compatible**: Existing code using `teq`/`tneq` continues to work via aliases
+
 ## 2025-10-08
 
 ### Windows PATH Handling and Environment Variable Type Safety

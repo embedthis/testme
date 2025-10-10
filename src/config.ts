@@ -1,5 +1,5 @@
 import type { TestConfig } from './types.ts';
-import { join, dirname } from 'path';
+import { join, dirname, resolve, isAbsolute } from 'path';
 import { readdir, stat } from 'fs/promises';
 import JSON5 from 'json5';
 import { ErrorMessages } from './utils/error-messages.ts';
@@ -208,6 +208,15 @@ export class ConfigManager {
             return null;
         }
 
+        // Normalize env paths in parent config before inheritance (but skip special variable expansion)
+        // This converts relative paths like ../build to absolute paths based on parent's configDir
+        if (parentConfig.env && parentConfigDir) {
+            // We can't fully normalize yet because special variables haven't been expanded
+            // So we mark the config with its source directory for later resolution
+            // Store the source configDir for env resolution
+            (parentConfig as any)._envConfigDir = parentConfigDir;
+        }
+
         // If parent config also has inherit, recursively load its parent
         if (parentConfig.inherit !== undefined && parentConfig.inherit !== false) {
             const grandparentConfig = parentConfigDir ? await this.loadParentConfig(parentConfigDir) : null;
@@ -268,6 +277,10 @@ export class ConfigManager {
                 inherited.services = { ...parentConfig.services, ...childConfig.services };
             } else if (key === 'env' && parentConfig.env) {
                 inherited.env = this.deepMerge(parentConfig.env, childConfig.env || {});
+                // Preserve the parent's configDir for env path resolution
+                if ((parentConfig as any)._envConfigDir) {
+                    (inherited as any)._envConfigDir = (parentConfig as any)._envConfigDir;
+                }
             } else if (key === 'profile' && parentConfig.profile && !childConfig.profile) {
                 inherited.profile = parentConfig.profile;
             }
@@ -312,6 +325,93 @@ export class ConfigManager {
         }
 
         return result;
+    }
+
+    /**
+     * Normalizes relative paths in environment variables to absolute paths
+     *
+     * @param env - Environment configuration object
+     * @param configDir - Directory containing the config file (base for relative paths)
+     * @returns Environment configuration with relative paths resolved to absolute
+     *
+     * @internal
+     * @remarks
+     * This is crucial for config inheritance - when a child config inherits env vars
+     * from a parent, relative paths in the parent need to be resolved relative to the
+     * parent's directory, not the child's directory.
+     */
+    private static normalizeEnvPaths(env: any, configDir: string): any {
+        const normalized: any = {};
+        const sep = process.platform === 'win32' ? ';' : ':';
+
+        for (const [key, value] of Object.entries(env)) {
+            // Handle platform sections (windows, macosx, linux, default)
+            if (key === 'windows' || key === 'macosx' || key === 'linux' || key === 'default') {
+                if (typeof value === 'object' && value !== null) {
+                    normalized[key] = this.normalizeEnvPaths(value, configDir);
+                } else {
+                    normalized[key] = value;
+                }
+                continue;
+            }
+
+            // Handle per-variable default/platform pattern
+            if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+                const obj = value as any;
+                normalized[key] = {};
+                for (const [platform, pathValue] of Object.entries(obj)) {
+                    if (typeof pathValue === 'string') {
+                        normalized[key][platform] = this.normalizePathValue(pathValue, configDir, sep);
+                    } else {
+                        normalized[key][platform] = pathValue;
+                    }
+                }
+                continue;
+            }
+
+            // Handle simple string values
+            if (typeof value === 'string') {
+                normalized[key] = this.normalizePathValue(value, configDir, sep);
+            } else {
+                normalized[key] = value;
+            }
+        }
+
+        return normalized;
+    }
+
+    /**
+     * Normalizes a single path value (potentially PATH-like with multiple components)
+     *
+     * @param pathValue - Path value to normalize
+     * @param baseDir - Base directory for resolving relative paths
+     * @param sep - Path separator (: or ;)
+     * @returns Normalized path value with relative components resolved to absolute
+     *
+     * @internal
+     */
+    private static normalizePathValue(pathValue: string, baseDir: string, sep: string): string {
+        // Split by separator, resolve each component, rejoin
+        const components = pathValue.split(sep);
+        const resolved = components.map(component => {
+            // Skip empty components
+            if (!component) return component;
+
+            // Skip if already absolute
+            if (isAbsolute(component)) {
+                return component;
+            }
+
+            // Skip environment variable references
+            if (component.includes('$') || component.includes('%')) {
+                return component;
+            }
+
+            // Resolve relative path to absolute
+            return resolve(baseDir, component);
+        });
+
+        return resolved.join(sep);
     }
 
     /**
@@ -372,10 +472,17 @@ export class ConfigManager {
         };
 
         // Add config directory to the configuration
-        return {
+        const result: any = {
             ...baseConfig,
             configDir: configDir || undefined
         };
+
+        // Preserve _envConfigDir if it was set (for inherited env vars)
+        if (userConfig && (userConfig as any)._envConfigDir) {
+            result._envConfigDir = (userConfig as any)._envConfigDir;
+        }
+
+        return result;
     }
 
     /**

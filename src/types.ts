@@ -165,10 +165,15 @@ export type ServiceConfig = {
 
 /*
  Configuration for environment variables to set during test execution
- Supports platform-specific overrides via windows, macosx, linux keys
+ Supports platform-specific overrides via windows, macosx, linux keys and default fallback values
  */
 export type EnvironmentConfig = {
-  [key: string]: string;
+  [key: string]: string | {
+    default?: string;
+    windows?: string;
+    macosx?: string;
+    linux?: string;
+  };
   windows?: {
     [key: string]: string;
   };

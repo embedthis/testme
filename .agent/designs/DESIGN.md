@@ -1,5 +1,12 @@
 # TestMe - Design Documentation
 
+## Contents
+
+- [Overview](#overview)
+- [Architecture](#architecture)
+- [Design Patterns](#design-patterns)
+- [Test Macro System](MACRO_IMPROVEMENTS.md) - Type-specific assertion macros for C and JavaScript
+
 ## Overview
 
 TestMe is a multi-language test runner built with Bun that discovers, compiles, and executes tests across shell, PowerShell, Batch, C, JavaScript, TypeScript, Python, Go, and Ejscript with configurable patterns and parallel execution. It provides a simple, consistent interface for running tests in embedded and cross-platform development environments.

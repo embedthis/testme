@@ -8,6 +8,7 @@ import {
 import { GlobExpansion } from "../utils/glob-expansion.ts";
 import { ErrorMessages } from "../utils/error-messages.ts";
 import { PlatformDetector } from "../platform/detector.ts";
+import { resolve } from "path";
 
 /*
  Abstract base class for all test handlers
@@ -208,7 +209,9 @@ Original error: ${error}`;
 
         // Add environment variables from configuration with expansion
         if (config.env) {
-            const baseDir = config.configDir || process.cwd();
+            // Use _envConfigDir if available (for inherited env vars), otherwise use configDir
+            // This ensures inherited paths are resolved relative to where they were defined
+            const baseDir = (config as any)._envConfigDir || config.configDir || process.cwd();
 
             // Determine current platform
             const platform = PlatformDetector.isWindows() ? 'windows' :
@@ -216,41 +219,106 @@ Original error: ${error}`;
 
             // First, process base environment variables (exclude platform keys)
             for (const [key, value] of Object.entries(config.env)) {
-                // Skip platform-specific keys and non-string values
-                if (key === 'windows' || key === 'macosx' || key === 'linux' || typeof value !== 'string') {
+                // Skip platform-specific section keys (legacy format)
+                if (key === 'windows' || key === 'macosx' || key === 'linux' || key === 'default') {
                     continue;
                 }
+
+                let resolvedValue: string | undefined;
+
+                // Handle object values with default/platform pattern
+                if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+                    // Cast to our platform object type
+                    const platformObj = value as { default?: string; windows?: string; macosx?: string; linux?: string };
+                    // Try platform-specific value first, fall back to default
+                    resolvedValue = platformObj[platform as 'windows' | 'macosx' | 'linux'] || platformObj.default;
+                } else if (typeof value === 'string') {
+                    // Simple string value
+                    resolvedValue = value;
+                } else {
+                    // Skip non-string, non-object values
+                    continue;
+                }
+
+                // Skip if no value resolved
+                if (!resolvedValue) {
+                    continue;
+                }
+
                 // Expand ${...} references in environment variable values
                 let expandedValue = await GlobExpansion.expandSingle(
-                    value,
+                    resolvedValue,
                     baseDir,
                     specialVars
                 );
+
                 // Normalize PATH variable on Windows (Path, path -> PATH)
                 let envKey = key;
                 if (PlatformDetector.isWindows() && key.toUpperCase() === 'PATH') {
                     envKey = 'PATH';
                     expandedValue = this.convertPathSeparators(expandedValue);
                 }
+
+                // Convert relative paths in PATH to absolute paths (based on config directory)
+                if (key.toUpperCase() === 'PATH' || key === 'LD_LIBRARY_PATH' || key === 'DYLD_LIBRARY_PATH') {
+                    expandedValue = this.resolvePathComponents(expandedValue, baseDir);
+                }
+
                 env[envKey] = expandedValue;
             }
 
-            // Then, merge platform-specific environment variables
-            const platformEnv = config.env[platform];
-            if (platformEnv) {
-                for (const [key, value] of Object.entries(platformEnv)) {
-                    let expandedValue = await GlobExpansion.expandSingle(
-                        value,
-                        baseDir,
-                        specialVars
-                    );
-                    // Normalize PATH variable on Windows (Path, path -> PATH)
-                    let envKey = key;
-                    if (PlatformDetector.isWindows() && key.toUpperCase() === 'PATH') {
-                        envKey = 'PATH';
-                        expandedValue = this.convertPathSeparators(expandedValue);
+            // Then, merge default environment variables (legacy format with env.default section)
+            const defaultEnv = config.env['default'];
+            if (defaultEnv && typeof defaultEnv === 'object') {
+                for (const [key, value] of Object.entries(defaultEnv)) {
+                    if (typeof value === 'string') {
+                        let expandedValue = await GlobExpansion.expandSingle(
+                            value,
+                            baseDir,
+                            specialVars
+                        );
+                        // Normalize PATH variable on Windows (Path, path -> PATH)
+                        let envKey = key;
+                        if (PlatformDetector.isWindows() && key.toUpperCase() === 'PATH') {
+                            envKey = 'PATH';
+                            expandedValue = this.convertPathSeparators(expandedValue);
+                        }
+
+                        // Convert relative paths in PATH to absolute paths (based on config directory)
+                        if (key.toUpperCase() === 'PATH' || key === 'LD_LIBRARY_PATH' || key === 'DYLD_LIBRARY_PATH') {
+                            expandedValue = this.resolvePathComponents(expandedValue, baseDir);
+                        }
+
+                        env[envKey] = expandedValue;
                     }
-                    env[envKey] = expandedValue;
+                }
+            }
+
+            // Finally, merge platform-specific environment variables (legacy format)
+            // These override both base and default values
+            const platformEnv = config.env[platform];
+            if (platformEnv && typeof platformEnv === 'object') {
+                for (const [key, value] of Object.entries(platformEnv)) {
+                    if (typeof value === 'string') {
+                        let expandedValue = await GlobExpansion.expandSingle(
+                            value,
+                            baseDir,
+                            specialVars
+                        );
+                        // Normalize PATH variable on Windows (Path, path -> PATH)
+                        let envKey = key;
+                        if (PlatformDetector.isWindows() && key.toUpperCase() === 'PATH') {
+                            envKey = 'PATH';
+                            expandedValue = this.convertPathSeparators(expandedValue);
+                        }
+
+                        // Convert relative paths in PATH to absolute paths (based on config directory)
+                        if (key.toUpperCase() === 'PATH' || key === 'LD_LIBRARY_PATH' || key === 'DYLD_LIBRARY_PATH') {
+                            expandedValue = this.resolvePathComponents(expandedValue, baseDir);
+                        }
+
+                        env[envKey] = expandedValue;
+                    }
                 }
             }
         }
@@ -267,6 +335,39 @@ Original error: ${error}`;
         // Replace : with ; but avoid replacing : in drive letters (e.g., C:)
         // Windows drive letters are followed by \ or / or end of string
         return path.replace(/:(?![\\\/]|$)/g, ';');
+    }
+
+    /*
+     Resolves relative path components in PATH-like variables to absolute paths
+     @param pathValue PATH-like variable value (colon or semicolon separated)
+     @param baseDir Base directory for resolving relative paths (typically config directory)
+     @returns Path value with relative components resolved to absolute paths
+     */
+    private resolvePathComponents(pathValue: string, baseDir: string): string {
+        // Determine separator based on platform
+        const sep = PlatformDetector.isWindows() ? ';' : ':';
+
+        // Split by separator, resolve each component, rejoin
+        const components = pathValue.split(sep);
+        const resolved = components.map(component => {
+            // Skip empty components
+            if (!component) return component;
+
+            // Skip if already absolute (starts with / on Unix, or drive letter on Windows)
+            if (component.startsWith('/') || /^[a-zA-Z]:/.test(component)) {
+                return component;
+            }
+
+            // Skip environment variable references like ${PATH}, $PATH, %PATH%
+            if (component.includes('$') || component.includes('%')) {
+                return component;
+            }
+
+            // Resolve relative path to absolute based on baseDir
+            return resolve(baseDir, component);
+        });
+
+        return resolved.join(sep);
     }
 
     /*

@@ -800,31 +800,54 @@ On macOS/Linux, the effective patterns would be:
 -   Platform-specific variables are merged with base variables (platform values override base)
 -   Useful for providing dynamic paths to build artifacts, libraries, and test data
 
+**Platform Configuration Formats:**
+
+1. **Simple string values** - Apply to all platforms
+2. **Platform override sections** - Legacy format with platform-specific env sections
+   - Supports `windows`, `macosx`, `linux`, and `default` sections
+   - `default` section provides fallback values for all platforms
+   - Platform-specific sections override default values
+3. **Default/platform pattern** - Per-variable platform overrides with default fallback
+
 **Examples:**
 
 ```json5
 {
     env: {
-        // Base environment variables (all platforms)
+        // Simple string values (all platforms)
         TEST_MODE: 'integration',
         BIN: '${../build/*/bin}',
 
-        // Platform-specific overrides (merged with base)
-        windows: {
-            PATH: '${../build/*/bin};%PATH%',
-            LIB_EXT: '.dll',
+        // Default/platform pattern (per-variable platform-specific values)
+        LIB_EXT: {
+            default: '.so',       // Used if platform not specified
+            windows: '.dll',
+            macosx: '.dylib',
+            linux: '.so'
         },
-        linux: {
-            LD_LIBRARY_PATH: '${../build/*/bin}:$LD_LIBRARY_PATH',
-            LIB_EXT: '.so',
+
+        // Legacy platform override sections
+        // Processed in order: base vars → default → platform-specific
+        default: {
+            PATH: '${../build/${PLATFORM}-${PROFILE}/bin}:${PATH}',
+        },
+        windows: {
+            PATH: '${../build/${PLATFORM}-${PROFILE}/bin};%PATH%',
         },
         macosx: {
-            DYLD_LIBRARY_PATH: '${../build/*/bin}:$DYLD_LIBRARY_PATH',
-            LIB_EXT: '.dylib',
+            DYLD_LIBRARY_PATH: '${../build/${PLATFORM}-${PROFILE}/bin}:$DYLD_LIBRARY_PATH',
+        },
+        linux: {
+            LD_LIBRARY_PATH: '${../build/${PLATFORM}-${PROFILE}/bin}:$LD_LIBRARY_PATH',
         },
     },
 }
 ```
+
+**Priority Order (later overrides earlier):**
+1. Base environment variables (simple string values and default/platform pattern)
+2. `env.default` section (legacy format)
+3. Platform-specific section: `env.windows`, `env.macosx`, or `env.linux`
 
 **Accessing Environment Variables:**
 

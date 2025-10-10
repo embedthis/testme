@@ -1,7 +1,7 @@
 /*
     testme.h -- Header for the TestMe C language test runner
 
-    This file provides a simple API for writing unit tests.
+    This file provides a simple API for writing C unit tests.
 
     Copyright (c) All Rights Reserved. See details at the end of the file.
  */
@@ -12,6 +12,7 @@
 /*********************************** Includes *********************************/
 
 #ifdef _WIN32
+    //  Disable security warnings for standard C functions on Windows
     #undef   _CRT_SECURE_NO_DEPRECATE
     #define  _CRT_SECURE_NO_DEPRECATE 1
     #undef   _CRT_SECURE_NO_WARNINGS
@@ -29,13 +30,21 @@
 #include <string.h>
 #include <sys/types.h>
 
+#if defined(__linux__)
+#define true 1
+#define false 0
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /*********************************** Defines **********************************/
 
+//  Maximum buffer size for test messages
 #define TM_MAX_BUFFER  4096
+
+//  Short sleep duration in microseconds (5ms)
 #define TM_SHORT_NAP   5000
 
 /*********************************** Functions *********************************/
@@ -54,6 +63,10 @@ int tdepth(void)
     return 0;
 }
 
+/**
+    Exit the test on failure. If TESTME_SLEEP environment variable is set, pause for debugging.
+    @param success Test success status. If false, exits or pauses for debugging.
+ */
 static void texit(int success) {
     if (success) {
         return;
@@ -120,7 +133,7 @@ int thas(const char *key)
     @param loc The location of the test.
     @param fmt Message to emit
  */
-static void treport(int success, const char *loc, const char *expected, const char *received,
+static void tReport(int success, const char *loc, const char *expected, const char *received,
     const char *fmt, ...) {
     va_list     ap;
     char        buf[TM_MAX_BUFFER];
@@ -153,69 +166,518 @@ static void treport(int success, const char *loc, const char *expected, const ch
 }
 
 /**
-    Helper macro to handle optional format string
+    Helper macro to handle optional format string for string comparisons
  */
-#define treportx(success, loc, received, expected, ...) \
-    treport((int) (success), loc, expected, received, "" __VA_ARGS__)
+#define tReportString(success, loc, received, expected, ...) \
+    tReport((int) (success), loc, expected, received, "" __VA_ARGS__)
 
-#define treportInt(success, loc, received, expected, ...) \
+/**
+    Helper macro for int comparisons, converting integers to strings for reporting
+ */
+#define tReportInt(success, loc, received, expected, ...) \
     if (1) { \
         char ebuf[80], rbuf[80]; \
-        snprintf(ebuf, sizeof(ebuf), "%d", expected); \
-        snprintf(rbuf, sizeof(rbuf), "%d", received); \
-        treport((int) (success), loc, ebuf, rbuf, "" __VA_ARGS__) ; \
+        snprintf(ebuf, sizeof(ebuf), "%d", (int)(expected)); \
+        snprintf(rbuf, sizeof(rbuf), "%d", (int)(received)); \
+        tReport((int) (success), loc, ebuf, rbuf, "" __VA_ARGS__) ; \
     }
 
+/**
+    Helper macro for long comparisons, converting to strings for reporting
+ */
+#define tReportLong(success, loc, received, expected, ...) \
+    if (1) { \
+        char ebuf[80], rbuf[80]; \
+        snprintf(ebuf, sizeof(ebuf), "%ld", (long)(expected)); \
+        snprintf(rbuf, sizeof(rbuf), "%ld", (long)(received)); \
+        tReport((int) (success), loc, ebuf, rbuf, "" __VA_ARGS__) ; \
+    }
+
+/**
+    Helper macro for long long comparisons, converting to strings for reporting
+ */
+#define tReportLongLong(success, loc, received, expected, ...) \
+    if (1) { \
+        char ebuf[80], rbuf[80]; \
+        snprintf(ebuf, sizeof(ebuf), "%lld", (long long)(expected)); \
+        snprintf(rbuf, sizeof(rbuf), "%lld", (long long)(received)); \
+        tReport((int) (success), loc, ebuf, rbuf, "" __VA_ARGS__) ; \
+    }
+
+/**
+    Helper macro for size_t/ssize comparisons, converting to strings for reporting
+ */
+#define tReportSize(success, loc, received, expected, ...) \
+    if (1) { \
+        char ebuf[80], rbuf[80]; \
+        snprintf(ebuf, sizeof(ebuf), "%zd", (ssize_t)(expected)); \
+        snprintf(rbuf, sizeof(rbuf), "%zd", (ssize_t)(received)); \
+        tReport((int) (success), loc, ebuf, rbuf, "" __VA_ARGS__) ; \
+    }
+
+/**
+    Helper macro for unsigned int comparisons, converting to strings for reporting
+ */
+#define tReportUnsigned(success, loc, received, expected, ...) \
+    if (1) { \
+        char ebuf[80], rbuf[80]; \
+        snprintf(ebuf, sizeof(ebuf), "%u", (unsigned int)(expected)); \
+        snprintf(rbuf, sizeof(rbuf), "%u", (unsigned int)(received)); \
+        tReport((int) (success), loc, ebuf, rbuf, "" __VA_ARGS__) ; \
+    }
+
+/**
+    Helper macro for pointer comparisons, converting to strings for reporting
+ */
+#define tReportPtr(success, loc, received, expected, ...) \
+    if (1) { \
+        char ebuf[80], rbuf[80]; \
+        snprintf(ebuf, sizeof(ebuf), "%p", (void*)(expected)); \
+        snprintf(rbuf, sizeof(rbuf), "%p", (void*)(received)); \
+        tReport((int) (success), loc, ebuf, rbuf, "" __VA_ARGS__) ; \
+    }
+
+//  Macros to construct source file location strings (file@line)
 #define TM_LINE(s)          #s
 #define TM_LINE2(s)         TM_LINE(s)
 #define TM_LINE3            TM_LINE2(__LINE__)
 #define TM_LOC              __FILE__ "@" TM_LINE3
 
+/******************************** Test Assertion Macros **********************/
+
 /*
-    Ensure we invoke args only once if they are function calls.
-    Use if /else structure to be safe in enclosing code.
+    All test macros use if/else structure to be safe in enclosing code.
+    Arguments are evaluated only once to safely handle function call expressions.
+ */
+
+/**
+    Test that a string contains a substring.
+    @param s The string to search in
+    @param p The substring pattern to find
+    @param ... Optional printf-style format string and arguments for custom message
+    Example: tcontains(result, "success", "API call should succeed");
  */
 #define tcontains(s, p, ...) if (1) { \
                                 char *_s = (char*) (s); \
                                 char *_p = (char*) (p); \
                                 int _r = (_s && _p && strstr((char*) _s, (char*) _p) != 0); \
-                                treportx(_r, TM_LOC, _p, _s, __VA_ARGS__); \
+                                tReportString(_r, TM_LOC, _p, _s, __VA_ARGS__); \
                             } else
+
+/**
+    Test that an expression is false.
+    @param E The expression to test
+    @param ... Optional printf-style format string and arguments for custom message
+    Example: tfalse(error_flag, "Error flag should be clear");
+ */
 #define tfalse(E, ...)      if (1) { \
                                 int _r = (E) == 0; \
-                                treportx(_r, TM_LOC, "false", _r ? "true" : "false", __VA_ARGS__); \
+                                tReportString(_r, TM_LOC, "false", _r ? "true" : "false", __VA_ARGS__); \
                             } else
-#define tfail(...)          treportx(0, TM_LOC, "", "test failed", __VA_ARGS__)
-#define teq(a, b, ...)      if (1) { \
+
+/**
+    Unconditionally fail a test with a message.
+    @param ... Optional printf-style format string and arguments for custom message
+    Example: tfail("Unexpected code path reached");
+ */
+#define tfail(...)          tReportString(0, TM_LOC, "", "test failed", __VA_ARGS__)
+
+/**
+    Test that two int values are equal.
+    @param a First int value
+    @param b Second int value to compare against
+    @param ... Optional printf-style format string and arguments for custom message
+    Example: teqi(count, 5, "Should have processed 5 items");
+ */
+#define teqi(a, b, ...)     if (1) { \
                                 int _r = (a) == (b); \
-                                treportInt(_r, TM_LOC, a, b, __VA_ARGS__); \
+                                tReportInt(_r, TM_LOC, a, b, __VA_ARGS__); \
                             } else
+
+/**
+    Test that two long values are equal.
+    @param a First long value
+    @param b Second long value to compare against
+    @param ... Optional printf-style format string and arguments for custom message
+    Example: teql(file_size, 1024L, "File should be 1024 bytes");
+ */
+#define teql(a, b, ...)     if (1) { \
+                                int _r = (a) == (b); \
+                                tReportLong(_r, TM_LOC, a, b, __VA_ARGS__); \
+                            } else
+
+/**
+    Test that two long long values are equal.
+    @param a First long long value
+    @param b Second long long value to compare against
+    @param ... Optional printf-style format string and arguments for custom message
+    Example: teqll(timestamp, 1234567890LL, "Timestamp should match");
+ */
+#define teqll(a, b, ...)    if (1) { \
+                                int _r = (a) == (b); \
+                                tReportLongLong(_r, TM_LOC, a, b, __VA_ARGS__); \
+                            } else
+
+/**
+    Test that two size_t/ssize values are equal.
+    @param a First size value
+    @param b Second size value to compare against
+    @param ... Optional printf-style format string and arguments for custom message
+    Example: teqz(length, strlen(str), "Length should match");
+ */
+#define teqz(a, b, ...)     if (1) { \
+                                int _r = (a) == (b); \
+                                tReportSize(_r, TM_LOC, a, b, __VA_ARGS__); \
+                            } else
+
+/**
+    Test that two unsigned int values are equal.
+    @param a First unsigned int value
+    @param b Second unsigned int value to compare against
+    @param ... Optional printf-style format string and arguments for custom message
+    Example: tequ(flags, 0x0F, "Flags should be set correctly");
+ */
+#define tequ(a, b, ...)     if (1) { \
+                                int _r = (a) == (b); \
+                                tReportUnsigned(_r, TM_LOC, a, b, __VA_ARGS__); \
+                            } else
+
+/**
+    Test that two pointer values are equal.
+    @param a First pointer
+    @param b Second pointer to compare against
+    @param ... Optional printf-style format string and arguments for custom message
+    Example: teqp(ptr, NULL, "Pointer should be NULL");
+ */
+#define teqp(a, b, ...)     if (1) { \
+                                int _r = (a) == (b); \
+                                tReportPtr(_r, TM_LOC, a, b, __VA_ARGS__); \
+                            } else
+
+/**
+    Test that two strings match exactly.
+    Handles NULL strings (both NULL is considered a match).
+    @param s First string
+    @param p Second string to compare against
+    @param ... Optional printf-style format string and arguments for custom message
+    Example: tmatch(name, "expected", "Name should match");
+ */
 #define tmatch(s, p, ...)   if (1) { \
                                 char *_s = (char*) (s); \
                                 char *_p = (char*) (p); \
-                                treportx(((_s) == NULL && (_p) == NULL) || \
+                                tReportString(((_s) == NULL && (_p) == NULL) || \
                                 ((_s) != NULL && (_p) != NULL && strcmp((char*) _s, (char*) _p) == 0), TM_LOC, p, s, __VA_ARGS__); \
                             } else
-#define tneq(a, b, ...)      if (1) { \
+
+/**
+    Test that two int values are not equal.
+    @param a First int value
+    @param b Second int value to compare against
+    @param ... Optional printf-style format string and arguments for custom message
+    Example: tneqi(status, ERROR_CODE, "Status should not be error");
+ */
+#define tneqi(a, b, ...)    if (1) { \
                                 int _r = (a) != (b); \
-                                treportInt(_r, TM_LOC, a, b, __VA_ARGS__); \
+                                tReportInt(_r, TM_LOC, a, b, __VA_ARGS__); \
                             } else
+
+/**
+    Test that two long values are not equal.
+    @param a First long value
+    @param b Second long value to compare against
+    @param ... Optional printf-style format string and arguments for custom message
+    Example: tneql(offset, 0L, "Offset should not be zero");
+ */
+#define tneql(a, b, ...)    if (1) { \
+                                int _r = (a) != (b); \
+                                tReportLong(_r, TM_LOC, a, b, __VA_ARGS__); \
+                            } else
+
+/**
+    Test that two long long values are not equal.
+    @param a First long long value
+    @param b Second long long value to compare against
+    @param ... Optional printf-style format string and arguments for custom message
+    Example: tneqll(id, 0LL, "ID should not be zero");
+ */
+#define tneqll(a, b, ...)   if (1) { \
+                                int _r = (a) != (b); \
+                                tReportLongLong(_r, TM_LOC, a, b, __VA_ARGS__); \
+                            } else
+
+/**
+    Test that two size_t/ssize values are not equal.
+    @param a First size value
+    @param b Second size value to compare against
+    @param ... Optional printf-style format string and arguments for custom message
+    Example: tneqz(bytes_read, 0, "Should have read some bytes");
+ */
+#define tneqz(a, b, ...)    if (1) { \
+                                int _r = (a) != (b); \
+                                tReportSize(_r, TM_LOC, a, b, __VA_ARGS__); \
+                            } else
+
+/**
+    Test that two unsigned int values are not equal.
+    @param a First unsigned int value
+    @param b Second unsigned int value to compare against
+    @param ... Optional printf-style format string and arguments for custom message
+    Example: tnequ(mask, 0, "Mask should not be empty");
+ */
+#define tnequ(a, b, ...)    if (1) { \
+                                int _r = (a) != (b); \
+                                tReportUnsigned(_r, TM_LOC, a, b, __VA_ARGS__); \
+                            } else
+
+/**
+    Test that two pointer values are not equal.
+    @param a First pointer
+    @param b Second pointer to compare against
+    @param ... Optional printf-style format string and arguments for custom message
+    Example: tneqp(buffer, NULL, "Buffer should be allocated");
+ */
+#define tneqp(a, b, ...)    if (1) { \
+                                int _r = (a) != (b); \
+                                tReportPtr(_r, TM_LOC, a, b, __VA_ARGS__); \
+                            } else
+
+/**
+    Test that an expression is true.
+    @param E The expression to test
+    @param ... Optional printf-style format string and arguments for custom message
+    Example: ttrue(connection_active, "Connection should be active");
+ */
 #define ttrue(E, ...)       if (1) { \
                                 int _r = (E) != 0; \
-                                treportx(_r, TM_LOC, "true", _r ? "true" : "false", __VA_ARGS__); \
+                                tReportString(_r, TM_LOC, "true", _r ? "true" : "false", __VA_ARGS__); \
                             } else
 
-#define tgt(a)      if (1) { \
+/**
+    Test that first value is greater than second value (integer types).
+    @param a First value
+    @param b Second value to compare against
+    @param ... Optional printf-style format string and arguments for custom message
+    Example: tgti(count, 0, "Count should be positive");
+ */
+#define tgti(a, b, ...)     if (1) { \
+                                int _r = (a) > (b); \
+                                tReportInt(_r, TM_LOC, a, b, __VA_ARGS__); \
+                            } else
 
+/**
+    Test that first value is greater than second value (long types).
+    @param a First value
+    @param b Second value to compare against
+    @param ... Optional printf-style format string and arguments for custom message
+    Example: tgtl(file_size, 1024L, "File should be larger than 1KB");
+ */
+#define tgtl(a, b, ...)     if (1) { \
+                                int _r = (a) > (b); \
+                                tReportLong(_r, TM_LOC, a, b, __VA_ARGS__); \
+                            } else
 
-// Legacy
+/**
+    Test that first value is greater than second value (size types).
+    @param a First value
+    @param b Second value to compare against
+    @param ... Optional printf-style format string and arguments for custom message
+    Example: tgtz(bytes_written, 0, "Should have written data");
+ */
+#define tgtz(a, b, ...)     if (1) { \
+                                int _r = (a) > (b); \
+                                tReportSize(_r, TM_LOC, a, b, __VA_ARGS__); \
+                            } else
+
+/**
+    Test that first value is greater than or equal to second value (integer types).
+    @param a First value
+    @param b Second value to compare against
+    @param ... Optional printf-style format string and arguments for custom message
+    Example: tgtei(score, 60, "Score should be passing");
+ */
+#define tgtei(a, b, ...)    if (1) { \
+                                int _r = (a) >= (b); \
+                                tReportInt(_r, TM_LOC, a, b, __VA_ARGS__); \
+                            } else
+
+/**
+    Test that first value is greater than or equal to second value (long types).
+    @param a First value
+    @param b Second value to compare against
+    @param ... Optional printf-style format string and arguments for custom message
+    Example: tgtel(timestamp, start_time, "Event should be after start");
+ */
+#define tgtel(a, b, ...)    if (1) { \
+                                int _r = (a) >= (b); \
+                                tReportLong(_r, TM_LOC, a, b, __VA_ARGS__); \
+                            } else
+
+/**
+    Test that first value is greater than or equal to second value (size types).
+    @param a First value
+    @param b Second value to compare against
+    @param ... Optional printf-style format string and arguments for custom message
+    Example: tgtez(buffer_size, required_size, "Buffer should be large enough");
+ */
+#define tgtez(a, b, ...)    if (1) { \
+                                int _r = (a) >= (b); \
+                                tReportSize(_r, TM_LOC, a, b, __VA_ARGS__); \
+                            } else
+
+/**
+    Test that first value is less than second value (integer types).
+    @param a First value
+    @param b Second value to compare against
+    @param ... Optional printf-style format string and arguments for custom message
+    Example: tlti(retries, MAX_RETRIES, "Should not exceed max retries");
+ */
+#define tlti(a, b, ...)     if (1) { \
+                                int _r = (a) < (b); \
+                                tReportInt(_r, TM_LOC, a, b, __VA_ARGS__); \
+                            } else
+
+/**
+    Test that first value is less than second value (long types).
+    @param a First value
+    @param b Second value to compare against
+    @param ... Optional printf-style format string and arguments for custom message
+    Example: tltl(elapsed_time, timeout, "Should complete before timeout");
+ */
+#define tltl(a, b, ...)     if (1) { \
+                                int _r = (a) < (b); \
+                                tReportLong(_r, TM_LOC, a, b, __VA_ARGS__); \
+                            } else
+
+/**
+    Test that first value is less than second value (size types).
+    @param a First value
+    @param b Second value to compare against
+    @param ... Optional printf-style format string and arguments for custom message
+    Example: tltz(used_memory, max_memory, "Memory usage should be under limit");
+ */
+#define tltz(a, b, ...)     if (1) { \
+                                int _r = (a) < (b); \
+                                tReportSize(_r, TM_LOC, a, b, __VA_ARGS__); \
+                            } else
+
+/**
+    Test that first value is less than or equal to second value (integer types).
+    @param a First value
+    @param b Second value to compare against
+    @param ... Optional printf-style format string and arguments for custom message
+    Example: tltei(index, array_size, "Index should be within bounds");
+ */
+#define tltei(a, b, ...)    if (1) { \
+                                int _r = (a) <= (b); \
+                                tReportInt(_r, TM_LOC, a, b, __VA_ARGS__); \
+                            } else
+
+/**
+    Test that first value is less than or equal to second value (long types).
+    @param a First value
+    @param b Second value to compare against
+    @param ... Optional printf-style format string and arguments for custom message
+    Example: tltel(file_pos, file_size, "Position should not exceed file size");
+ */
+#define tltel(a, b, ...)    if (1) { \
+                                int _r = (a) <= (b); \
+                                tReportLong(_r, TM_LOC, a, b, __VA_ARGS__); \
+                            } else
+
+/**
+    Test that first value is less than or equal to second value (size types).
+    @param a First value
+    @param b Second value to compare against
+    @param ... Optional printf-style format string and arguments for custom message
+    Example: tltez(bytes_read, buffer_size, "Should not overflow buffer");
+ */
+#define tltez(a, b, ...)    if (1) { \
+                                int _r = (a) <= (b); \
+                                tReportSize(_r, TM_LOC, a, b, __VA_ARGS__); \
+                            } else
+
+/**
+    Test that a pointer is NULL.
+    @param p The pointer to test
+    @param ... Optional printf-style format string and arguments for custom message
+    Example: tnull(unused_ptr, "Pointer should not be allocated");
+ */
+#define tnull(p, ...)       if (1) { \
+                                int _r = (p) == NULL; \
+                                tReportPtr(_r, TM_LOC, p, NULL, __VA_ARGS__); \
+                            } else
+
+/**
+    Test that a pointer is not NULL.
+    @param p The pointer to test
+    @param ... Optional printf-style format string and arguments for custom message
+    Example: tnotnull(buffer, "Buffer should be allocated");
+ */
+#define tnotnull(p, ...)    if (1) { \
+                                int _r = (p) != NULL; \
+                                tReportPtr(_r, TM_LOC, p, NULL, __VA_ARGS__); \
+                            } else
+
+/******************************** Legacy/Deprecated Macros ********************/
+
+/**
+    DEPRECATED: Use teqi() instead.
+    Test that two integer values are equal.
+    This macro is kept for backward compatibility but will be removed in a future version.
+    @param a First integer value
+    @param b Second integer value to compare against
+    @param ... Optional printf-style format string and arguments for custom message
+ */
+#define teq(a, b, ...)      teqi(a, b, __VA_ARGS__)
+
+/**
+    DEPRECATED: Use tneqi() instead.
+    Test that two integer values are not equal.
+    This macro is kept for backward compatibility but will be removed in a future version.
+    @param a First integer value
+    @param b Second integer value to compare against
+    @param ... Optional printf-style format string and arguments for custom message
+ */
+#define tneq(a, b, ...)     tneqi(a, b, __VA_ARGS__)
+
+/******************************** Utility Macros *****************************/
+
+/**
+    Output informational message during test execution.
+    @param ... Printf-style format string and arguments
+    Example: tinfo("Processing item %d\n", count);
+ */
 #define tinfo(...)          printf(__VA_ARGS__)
+
+/**
+    Output debug message during test execution.
+    @param ... Printf-style format string and arguments
+    Example: tdebug("Debug: value = %d\n", val);
+ */
 #define tdebug(...)         printf(__VA_ARGS__)
+
+/**
+    Output message about skipped test conditions.
+    @param ... Printf-style format string and arguments
+    Example: tskip("Skipping test on this platform\n");
+ */
 #define tskip(...)          printf(__VA_ARGS__)
+
+/**
+    Write output during test execution.
+    @param ... Printf-style format string and arguments
+    Example: twrite("Test output: %s\n", result);
+ */
 #define twrite(...)         printf(__VA_ARGS__)
+
+/**
+    Legacy assertion macro. Use ttrue() for new code.
+    @param E The expression to test
+    @param ... Optional printf-style format string and arguments for custom message
+ */
 #define tassert(E, ...)     if (1) { \
                                 int _r = (E) != 0; \
-                                treportx(_r, TM_LOC, "true", _r ? "true" : "false", __VA_ARGS__); \
+                                tReportString(_r, TM_LOC, "true", _r ? "true" : "false", __VA_ARGS__); \
                             } else
 #ifdef __cplusplus
 }

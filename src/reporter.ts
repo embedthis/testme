@@ -148,14 +148,12 @@ export class TestReporter {
 
     if (result.output) {
       console.log('   Output:');
-      const convertedOutput = this.convertPathsToRelative(result.output);
-      this.printIndented(convertedOutput, '     ');
+      this.printIndented(result.output, '     ');
     }
 
     if (result.error) {
       console.log('   Error:');
-      const convertedError = this.convertPathsToRelative(result.error);
-      this.printIndented(convertedError, '     ');
+      this.printIndented(result.error, '     ');
     }
 
     // If test failed/errored but has no output or error message, show diagnostic help
@@ -296,23 +294,6 @@ export class TestReporter {
     }
 
     return relativePath;
-  }
-
-  /*
-   Converts absolute paths in text to relative paths
-   @param text Text containing potential absolute paths
-   @returns Text with absolute paths converted to relative paths
-   */
-  private convertPathsToRelative(text: string): string {
-    // Match absolute paths (starting with / on Unix or drive letter on Windows)
-    // Negative lookbehind to avoid matching URLs like http://
-    const pathRegex = /(?:^|[\s,(])(?<!\w:)(\/[^\s:,)]+)/g;
-
-    return text.replace(pathRegex, (match, path) => {
-      const prefix = match.substring(0, match.length - path.length);
-      const relativePath = this.getRelativePath(path);
-      return prefix + relativePath;
-    });
   }
 
 }
