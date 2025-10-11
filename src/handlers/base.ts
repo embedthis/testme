@@ -108,14 +108,17 @@ export abstract class BaseTestHandler implements TestHandler {
         }
 
         try {
-            const result = await proc.exited;
+            // Read stdout/stderr concurrently with waiting for process exit
+            // This ensures we capture output even if the process crashes
+            const [result, stdout, stderr] = await Promise.all([
+                proc.exited,
+                new Response(proc.stdout).text(),
+                new Response(proc.stderr).text(),
+            ]);
 
             if (timeoutId) {
                 clearTimeout(timeoutId);
             }
-
-            const stdout = await new Response(proc.stdout).text();
-            const stderr = await new Response(proc.stderr).text();
 
             if (timedOut) {
                 return {

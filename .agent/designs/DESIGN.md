@@ -1205,6 +1205,10 @@ throw new Error(`Failed to compile ${file.path}: ${error}\nCheck compiler flags 
 -   **Artifact Cleanup**: Automatic cleanup unless `--keep` specified
 -   **Stream Handling**: Proper stdout/stderr stream management
 
+### Bun Runtime Implementation Notes
+
+-   **Undocumented API Features**: The `detached: true` option in `Bun.spawn()` is used for launching Visual Studio debugger on Windows (see `src/handlers/c.ts:829`). This option works correctly but is not yet documented in the official Bun API. The option is cast with `as any` to bypass TypeScript type checking until it becomes part of the official API surface.
+
 ### File System Optimization
 
 -   **Artifact Co-location**: `.testme` directories next to test files

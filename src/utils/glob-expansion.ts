@@ -220,13 +220,8 @@ export class GlobExpansion {
 
         return input.replace(envVarRegex, (match, varName) => {
             // Check if this environment variable exists
-            let envValue = process.env[varName];
+            const envValue = process.env[varName];
             if (envValue !== undefined) {
-                // Sanitize PATH variable on Windows to fix corrupted entries
-                if (varName === 'PATH' && process.platform === 'win32') {
-                    // Fix double backslashes (C:\\dir -> C:\dir) except at start of UNC paths
-                    envValue = envValue.replace(/([^\\])\\\\([^\\])/g, '$1\\$2');
-                }
                 return envValue;
             }
             // If not found in environment, keep the original ${VAR} pattern
