@@ -12,7 +12,7 @@
 
 TestMe is a powerful, multi-language test runner built with [Bun](https://bun.sh) that can discover, compile, and execute tests across different programming languages with configurable patterns and parallel execution.
 
-TestMe is under very active development at this and may be a little unstable. Please report any issues you find and we will try to fix them quickly.
+TestMe is under very active development at this time and may be a little unstable. Please report any issues you find and we will try to fix them quickly.
 
 ## 🚀 Features
 
@@ -804,9 +804,9 @@ On macOS/Linux, the effective patterns would be:
 
 1. **Simple string values** - Apply to all platforms
 2. **Platform override sections** - Legacy format with platform-specific env sections
-   - Supports `windows`, `macosx`, `linux`, and `default` sections
-   - `default` section provides fallback values for all platforms
-   - Platform-specific sections override default values
+    - Supports `windows`, `macosx`, `linux`, and `default` sections
+    - `default` section provides fallback values for all platforms
+    - Platform-specific sections override default values
 3. **Default/platform pattern** - Per-variable platform overrides with default fallback
 
 **Examples:**
@@ -820,10 +820,10 @@ On macOS/Linux, the effective patterns would be:
 
         // Default/platform pattern (per-variable platform-specific values)
         LIB_EXT: {
-            default: '.so',       // Used if platform not specified
+            default: '.so', // Used if platform not specified
             windows: '.dll',
             macosx: '.dylib',
-            linux: '.so'
+            linux: '.so',
         },
 
         // Legacy platform override sections
@@ -845,6 +845,7 @@ On macOS/Linux, the effective patterns would be:
 ```
 
 **Priority Order (later overrides earlier):**
+
 1. Base environment variables (simple string values and default/platform pattern)
 2. `env.default` section (legacy format)
 3. Platform-specific section: `env.windows`, `env.macosx`, or `env.linux`
