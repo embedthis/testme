@@ -208,6 +208,7 @@ export type CliOptions = {
   init: boolean;
   new?: string;
   continue: boolean;
+  noServices: boolean;
 }
 
 /*

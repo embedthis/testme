@@ -2,6 +2,25 @@
 
 ## 2025-10-12
 
+### Added --no-services Command Line Option
+
+-   **FEATURE**: New `--no-services` command line option to skip all service commands
+    -   **Use Case**: Allows running tests without executing skip, prep, setup, or cleanup scripts
+    -   **Benefits**:
+        -   Enable manual control of services for debugging
+        -   Run services externally in a separate terminal
+        -   Faster test iteration when services are already running
+        -   Useful for development workflows where services persist
+    -   **Implementation**:
+        -   Added `noServices` boolean to `CliOptions` type
+        -   CLI parser recognizes `--no-services` flag
+        -   Service calls in test runner check `!options.noServices` before execution
+        -   All service types affected: skip, prep, setup, cleanup
+    -   **Documentation**: Updated help text, man page, and README
+    -   **Example**: `tm --no-services` runs tests without any service lifecycle
+    -   Files modified: [src/types.ts](../../src/types.ts), [src/cli.ts](../../src/cli.ts), [src/index.ts](../../src/index.ts)
+    -   Tests: All 28 tests pass, verified with `test/portable/delay_test`
+
 ### Fixed JavaScript Service Execution in Compiled Binary
 
 -   **FIX**: Setup services using JavaScript files now execute correctly when running from compiled binary

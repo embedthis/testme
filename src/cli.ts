@@ -26,6 +26,7 @@ export class CliParser {
             show: false,
             init: false,
             continue: false,
+            noServices: false,
         };
 
         let i = 0;
@@ -167,6 +168,11 @@ export class CliParser {
                     i++;
                     break;
 
+                case "--no-services":
+                    options.noServices = true;
+                    i++;
+                    break;
+
                 default:
                     if (arg.startsWith("-")) {
                         throw new Error(`Unknown option: ${arg}`);
@@ -214,6 +220,7 @@ OPTIONS:
     -k, --keep             Keep .testme artifacts after running tests
     -l, --list             List discovered tests without running them
         --new <NAME>       Create new test file from template (e.g., --new math.c)
+        --no-services      Skip all service commands (skip, prep, setup, cleanup)
     -p, --profile <NAME>   Set build profile (overrides config and env.PROFILE)
     -q, --quiet            Run silently with no output, only exit codes
     -s, --show             Display the C compile command used
@@ -245,6 +252,7 @@ EXAMPLES:
     tm -s "*.tst.c"            # Display C compile commands used
     tm -w 8                    # Use 8 parallel workers (overrides config)
     tm --quiet                 # Run silently with no output, only exit codes
+    tm --no-services           # Run tests without any service commands (run services externally)
 
 SUPPORTED TEST TYPES:
     *.tst.sh    Shell script tests (bash/zsh/fish)

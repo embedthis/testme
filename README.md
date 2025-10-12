@@ -454,6 +454,7 @@ Filter tests using various pattern types:
 | `-w, --workers <N>`   | Set parallel workers                  |
 | `-s, --show`          | Display C compile commands            |
 | `--step`              | Run tests one at a time with prompts  |
+| `--no-services`       | Skip all service commands (skip, prep, setup, cleanup) |
 
 ### Usage Examples
 
@@ -475,6 +476,7 @@ tm --depth 2                    # Run tests requiring depth ≤ 2
 tm --debug math.tst.c           # Debug specific C test
 tm -s "*.tst.c"                 # Show compilation commands
 tm --keep "*.tst.c"             # Keep build artifacts
+tm --no-services                # Skip service commands (run services externally)
 
 # Configuration
 tm -c custom.json5              # Use custom config

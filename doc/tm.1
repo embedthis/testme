@@ -47,6 +47,9 @@ List discovered tests without running them. Shows all test files that would be e
 .BR \-\-new " " \fINAME\fR
 Create new test file from template. Auto-detects test type from extension (e.g., \fB\-\-new math.c\fR creates math.tst.c). Supports C, Shell, JavaScript, and TypeScript templates.
 .TP
+.BR \-\-no-services
+Skip all service commands (skip, prep, setup, cleanup). Use this when you want to run services externally for debugging or manual control.
+.TP
 .BR \-p ", " \-\-profile " " \fINAME\fR
 Set build profile (overrides configuration and PROFILE environment variable). Used in ${PROFILE} variable expansion for platform-specific build paths.
 .TP

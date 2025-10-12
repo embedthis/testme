@@ -436,7 +436,7 @@ class TestMeApp {
             }
 
             // Check if tests should be skipped via skip script
-            if (mergedConfig.services?.skip) {
+            if (!options.noServices && mergedConfig.services?.skip) {
                 const skipResult = await this.getServiceManager(rootDir).runSkip(mergedConfig);
                 if (skipResult.shouldSkip) {
                     if (mergedConfig.output?.verbose) {
@@ -450,11 +450,11 @@ class TestMeApp {
 
             try {
                 // Run services for this configuration group
-                if (mergedConfig.services?.prep) {
+                if (!options.noServices && mergedConfig.services?.prep) {
                     await this.getServiceManager(rootDir).runPrep(mergedConfig);
                 }
 
-                if (mergedConfig.services?.setup) {
+                if (!options.noServices && mergedConfig.services?.setup) {
                     await this.getServiceManager(rootDir).runSetup(mergedConfig);
                 }
 
@@ -469,7 +469,7 @@ class TestMeApp {
 
             } finally {
                 // Cleanup for this configuration group
-                if (mergedConfig.services?.cleanup) {
+                if (!options.noServices && mergedConfig.services?.cleanup) {
                     await this.getServiceManager(rootDir).runCleanup(mergedConfig);
                 }
             }
@@ -777,7 +777,7 @@ class TestMeApp {
         } catch (error) {
             // Ensure cleanup runs even on error
             try {
-                if (config?.services?.cleanup) {
+                if (!options.noServices && config?.services?.cleanup && this.serviceManager) {
                     await this.serviceManager.runCleanup(config);
                 }
             } catch (cleanupError) {
