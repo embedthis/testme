@@ -641,10 +641,23 @@ export class ServiceManager {
                 config.profile  // profile from config
             );
 
-            // First, process base environment variables (exclude platform keys)
+            // First, process default environment variables if present
+            const defaultEnv = config.env.default;
+            if (defaultEnv && typeof defaultEnv === 'object') {
+                for (const [key, value] of Object.entries(defaultEnv)) {
+                    if (typeof value !== 'string') {
+                        continue;
+                    }
+                    // Expand ${...} references in environment variable values
+                    const expandedValue = await GlobExpansion.expandSingle(value, baseDir, specialVars);
+                    env[key] = expandedValue;
+                }
+            }
+
+            // Then, process base environment variables (exclude platform and default keys)
             for (const [key, value] of Object.entries(config.env)) {
-                // Skip platform-specific keys and non-string values
-                if (key === 'windows' || key === 'macosx' || key === 'linux' || typeof value !== 'string') {
+                // Skip platform-specific keys, default key, and non-string values
+                if (key === 'windows' || key === 'macosx' || key === 'linux' || key === 'default' || typeof value !== 'string') {
                     continue;
                 }
                 // Expand ${...} references in environment variable values
@@ -652,7 +665,7 @@ export class ServiceManager {
                 env[key] = expandedValue;
             }
 
-            // Then, merge platform-specific environment variables
+            // Finally, merge platform-specific environment variables (these override defaults)
             const platformEnv = config.env[platform];
             if (platformEnv) {
                 for (const [key, value] of Object.entries(platformEnv)) {
