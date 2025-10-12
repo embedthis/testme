@@ -620,6 +620,15 @@ export class ServiceManager {
             const platform = process.platform === 'darwin' ? 'macosx' :
                            process.platform === 'win32' ? 'windows' : 'linux';
 
+            // Create special variables for expansion (PLATFORM, PROFILE, etc.)
+            const specialVars = GlobExpansion.createSpecialVariables(
+                baseDir,  // executableDir
+                baseDir,  // testDir
+                config.configDir,  // configDir
+                undefined,  // compiler (not relevant for services)
+                config.profile  // profile from config
+            );
+
             // First, process base environment variables (exclude platform keys)
             for (const [key, value] of Object.entries(config.env)) {
                 // Skip platform-specific keys and non-string values
@@ -627,7 +636,7 @@ export class ServiceManager {
                     continue;
                 }
                 // Expand ${...} references in environment variable values
-                const expandedValue = await GlobExpansion.expandSingle(value, baseDir);
+                const expandedValue = await GlobExpansion.expandSingle(value, baseDir, specialVars);
                 env[key] = expandedValue;
             }
 
@@ -640,7 +649,7 @@ export class ServiceManager {
                         continue;
                     }
                     // Expand ${...} references in environment variable values
-                    const expandedValue = await GlobExpansion.expandSingle(value, baseDir);
+                    const expandedValue = await GlobExpansion.expandSingle(value, baseDir, specialVars);
                     env[key] = expandedValue;
                 }
             }
