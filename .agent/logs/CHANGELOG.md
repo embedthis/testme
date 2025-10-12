@@ -1,5 +1,27 @@
 # TestMe Changelog
 
+## 2025-10-12
+
+### Fixed JavaScript Service Execution in Compiled Binary
+
+-   **FIX**: Setup services using JavaScript files now execute correctly when running from compiled binary
+    -   **Issue**: Setup services specified as `.js` files would exit immediately with code 0 instead of running
+    -   **Root Cause**: When running from compiled binary, `process.execPath` returns path to the `tm` binary instead of `bun`
+        -   The service manager was using `process.execPath` to execute JavaScript files
+        -   This resulted in trying to execute `.js` files with the `tm` binary, which failed silently
+    -   **Example Problem**:
+        -   Running: `./dist/tm test/portable/delay_test`
+        -   Setup: `./mock_service.js` (background service using `setInterval`)
+        -   Incorrect execution: `/Users/mob/c/testme/dist/tm /path/to/mock_service.js`
+        -   Result: Service exits immediately instead of running in background
+    -   **Solution**: Detect when running from compiled binary and explicitly use `bun` command
+        -   Check if `process.execPath` contains `/tm`, `\tm.exe`, or `\tm`
+        -   If compiled: use `'bun'` as executable
+        -   If not compiled: use `process.execPath` (normal Bun runtime)
+    -   **Impact**: Background services (setup scripts) now work correctly in both development and production
+    -   Files modified: [src/services.ts](../../src/services.ts) `parseCommand()` method
+    -   Tests: All tests pass including `test/portable/delay_test` which uses JavaScript setup service
+
 ## 2025-10-10
 
 ### Fixed PATH Environment Variable Resolution on Windows

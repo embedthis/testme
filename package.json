@@ -1,7 +1,7 @@
 {
     "name": "@embedthis/testme",
     "owner": "embedthis",
-    "version": "0.8.13",
+    "version": "0.8.14",
     "description": "Multi-language test runner for shell, C, JavaScript, TypeScript, Python, and Go tests",
     "author": "Embedthis Software",
     "license": "GPL-2.0",

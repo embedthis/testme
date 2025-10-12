@@ -474,9 +474,13 @@ export class ServiceManager {
             }
 
             // JavaScript/TypeScript files need to be executed via bun
-            // Use process.execPath to get the current Bun executable path
+            // When running from compiled binary, process.execPath points to the binary, not bun
+            // So we need to explicitly use 'bun' command
             if (ext === '.js' || ext === '.ts') {
-                return [process.execPath, resolvedCommand, ...parts.slice(1)];
+                // Check if we're running from a compiled binary (process.execPath ends with our binary name)
+                const isBunCompiled = process.execPath.includes('/tm') || process.execPath.includes('\\tm.exe') || process.execPath.includes('\\tm');
+                const bunExecutable = isBunCompiled ? 'bun' : process.execPath;
+                return [bunExecutable, resolvedCommand, ...parts.slice(1)];
             }
 
             parts[0] = resolvedCommand;

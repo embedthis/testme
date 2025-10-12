@@ -4,11 +4,15 @@
 
 TestMe is a production-ready, cross-platform multi-language test runner with native support for Windows, macOS, and Linux. Core features are complete and well-documented.
 
-**Version**: 0.8.7
-**Last Updated**: 2025-10-07
+**Version**: 0.8.14
+**Last Updated**: 2025-10-12
 
 ## Recently Completed
 
+-   ✅ JavaScript service execution in compiled binary (2025-10-12)
+    -   Fixed setup services using `.js` files failing when run from compiled `tm` binary
+    -   Added detection for compiled binary context to use `bun` command instead of `process.execPath`
+    -   All tests now pass including `test/portable/delay_test`
 -   ✅ Critical bug fixes (2025-10-07)
     -   Fixed Bun compiled binary working directory issue with shell wrapper
     -   Fixed `profile` property from testme.json5 not being used for `${PROFILE}` expansion

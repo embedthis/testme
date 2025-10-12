@@ -1168,6 +1168,46 @@ The `services.delay` field provides time for setup services to initialize:
 -   Delay is per-configuration group, not global
 -   Multiple directories can have different delay settings
 
+### Service Script Execution
+
+Service scripts (skip, prep, setup, cleanup) can be written in various languages:
+
+-   **Shell scripts**: `.sh` files executed with bash/sh (Unix/macOS)
+-   **PowerShell scripts**: `.ps1` files executed with PowerShell (Windows)
+-   **Batch scripts**: `.bat`, `.cmd` files executed with cmd.exe (Windows)
+-   **JavaScript/TypeScript**: `.js`, `.ts` files executed with Bun runtime
+
+**Compiled Binary Execution:**
+
+When TestMe runs from a compiled binary (`tm` or `tm.exe`), JavaScript/TypeScript service scripts require special handling:
+
+-   **Problem**: `process.execPath` returns the path to the `tm` binary, not the Bun runtime
+-   **Solution**: Detect compiled binary context and explicitly use `bun` command
+-   **Detection Logic**: Check if `process.execPath` contains `/tm`, `\tm.exe`, or `\tm`
+-   **Implementation**: See `services.ts:parseCommand()` method
+
+```typescript
+// Simplified example from services.ts
+if (ext === '.js' || ext === '.ts') {
+    const isBunCompiled = process.execPath.includes('/tm') ||
+                          process.execPath.includes('\\tm.exe') ||
+                          process.execPath.includes('\\tm');
+    const bunExecutable = isBunCompiled ? 'bun' : process.execPath;
+    return [bunExecutable, resolvedCommand, ...parts.slice(1)];
+}
+```
+
+**Process Verification:**
+
+After spawning a setup service, TestMe verifies it's running:
+
+1. Wait 1 second for process initialization
+2. Race the process exit promise against a 100ms timeout
+3. If timeout wins, process is still running (success)
+4. If exit promise wins, process exited immediately (failure)
+
+This ensures background services are actually running before tests begin.
+
 ## Error Handling Strategy
 
 ### Graceful Degradation
