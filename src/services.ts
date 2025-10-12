@@ -541,6 +541,11 @@ export class ServiceManager {
                 return [bunExecutable, resolvedCommand, ...parts.slice(1)];
             }
 
+            // Shell scripts on Windows need to be executed via bash (from Git for Windows)
+            if (PlatformDetector.isWindows() && ext === '.sh') {
+                return ['bash', resolvedCommand, ...parts.slice(1)];
+            }
+
             parts[0] = resolvedCommand;
         }
 
