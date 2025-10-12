@@ -603,9 +603,10 @@ class TestMeApp {
     async run(args: string[]): Promise<number> {
         let isQuiet = false;
         let config: TestConfig | undefined;
+        let options: any; // Declare at function level so it's accessible in catch block
         try {
             // Parse command line arguments
-            const options = CliParser.parse(args);
+            options = CliParser.parse(args);
             CliParser.validateOptions(options);
             isQuiet = options.quiet;
 

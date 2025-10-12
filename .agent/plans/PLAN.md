@@ -4,14 +4,20 @@
 
 TestMe is a production-ready, cross-platform multi-language test runner with native support for Windows, macOS, and Linux. Core features are complete and well-documented.
 
-**Version**: 0.8.14
+**Version**: 0.8.15
 **Last Updated**: 2025-10-12
 
 ## Recently Completed
 
+-   ✅ Added --no-services command line option (2025-10-12)
+    -   New CLI flag to skip all service commands (skip, prep, setup, cleanup)
+    -   Enables manual service control for debugging and faster test iteration
+    -   Updated CLI parser, help text, man page, and documentation
+    -   All tests pass with option working correctly
 -   ✅ JavaScript service execution in compiled binary (2025-10-12)
     -   Fixed setup services using `.js` files failing when run from compiled `tm` binary
     -   Added detection for compiled binary context to use `bun` command instead of `process.execPath`
+    -   Fixed scope issue with options variable in catch block
     -   All tests now pass including `test/portable/delay_test`
 -   ✅ Critical bug fixes (2025-10-07)
     -   Fixed Bun compiled binary working directory issue with shell wrapper

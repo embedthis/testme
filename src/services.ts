@@ -294,7 +294,53 @@ export class ServiceManager {
                     this.registerCleanupHandlers();
                 }
             } else {
-                throw new Error("Setup process exited immediately");
+                // Process exited immediately - capture output for debugging
+                const exitCode = typeof raceResult === 'number' ? raceResult : -1;
+                let errorMessage = `Setup process exited immediately with code ${exitCode}`;
+
+                // Try to read any output from the process
+                try {
+                    let stdout = '';
+                    let stderr = '';
+
+                    // Read stdout if it's a stream
+                    if (this.setupProcess.stdout && typeof this.setupProcess.stdout !== 'number') {
+                        const reader = this.setupProcess.stdout.getReader();
+                        const chunks: Uint8Array[] = [];
+                        let done = false;
+                        while (!done) {
+                            const result = await reader.read();
+                            if (result.value) chunks.push(result.value);
+                            done = result.done;
+                        }
+                        const decoder = new TextDecoder();
+                        stdout = decoder.decode(Buffer.concat(chunks));
+                    }
+
+                    // Read stderr if it's a stream
+                    if (this.setupProcess.stderr && typeof this.setupProcess.stderr !== 'number') {
+                        const reader = this.setupProcess.stderr.getReader();
+                        const chunks: Uint8Array[] = [];
+                        let done = false;
+                        while (!done) {
+                            const result = await reader.read();
+                            if (result.value) chunks.push(result.value);
+                            done = result.done;
+                        }
+                        const decoder = new TextDecoder();
+                        stderr = decoder.decode(Buffer.concat(chunks));
+                    }
+
+                    if (stdout || stderr) {
+                        errorMessage += '\n\nProcess output:';
+                        if (stdout) errorMessage += `\nSTDOUT:\n${stdout}`;
+                        if (stderr) errorMessage += `\nSTDERR:\n${stderr}`;
+                    }
+                } catch (readError) {
+                    errorMessage += `\n(Could not read process output: ${readError})`;
+                }
+
+                throw new Error(errorMessage);
             }
         } catch (error) {
             this.isSetupRunning = false;

@@ -1208,6 +1208,52 @@ After spawning a setup service, TestMe verifies it's running:
 
 This ensures background services are actually running before tests begin.
 
+### Service Control via CLI
+
+The `--no-services` command line option provides fine-grained control over service execution:
+
+-   **Purpose**: Skip all service commands (skip, prep, setup, cleanup) during test execution
+-   **Use Cases**:
+    -   Manual service control for debugging
+    -   External service management (services run in separate terminal)
+    -   Faster test iteration when services persist between runs
+    -   CI/CD environments with containerized services
+-   **Implementation**: All service calls check `!options.noServices` before execution
+-   **Behavior**: When enabled, tests run immediately without any service lifecycle overhead
+
+```typescript
+// Example from index.ts
+if (!options.noServices && mergedConfig.services?.skip) {
+    const skipResult = await this.getServiceManager(rootDir).runSkip(mergedConfig);
+    // ... handle skip result
+}
+
+if (!options.noServices && mergedConfig.services?.prep) {
+    await this.getServiceManager(rootDir).runPrep(mergedConfig);
+}
+
+if (!options.noServices && mergedConfig.services?.setup) {
+    await this.getServiceManager(rootDir).runSetup(mergedConfig);
+}
+
+// Tests execute here
+
+if (!options.noServices && mergedConfig.services?.cleanup) {
+    await this.getServiceManager(rootDir).runCleanup(mergedConfig);
+}
+```
+
+**Usage Example**:
+```bash
+# Normal execution with full service lifecycle
+tm test/portable/delay_test
+# → Setup runs, delay applied, tests execute, cleanup runs
+
+# Skip all services for manual control
+tm test/portable/delay_test --no-services
+# → Tests execute immediately, no service overhead
+```
+
 ## Error Handling Strategy
 
 ### Graceful Degradation
