@@ -233,10 +233,15 @@ export class ServiceManager {
             // Parse command and arguments
             const [command, ...args] = this.parseCommand(setupCommand, config.configDir, true);
 
+            // In verbose mode, inherit stdout/stderr to show service output
+            // Otherwise pipe it so we can capture on errors
+            const stdoutMode = config.output?.verbose ? "inherit" : "pipe";
+            const stderrMode = config.output?.verbose ? "inherit" : "pipe";
+
             // Start the background process with proper environment
             this.setupProcess = Bun.spawn([command, ...args], {
-                stdout: "pipe",
-                stderr: "pipe",
+                stdout: stdoutMode,
+                stderr: stderrMode,
                 stdin: "pipe", // Don't ignore stdin on Windows - some commands like timeout need it
                 cwd: config.configDir, // Run in the directory containing testme.json5
                 env: await this.getServiceEnvironment(config)
@@ -277,6 +282,9 @@ export class ServiceManager {
                         console.log("✅ Setup service started successfully");
                     }
 
+                    // Note: Setup service output is not displayed in real-time to avoid cluttering test output.
+                    // Output will be shown if the service fails or exits unexpectedly.
+
                     // Apply configured delay after setup starts
                     const delay = config.services?.delay || 0;
                     if (delay > 0) {
@@ -298,46 +306,50 @@ export class ServiceManager {
                 const exitCode = typeof raceResult === 'number' ? raceResult : -1;
                 let errorMessage = `Setup process exited immediately with code ${exitCode}`;
 
-                // Try to read any output from the process
-                try {
-                    let stdout = '';
-                    let stderr = '';
+                // Try to read any output from the process (only if piped, not inherited)
+                if (!config.output?.verbose) {
+                    try {
+                        let stdout = '';
+                        let stderr = '';
 
-                    // Read stdout if it's a stream
-                    if (this.setupProcess.stdout && typeof this.setupProcess.stdout !== 'number') {
-                        const reader = this.setupProcess.stdout.getReader();
-                        const chunks: Uint8Array[] = [];
-                        let done = false;
-                        while (!done) {
-                            const result = await reader.read();
-                            if (result.value) chunks.push(result.value);
-                            done = result.done;
+                        // Read stdout if it's a stream
+                        if (this.setupProcess.stdout && typeof this.setupProcess.stdout !== 'number') {
+                            const reader = this.setupProcess.stdout.getReader();
+                            const chunks: Uint8Array[] = [];
+                            let done = false;
+                            while (!done) {
+                                const result = await reader.read();
+                                if (result.value) chunks.push(result.value);
+                                done = result.done;
+                            }
+                            const decoder = new TextDecoder();
+                            stdout = decoder.decode(Buffer.concat(chunks));
                         }
-                        const decoder = new TextDecoder();
-                        stdout = decoder.decode(Buffer.concat(chunks));
-                    }
 
-                    // Read stderr if it's a stream
-                    if (this.setupProcess.stderr && typeof this.setupProcess.stderr !== 'number') {
-                        const reader = this.setupProcess.stderr.getReader();
-                        const chunks: Uint8Array[] = [];
-                        let done = false;
-                        while (!done) {
-                            const result = await reader.read();
-                            if (result.value) chunks.push(result.value);
-                            done = result.done;
+                        // Read stderr if it's a stream
+                        if (this.setupProcess.stderr && typeof this.setupProcess.stderr !== 'number') {
+                            const reader = this.setupProcess.stderr.getReader();
+                            const chunks: Uint8Array[] = [];
+                            let done = false;
+                            while (!done) {
+                                const result = await reader.read();
+                                if (result.value) chunks.push(result.value);
+                                done = result.done;
+                            }
+                            const decoder = new TextDecoder();
+                            stderr = decoder.decode(Buffer.concat(chunks));
                         }
-                        const decoder = new TextDecoder();
-                        stderr = decoder.decode(Buffer.concat(chunks));
-                    }
 
-                    if (stdout || stderr) {
-                        errorMessage += '\n\nProcess output:';
-                        if (stdout) errorMessage += `\nSTDOUT:\n${stdout}`;
-                        if (stderr) errorMessage += `\nSTDERR:\n${stderr}`;
+                        if (stdout || stderr) {
+                            errorMessage += '\n\nProcess output:';
+                            if (stdout) errorMessage += `\nSTDOUT:\n${stdout}`;
+                            if (stderr) errorMessage += `\nSTDERR:\n${stderr}`;
+                        }
+                    } catch (readError) {
+                        errorMessage += `\n(Could not read process output: ${readError})`;
                     }
-                } catch (readError) {
-                    errorMessage += `\n(Could not read process output: ${readError})`;
+                } else {
+                    errorMessage += '\n(Output was displayed above in verbose mode)';
                 }
 
                 throw new Error(errorMessage);
