@@ -93,10 +93,15 @@ export class ServiceManager {
             // Parse command and arguments
             const [command, ...args] = this.parseCommand(skipCommand, config.configDir);
 
+            // In verbose mode, inherit stdout/stderr to show service output
+            // Otherwise pipe it so we can capture on errors
+            const stdoutMode = config.output?.verbose ? "inherit" : "pipe";
+            const stderrMode = config.output?.verbose ? "inherit" : "pipe";
+
             // Run skip script in foreground with proper environment
             const skipProcess = Bun.spawn([command, ...args], {
-                stdout: "pipe",
-                stderr: "pipe",
+                stdout: stdoutMode,
+                stderr: stderrMode,
                 cwd: config.configDir, // Run in the directory containing testme.json5
                 env: await this.getServiceEnvironment(config)
             });
@@ -165,10 +170,15 @@ export class ServiceManager {
             // Parse command and arguments
             const [command, ...args] = this.parseCommand(prepCommand, config.configDir);
 
+            // In verbose mode, inherit stdout/stderr to show service output
+            // Otherwise pipe it so we can capture on errors
+            const stdoutMode = config.output?.verbose ? "inherit" : "pipe";
+            const stderrMode = config.output?.verbose ? "inherit" : "pipe";
+
             // Run prep in foreground with proper environment
             const prepProcess = Bun.spawn([command, ...args], {
-                stdout: "pipe",
-                stderr: "pipe",
+                stdout: stdoutMode,
+                stderr: stderrMode,
                 cwd: config.configDir, // Run in the directory containing testme.json5
                 env: await this.getServiceEnvironment(config)
             });
@@ -391,10 +401,15 @@ export class ServiceManager {
             // Parse command and arguments
             const [command, ...args] = this.parseCommand(cleanupCommand, config.configDir);
 
+            // In verbose mode, inherit stdout/stderr to show service output
+            // Otherwise pipe it so we can capture on errors
+            const stdoutMode = config.output?.verbose ? "inherit" : "pipe";
+            const stderrMode = config.output?.verbose ? "inherit" : "pipe";
+
             // Run cleanup in foreground with proper environment
             const cleanupProcess = Bun.spawn([command, ...args], {
-                stdout: "pipe",
-                stderr: "pipe",
+                stdout: stdoutMode,
+                stderr: stderrMode,
                 cwd: config.configDir, // Run in the directory containing testme.json5
                 env: await this.getServiceEnvironment(config)
             });
