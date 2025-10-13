@@ -50,9 +50,7 @@ TestMe is under very active development at this time and may be a little unstabl
 
 ### Prerequisites
 
-TestMe requires **Bun** to be installed and operate.
-
-**[Bun](https://bun.sh)** - Fast JavaScript runtime with built-in TypeScript support
+TestMe requires **[Bun](https://bun.sh)** - a fast JavaScript runtime with built-in TypeScript support, to be installed.
 
 For installation, visit [bun.sh](https://bun.sh) for installation instructions.
 
@@ -70,9 +68,11 @@ on Windows with PowerShell:
 setx PATH "$($env:PATH);$env:USERPROFILE\.bun\bin"
 ```
 
-### Quick Install
+### Quick TestMe Install
 
-**Important:** Bun requires the `--trust` flag to run postinstall scripts.
+You can install TestMe from the npm registry using the following command:
+
+**Important:** TestMe requires the `--trust` flag to run postinstall scripts.
 
 ```bash
 # Using Bun (recommended)
@@ -98,7 +98,7 @@ tm --version
 
 #### Unix/Linux/macOS
 
-1. Clone or download the tm project
+1. Clone or download the TestMe project
 
 2. Install dependencies:
     ```bash
@@ -127,7 +127,7 @@ bun install
 bun run build
 ```
 
-## 🚀 Quick Start
+## 🚀 Using TestMe Quick Start
 
 ### Initialize a New Project
 
@@ -271,18 +271,71 @@ int main() {
 
 #### C Testing Functions (testme.h)
 
--   `teq(a, b, msg)` - Assert two values are equal
--   `tneq(a, b, msg)` - Assert two values are not equal
+**Equality Tests:**
+-   `teqi(a, b, msg)` - Assert two int values are equal
+-   `teql(a, b, msg)` - Assert two long values are equal
+-   `teqll(a, b, msg)` - Assert two long long values are equal
+-   `teqz(a, b, msg)` - Assert two size_t/ssize values are equal
+-   `tequ(a, b, msg)` - Assert two unsigned int values are equal
+-   `teqp(a, b, msg)` - Assert two pointer values are equal
+-   `tmatch(str, pattern, msg)` - Assert string matches exactly
+
+**Inequality Tests:**
+-   `tneqi(a, b, msg)` - Assert two int values are not equal
+-   `tneql(a, b, msg)` - Assert two long values are not equal
+-   `tneqll(a, b, msg)` - Assert two long long values are not equal
+-   `tneqz(a, b, msg)` - Assert two size_t/ssize values are not equal
+-   `tnequ(a, b, msg)` - Assert two unsigned int values are not equal
+-   `tneqp(a, b, msg)` - Assert two pointer values are not equal
+
+**Comparison Tests (Greater Than):**
+-   `tgti(a, b, msg)` - Assert a > b (int)
+-   `tgtl(a, b, msg)` - Assert a > b (long)
+-   `tgtll(a, b, msg)` - Assert a > b (long long)
+-   `tgtz(a, b, msg)` - Assert a > b (size_t/ssize)
+-   `tgtei(a, b, msg)` - Assert a >= b (int)
+-   `tgtel(a, b, msg)` - Assert a >= b (long)
+-   `tgtell(a, b, msg)` - Assert a >= b (long long)
+-   `tgtez(a, b, msg)` - Assert a >= b (size_t/ssize)
+
+**Comparison Tests (Less Than):**
+-   `tlti(a, b, msg)` - Assert a < b (int)
+-   `tltl(a, b, msg)` - Assert a < b (long)
+-   `tltll(a, b, msg)` - Assert a < b (long long)
+-   `tltz(a, b, msg)` - Assert a < b (size_t/ssize)
+-   `tltei(a, b, msg)` - Assert a <= b (int)
+-   `tltel(a, b, msg)` - Assert a <= b (long)
+-   `tltell(a, b, msg)` - Assert a <= b (long long)
+-   `tltez(a, b, msg)` - Assert a <= b (size_t/ssize)
+
+**Boolean and String Tests:**
 -   `ttrue(expr, msg)` - Assert expression is true
 -   `tfalse(expr, msg)` - Assert expression is false
--   `tmatch(str, pattern, msg)` - Assert string matches pattern
 -   `tcontains(str, substr, msg)` - Assert string contains substring
--   `tfail(msg)` - Fail test with message
+-   `tnull(ptr, msg)` - Assert pointer is NULL
+-   `tnotnull(ptr, msg)` - Assert pointer is not NULL
+
+**Control Functions:**
+-   `tfail(msg)` - Unconditionally fail test with message
+
+**Environment Functions:**
 -   `tget(key, default)` - Get environment variable with default
 -   `tgeti(key, default)` - Get environment variable as integer
 -   `thas(key)` - Check if environment variable exists
 -   `tdepth()` - Get current test depth
--   `tinfo(...)`, `tdebug(...)` - Print informational messages
+
+**Output Functions:**
+-   `tinfo(fmt, ...)` - Print informational message (with auto-newline)
+-   `tdebug(fmt, ...)` - Print debug message (with auto-newline)
+-   `tskip(fmt, ...)` - Print skip message (with auto-newline)
+-   `twrite(fmt, ...)` - Print output message (with auto-newline)
+
+**Legacy Functions (deprecated):**
+-   `teq(a, b, msg)` - Use `teqi()` instead
+-   `tneq(a, b, msg)` - Use `tneqi()` instead
+-   `tassert(expr, msg)` - Use `ttrue()` instead
+
+All test macros support optional printf-style format strings and arguments for custom messages.
 
 ### JavaScript Tests (`.tst.js`)
 
@@ -441,21 +494,21 @@ Filter tests using various pattern types:
 
 ### Common Options
 
-| Option                | Description                           |
-| --------------------- | ------------------------------------- |
-| `-l, --list`          | List discovered tests without running |
-| `-v, --verbose`       | Show detailed output                  |
-| `-q, --quiet`         | Silent mode (exit codes only)         |
-| `-c, --config <FILE>` | Use specific config file              |
-| `--clean`             | Remove all `.testme` artifacts        |
-| `-d, --debug`         | Launch debugger (GDB/Xcode)           |
-| `-k, --keep`          | Keep artifacts after tests            |
-| `--depth <N>`         | Run tests requiring depth ≤ N         |
-| `-i, --iterations <N>`| Set iteration count (exports `TESTME_ITERATIONS` for tests to use internally) |
-| `-w, --workers <N>`   | Set parallel workers                  |
-| `-s, --show`          | Display C compile commands            |
-| `--step`              | Run tests one at a time with prompts  |
-| `--no-services`       | Skip all service commands (skip, prep, setup, cleanup) |
+| Option                 | Description                                                                   |
+| ---------------------- | ----------------------------------------------------------------------------- |
+| `-l, --list`           | List discovered tests without running                                         |
+| `-v, --verbose`        | Show detailed output                                                          |
+| `-q, --quiet`          | Silent mode (exit codes only)                                                 |
+| `-c, --config <FILE>`  | Use specific config file                                                      |
+| `--clean`              | Remove all `.testme` artifacts                                                |
+| `-d, --debug`          | Launch debugger (GDB/Xcode)                                                   |
+| `-k, --keep`           | Keep artifacts after tests                                                    |
+| `--depth <N>`          | Run tests requiring depth ≤ N                                                 |
+| `-i, --iterations <N>` | Set iteration count (exports `TESTME_ITERATIONS` for tests to use internally) |
+| `-w, --workers <N>`    | Set parallel workers                                                          |
+| `-s, --show`           | Display C compile commands                                                    |
+| `--step`               | Run tests one at a time with prompts                                          |
+| `--no-services`        | Skip all service commands (skip, prep, setup, cleanup)                        |
 
 ### Usage Examples
 
@@ -817,7 +870,7 @@ TestMe automatically exports these special environment variables to all tests an
 -   `TESTME_VERBOSE` - Set to `1` when `--verbose` flag is used
 -   `TESTME_DEPTH` - Current depth value from `--depth` flag
 -   `TESTME_ITERATIONS` - Iteration count from `--iterations` flag (defaults to `1`)
-    - **Note**: TestMe does NOT automatically repeat test execution. This variable is provided for tests to implement their own iteration logic internally if needed.
+    -   **Note**: TestMe does NOT automatically repeat test execution. This variable is provided for tests to implement their own iteration logic internally if needed.
 
 These variables are available in all test and service script environments and can be used in shell scripts (e.g., `$TESTME_PLATFORM`), C code (via `getenv("TESTME_PLATFORM")`), or JavaScript/TypeScript (via `process.env.TESTME_PLATFORM`).
 
