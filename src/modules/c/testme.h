@@ -478,6 +478,18 @@ static void tReport(int success, const char *loc, const char *expected, const ch
                             } else
 
 /**
+    Test that first value is greater than second value (long long types).
+    @param a First value
+    @param b Second value to compare against
+    @param ... Optional printf-style format string and arguments for custom message
+    Example: tgtll(timestamp, baseline, "Timestamp should be after baseline");
+ */
+#define tgtll(a, b, ...)    if (1) { \
+                                int _r = (a) > (b); \
+                                tReportLongLong(_r, TM_LOC, a, b, __VA_ARGS__); \
+                            } else
+
+/**
     Test that first value is greater than second value (size types).
     @param a First value
     @param b Second value to compare against
@@ -511,6 +523,18 @@ static void tReport(int success, const char *loc, const char *expected, const ch
 #define tgtel(a, b, ...)    if (1) { \
                                 int _r = (a) >= (b); \
                                 tReportLong(_r, TM_LOC, a, b, __VA_ARGS__); \
+                            } else
+
+/**
+    Test that first value is greater than or equal to second value (long long types).
+    @param a First value
+    @param b Second value to compare against
+    @param ... Optional printf-style format string and arguments for custom message
+    Example: tgtell(counter, minimum, "Counter should be at least minimum");
+ */
+#define tgtell(a, b, ...)   if (1) { \
+                                int _r = (a) >= (b); \
+                                tReportLongLong(_r, TM_LOC, a, b, __VA_ARGS__); \
                             } else
 
 /**
@@ -550,6 +574,18 @@ static void tReport(int success, const char *loc, const char *expected, const ch
                             } else
 
 /**
+    Test that first value is less than second value (long long types).
+    @param a First value
+    @param b Second value to compare against
+    @param ... Optional printf-style format string and arguments for custom message
+    Example: tltll(value, maximum, "Value should be under maximum");
+ */
+#define tltll(a, b, ...)    if (1) { \
+                                int _r = (a) < (b); \
+                                tReportLongLong(_r, TM_LOC, a, b, __VA_ARGS__); \
+                            } else
+
+/**
     Test that first value is less than second value (size types).
     @param a First value
     @param b Second value to compare against
@@ -583,6 +619,18 @@ static void tReport(int success, const char *loc, const char *expected, const ch
 #define tltel(a, b, ...)    if (1) { \
                                 int _r = (a) <= (b); \
                                 tReportLong(_r, TM_LOC, a, b, __VA_ARGS__); \
+                            } else
+
+/**
+    Test that first value is less than or equal to second value (long long types).
+    @param a First value
+    @param b Second value to compare against
+    @param ... Optional printf-style format string and arguments for custom message
+    Example: tltell(value, limit, "Value should not exceed limit");
+ */
+#define tltell(a, b, ...)   if (1) { \
+                                int _r = (a) <= (b); \
+                                tReportLongLong(_r, TM_LOC, a, b, __VA_ARGS__); \
                             } else
 
 /**
@@ -641,35 +689,71 @@ static void tReport(int success, const char *loc, const char *expected, const ch
  */
 #define tneq(a, b, ...)     tneqi(a, b, __VA_ARGS__)
 
-/******************************** Utility Macros *****************************/
+/******************************** Utility Functions **************************/
 
 /**
-    Output informational message during test execution.
-    @param ... Printf-style format string and arguments
-    Example: tinfo("Processing item %d\n", count);
+    Output informational message during test execution. Automatically appends a newline.
+    @param fmt Printf-style format string
+    @param ... Arguments for format string
+    Example: tinfo("Processing item %d", count);
  */
-#define tinfo(...)          printf(__VA_ARGS__)
+static inline void tinfo(const char *fmt, ...) {
+    va_list     ap;
+    char        buf[TM_MAX_BUFFER];
+
+    va_start(ap, fmt);
+    vsnprintf(buf, sizeof(buf), fmt, ap);
+    va_end(ap);
+    printf("%s\n", buf);
+}
 
 /**
-    Output debug message during test execution.
-    @param ... Printf-style format string and arguments
-    Example: tdebug("Debug: value = %d\n", val);
+    Output debug message during test execution. Automatically appends a newline.
+    @param fmt Printf-style format string
+    @param ... Arguments for format string
+    Example: tdebug("Debug: value = %d", val);
  */
-#define tdebug(...)         printf(__VA_ARGS__)
+static inline void tdebug(const char *fmt, ...) {
+    va_list     ap;
+    char        buf[TM_MAX_BUFFER];
+
+    va_start(ap, fmt);
+    vsnprintf(buf, sizeof(buf), fmt, ap);
+    va_end(ap);
+    printf("%s\n", buf);
+}
 
 /**
-    Output message about skipped test conditions.
-    @param ... Printf-style format string and arguments
-    Example: tskip("Skipping test on this platform\n");
+    Output message about skipped test conditions. Automatically appends a newline.
+    @param fmt Printf-style format string
+    @param ... Arguments for format string
+    Example: tskip("Skipping test on this platform");
  */
-#define tskip(...)          printf(__VA_ARGS__)
+static inline void tskip(const char *fmt, ...) {
+    va_list     ap;
+    char        buf[TM_MAX_BUFFER];
+
+    va_start(ap, fmt);
+    vsnprintf(buf, sizeof(buf), fmt, ap);
+    va_end(ap);
+    printf("%s\n", buf);
+}
 
 /**
-    Write output during test execution.
-    @param ... Printf-style format string and arguments
-    Example: twrite("Test output: %s\n", result);
+    Write output during test execution. Automatically appends a newline.
+    @param fmt Printf-style format string
+    @param ... Arguments for format string
+    Example: twrite("Test output: %s", result);
  */
-#define twrite(...)         printf(__VA_ARGS__)
+static inline void twrite(const char *fmt, ...) {
+    va_list     ap;
+    char        buf[TM_MAX_BUFFER];
+
+    va_start(ap, fmt);
+    vsnprintf(buf, sizeof(buf), fmt, ap);
+    va_end(ap);
+    printf("%s\n", buf);
+}
 
 /**
     Legacy assertion macro. Use ttrue() for new code.
