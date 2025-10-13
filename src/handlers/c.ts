@@ -1,4 +1,5 @@
-import {TestFile, TestResult, TestConfig, TestStatus, TestType} from '../types.ts'
+import type {TestFile, TestResult, TestConfig} from '../types.ts'
+import {TestStatus, TestType} from '../types.ts'
 import {BaseTestHandler} from './base.ts'
 import {ArtifactManager} from '../artifacts.ts'
 import {GlobExpansion} from '../utils/glob-expansion.ts'
@@ -37,7 +38,7 @@ export class CTestHandler extends BaseTestHandler {
      Prepares C test for execution by creating artifact directory
      @param file C test file to prepare
      */
-    async prepare(file: TestFile): Promise<void> {
+    override async prepare(file: TestFile): Promise<void> {
         // Create artifact directory for compilation outputs
         await this.artifactManager.createArtifactDir(file)
     }
@@ -90,7 +91,7 @@ export class CTestHandler extends BaseTestHandler {
      @param file C test file to clean up
      @param config Test configuration that may specify to keep artifacts
      */
-    async cleanup(file: TestFile, config?: TestConfig): Promise<void> {
+    override async cleanup(file: TestFile, config?: TestConfig): Promise<void> {
         // Only clean artifacts if not configured to keep them
         if (!config?.execution?.keepArtifacts) {
             await this.artifactManager.cleanArtifactDir(file)
@@ -118,7 +119,7 @@ export class CTestHandler extends BaseTestHandler {
             const baseDir = config.configDir || file.directory
 
             // Get compiler configuration (auto-detect if not specified)
-            const compilerConfig = await CompilerManager.getDefaultCompilerConfig(config.compiler?.c?.compiler)
+            const compilerConfig = await CompilerManager.getDefaultCompilerConfig(this.resolveCompilerName(config.compiler?.c?.compiler))
 
             // Get compiler-specific or default flags and libraries
             let userFlags: string[] = []
@@ -283,11 +284,17 @@ export class CTestHandler extends BaseTestHandler {
             }
 
             // Build environment for MSVC if needed
-            let env = undefined
+            let env: Record<string, string> | undefined = undefined
             if (compilerConfig.type === CompilerType.MSVC && compilerConfig.env) {
-                env = {...process.env}
+                // Filter out undefined values from process.env
+                env = {}
+                for (const [key, value] of Object.entries(process.env)) {
+                    if (value !== undefined) {
+                        env[key] = value
+                    }
+                }
                 if (compilerConfig.env.PATH) {
-                    env.PATH = `${compilerConfig.env.PATH};${process.env.PATH}`
+                    env.PATH = `${compilerConfig.env.PATH};${process.env.PATH || ''}`
                 }
                 if (compilerConfig.env.INCLUDE) {
                     env.INCLUDE = compilerConfig.env.INCLUDE
@@ -310,7 +317,7 @@ export class CTestHandler extends BaseTestHandler {
 
         // Enhance error messages for common compilation failures
         if (error) {
-            error = this.enhanceCompilationError(error, file)
+            error = this.enhanceCompilationError(error)
         }
 
         // Save compilation log to artifacts
@@ -328,7 +335,7 @@ ${result.stderr}`
         }
 
         // Get compiler name for special variable expansion
-        const compilerConfig = await CompilerManager.getDefaultCompilerConfig(config.compiler?.c?.compiler)
+        const compilerConfig = await CompilerManager.getDefaultCompilerConfig(this.resolveCompilerName(config.compiler?.c?.compiler))
         const compilerName =
             compilerConfig.type === CompilerType.GCC
                 ? 'gcc'
@@ -339,6 +346,24 @@ ${result.stderr}`
                 : undefined
 
         return {success, duration, output, error, compiler: compilerName}
+    }
+
+    /*
+     Resolves compiler name from config (handles platform-specific values)
+     @param compiler Compiler config value (string or platform object)
+     @returns Resolved compiler name string
+     */
+    private resolveCompilerName(compiler?: string | {windows?: string; macosx?: string; linux?: string}): string | undefined {
+        if (!compiler) {
+            return undefined
+        }
+        if (typeof compiler === 'string') {
+            return compiler
+        }
+        // Resolve platform-specific compiler
+        const platform = PlatformDetector.isWindows() ? 'windows' :
+                       PlatformDetector.isMacOS() ? 'macosx' : 'linux'
+        return compiler[platform as 'windows' | 'macosx' | 'linux']
     }
 
     /*
@@ -460,7 +485,7 @@ ${result.stderr}`
         try {
             // Get expanded flags and libraries (same as used for compilation)
             const baseDir = config.configDir || file.directory
-            const compilerConfig = await CompilerManager.getDefaultCompilerConfig(config.compiler?.c?.compiler)
+            const compilerConfig = await CompilerManager.getDefaultCompilerConfig(this.resolveCompilerName(config.compiler?.c?.compiler))
 
             // Get compiler-specific or default user flags and libraries (same as compile method)
             let userFlags: string[] = []
@@ -534,7 +559,6 @@ ${result.stderr}`
             await this.artifactManager.createXcodeProject(file, resolvedFlags, resolvedLibraries, config)
 
             const configFileName = `${testBaseName}.yml`
-            const configPath = this.artifactManager.getArtifactPath(file, configFileName)
             const projectName = `${testBaseName}.xcodeproj`
 
             console.log('🛠️  Generating Xcode project...')
@@ -739,28 +763,6 @@ ${gdb.stdout}`
     }
 
     /*
-     Launches Windows debugger (Visual Studio for MSVC, VS Code for GCC/MinGW)
-     @param file C test file to debug
-     @param config Test execution configuration
-     @param compileDuration Duration of compilation phase
-     @returns Promise resolving to test results
-     */
-    private async launchWindowsDebugger(
-        file: TestFile,
-        config: TestConfig,
-        compileDuration: number
-    ): Promise<TestResult> {
-        const compilerConfig = await CompilerManager.getDefaultCompilerConfig(config.compiler?.c?.compiler)
-
-        // Use Visual Studio for MSVC, VS Code for GCC/MinGW
-        if (compilerConfig.type === CompilerType.MSVC) {
-            return await this.launchVisualStudioDebugger(file, config, compileDuration)
-        } else {
-            return await this.launchVSCodeDebugger(file, config, compileDuration)
-        }
-    }
-
-    /*
      Launches Visual Studio debugger for MSVC-compiled tests
      @param file C test file to debug
      @param config Test execution configuration
@@ -781,7 +783,7 @@ ${gdb.stdout}`
             console.log(`📂 Working Directory: ${file.directory}`)
 
             // Get compiler config to find devenv path from MSVC installation
-            const compilerConfig = await CompilerManager.getDefaultCompilerConfig(config.compiler?.c?.compiler)
+            const compilerConfig = await CompilerManager.getDefaultCompilerConfig(this.resolveCompilerName(config.compiler?.c?.compiler))
 
             let devenvPath = 'devenv'
 
@@ -900,7 +902,6 @@ ${vsOpened ? '3' : '4'}. Start debugging (F5)`
         compiler?: string
     ): Promise<TestResult> {
         const binaryPath = this.getBinaryPath(file)
-        const testBaseName = basename(file.name, '.tst.c')
 
         try {
             // Create VS Code launch configuration
@@ -967,7 +968,6 @@ ${
      */
     private async createVSCodeDebugConfig(file: TestFile, config: TestConfig, compiler?: string): Promise<boolean> {
         try {
-            const testBaseName = basename(file.name, '.tst.c')
             const vscodeDir = resolve(file.artifactDir, '.vscode')
             const launchJsonPath = resolve(vscodeDir, 'launch.json')
 
@@ -1076,10 +1076,9 @@ ${
     /*
      Enhances compilation error messages with helpful hints
      @param error Original error message from compiler
-     @param file Test file being compiled
      @returns Enhanced error message with helpful hints
      */
-    private enhanceCompilationError(error: string, file: TestFile): string {
+    private enhanceCompilationError(error: string): string {
         let enhancedError = error
         let hints: string[] = []
 
