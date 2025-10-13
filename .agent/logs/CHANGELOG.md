@@ -2,6 +2,43 @@
 
 ## 2025-10-13
 
+### Environment Variable Exports with TESTME_ Prefix
+
+-   **DEV**: All special variables now automatically exported as environment variables to tests and service scripts
+    -   **Variables Exported**:
+        -   `TESTME_PLATFORM` - Combined OS-architecture (e.g., `macosx-arm64`, `linux-x64`, `windows-x64`)
+        -   `TESTME_PROFILE` - Build profile from `--profile` flag, config, or env var (defaults to `dev`)
+        -   `TESTME_OS` - Operating system (`macosx`, `linux`, `windows`)
+        -   `TESTME_ARCH` - CPU architecture (`x64`, `arm64`, `ia32`)
+        -   `TESTME_CC` - C compiler (`gcc`, `clang`, `msvc`, `unknown`)
+        -   `TESTME_TESTDIR` - Relative path from executable to test directory
+        -   `TESTME_CONFIGDIR` - Relative path from executable to config directory
+        -   `TESTME_VERBOSE` - Set to `1` when `--verbose` flag is used
+        -   `TESTME_DEPTH` - Current depth value from `--depth` flag
+        -   `TESTME_ITERATIONS` - Iteration count from `--iterations` flag (defaults to `1`)
+    -   **Implementation**: Variables exported in both [src/services.ts](../../src/services.ts) (for service scripts) and [src/handlers/base.ts](../../src/handlers/base.ts) (for tests)
+    -   **Handler Fixes**: Updated all language handlers (TypeScript, JavaScript, Python, Go, Ejscript) to pass `file` parameter to `getTestEnvironment()`
+    -   **Config Preservation**: Fixed [src/runner.ts](../../src/runner.ts) to preserve `workers` and `iterations` CLI options during config merge
+    -   **Dual Use**: Variables available both as `${...}` patterns for expansion and as actual environment variables
+    -   **Documentation**: Updated [README.md](../../README.md) and [doc/tm.1](../../doc/tm.1) with comprehensive environment variable documentation
+    -   **Tests**: Created [test/portable/env-export.tst.ts](../../test/portable/env-export.tst.ts) to verify all exports
+
+### Added --iterations CLI Option
+
+-   **DEV**: New `-i, --iterations <N>` command line option for iteration count
+    -   **Purpose**: Exports `TESTME_ITERATIONS` environment variable for tests to use internally
+    -   **Important**: TestMe does NOT automatically repeat test execution - this is for tests to implement their own iteration logic
+    -   **Default**: Defaults to `1` when not specified
+    -   **Implementation**:
+        -   Added to [src/types.ts](../../src/types.ts) `CliOptions` and `ExecutionConfig`
+        -   CLI parsing in [src/cli.ts](../../src/cli.ts)
+        -   Config merging in [src/index.ts](../../src/index.ts) at two merge points
+        -   Preserved during config hierarchy in [src/runner.ts](../../src/runner.ts)
+    -   **Use Case**: Performance testing, stress testing, or any test requiring multiple runs
+    -   **Documentation**: Clear notes in help text, README, and man page that this doesn't auto-repeat execution
+    -   **Tests**: Created [test/portable/iterations.tst.ts](../../test/portable/iterations.tst.ts) to verify export
+    -   All 18 portable tests pass successfully
+
 ### Code Quality Improvements
 
 -   **CHORE**: Fixed all TypeScript compilation errors in C test handler

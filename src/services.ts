@@ -644,23 +644,33 @@ export class ServiceManager {
             env.PATH = `.${delimiter}${process.env.PATH}`;
         }
 
+        // Create and export special variables for all service scripts
+        const baseDir = config.configDir || process.cwd();
+
+        // Determine current platform
+        const platform = process.platform === 'darwin' ? 'macosx' :
+                       process.platform === 'win32' ? 'windows' : 'linux';
+
+        // Create special variables for expansion (PLATFORM, PROFILE, etc.)
+        const specialVars = GlobExpansion.createSpecialVariables(
+            baseDir,  // executableDir
+            baseDir,  // testDir
+            config.configDir,  // configDir
+            undefined,  // compiler (not relevant for services)
+            config.profile  // profile from config
+        );
+
+        // Export special variables as environment variables for service scripts
+        if (specialVars.PLATFORM !== undefined) env.TESTME_PLATFORM = specialVars.PLATFORM;
+        if (specialVars.PROFILE !== undefined) env.TESTME_PROFILE = specialVars.PROFILE;
+        if (specialVars.OS !== undefined) env.TESTME_OS = specialVars.OS;
+        if (specialVars.ARCH !== undefined) env.TESTME_ARCH = specialVars.ARCH;
+        if (specialVars.CC !== undefined) env.TESTME_CC = specialVars.CC;
+        if (specialVars.TESTDIR !== undefined) env.TESTME_TESTDIR = specialVars.TESTDIR;
+        if (specialVars.CONFIGDIR !== undefined) env.TESTME_CONFIGDIR = specialVars.CONFIGDIR;
+
         // Add environment variables from configuration with expansion
         if (config.env) {
-            const baseDir = config.configDir || process.cwd();
-
-            // Determine current platform
-            const platform = process.platform === 'darwin' ? 'macosx' :
-                           process.platform === 'win32' ? 'windows' : 'linux';
-
-            // Create special variables for expansion (PLATFORM, PROFILE, etc.)
-            const specialVars = GlobExpansion.createSpecialVariables(
-                baseDir,  // executableDir
-                baseDir,  // testDir
-                config.configDir,  // configDir
-                undefined,  // compiler (not relevant for services)
-                config.profile  // profile from config
-            );
-
             // First, process default environment variables if present
             const defaultEnv = config.env.default;
             if (defaultEnv && typeof defaultEnv === 'object') {

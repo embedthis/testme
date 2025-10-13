@@ -115,6 +115,7 @@ export type ExecutionConfig = {
   depth?: number;
   debugMode?: boolean;
   showCommands?: boolean;
+  iterations?: number;
 }
 
 /*
@@ -209,6 +210,7 @@ export type CliOptions = {
   new?: string;
   continue: boolean;
   noServices: boolean;
+  iterations?: number;
 }
 
 /*

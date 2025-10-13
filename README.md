@@ -451,6 +451,7 @@ Filter tests using various pattern types:
 | `-d, --debug`         | Launch debugger (GDB/Xcode)           |
 | `-k, --keep`          | Keep artifacts after tests            |
 | `--depth <N>`         | Run tests requiring depth ≤ N         |
+| `-i, --iterations <N>`| Set iteration count (exports `TESTME_ITERATIONS` for tests to use internally) |
 | `-w, --workers <N>`   | Set parallel workers                  |
 | `-s, --show`          | Display C compile commands            |
 | `--step`              | Run tests one at a time with prompts  |
@@ -801,6 +802,24 @@ On macOS/Linux, the effective patterns would be:
 -   Supports platform-specific overrides via `windows`, `macosx`, and `linux` keys
 -   Platform-specific variables are merged with base variables (platform values override base)
 -   Useful for providing dynamic paths to build artifacts, libraries, and test data
+
+**Special Variables Automatically Exported:**
+
+TestMe automatically exports these special environment variables to all tests and service scripts (skip, prep, setup, cleanup):
+
+-   `TESTME_PLATFORM` - Combined OS and architecture (e.g., `macosx-arm64`, `linux-x64`, `windows-x64`)
+-   `TESTME_PROFILE` - Build profile from `--profile` flag, config `profile` setting, `PROFILE` env var, or default `dev`
+-   `TESTME_OS` - Operating system (`macosx`, `linux`, `windows`)
+-   `TESTME_ARCH` - Architecture (`x64`, `arm64`, `ia32`)
+-   `TESTME_CC` - C compiler detected or configured (`gcc`, `clang`, `msvc`)
+-   `TESTME_TESTDIR` - Relative path from executable directory to test file directory
+-   `TESTME_CONFIGDIR` - Relative path from executable directory to configuration file directory
+-   `TESTME_VERBOSE` - Set to `1` when `--verbose` flag is used
+-   `TESTME_DEPTH` - Current depth value from `--depth` flag
+-   `TESTME_ITERATIONS` - Iteration count from `--iterations` flag (defaults to `1`)
+    - **Note**: TestMe does NOT automatically repeat test execution. This variable is provided for tests to implement their own iteration logic internally if needed.
+
+These variables are available in all test and service script environments and can be used in shell scripts (e.g., `$TESTME_PLATFORM`), C code (via `getenv("TESTME_PLATFORM")`), or JavaScript/TypeScript (via `process.env.TESTME_PLATFORM`).
 
 **Platform Configuration Formats:**
 

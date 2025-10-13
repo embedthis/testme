@@ -6,7 +6,7 @@ tm \- Multi-language test runner for embedded development
 [\fIOPTIONS\fR] [\fIPATTERNS\fR...]
 .SH DESCRIPTION
 .B tm
-is a multi-language test runner built with Bun that discovers, compiles, and executes tests across shell, C, JavaScript, TypeScript, and Ejscript with configurable patterns and parallel execution. It is designed for embedded development environments and provides a simple, consistent interface for running tests.
+is a multi-language test runner built with Bun that discovers, compiles, and executes tests across shell, C, JavaScript, and TypeScript with configurable patterns and parallel execution. It is designed for embedded development environments and provides a simple, consistent interface for running tests.
 
 TestMe discovers test files with specific extensions (\fB.tst.sh\fR, \fB.tst.c\fR, \fB.tst.js\fR, \fB.tst.ts\fR, \fB.tst.es\fR) and executes them according to their type. C tests are automatically compiled before execution, while script tests are run directly.
 
@@ -104,9 +104,6 @@ JavaScript tests. Executed directly with the Bun runtime.
 .TP
 .B .tst.ts
 TypeScript tests. Executed directly with Bun's TypeScript support.
-.TP
-.B .tst.es
-Ejscript tests. Executed with the ejs runtime. Can use \fBrequire\fR configuration to preload modules.
 
 .SH TESTING UTILITIES
 TestMe provides built-in testing helper functions for C, JavaScript, and TypeScript tests.
@@ -248,7 +245,7 @@ project/
 Configuration files support:
 
 .SS Compiler Settings
-Configure C compilation with custom compilers, flags, and libraries, and Ejscript module requirements:
+Configure C compilation with custom compilers, flags, and libraries:
 .nf
 {
     compiler: {
@@ -373,29 +370,46 @@ Configure environment variables available to all tests during execution. Support
 Environment variable values support \fB${...}\fR expansion using glob patterns. Paths are resolved relative to the configuration file's directory. Platform-specific variables are merged with base variables, with platform values overriding base values on matching platforms. This is useful for providing dynamic paths to build artifacts, libraries, and test data.
 
 .SS Special Variables
-TestMe provides special variables that can be used in compiler flags, library paths, and environment variables:
+TestMe provides special variables that can be used in compiler flags, library paths, and environment variables. These variables are automatically exported as environment variables (with TESTME_ prefix) to all tests and service scripts (skip, prep, setup, cleanup):
 
 .TP
-.B ${TESTDIR}
+.B ${TESTDIR} or $TESTME_TESTDIR
 Relative path from compiled executable to test file directory (e.g., "../..")
 .TP
-.B ${CONFIGDIR}
+.B ${CONFIGDIR} or $TESTME_CONFIGDIR
 Relative path from compiled executable to testme.json5 directory
 .TP
-.B ${OS}
+.B ${OS} or $TESTME_OS
 Operating system: "macosx", "linux", "windows"
 .TP
-.B ${ARCH}
+.B ${ARCH} or $TESTME_ARCH
 CPU architecture: "arm64", "x64", "x86"
 .TP
-.B ${PLATFORM}
+.B ${PLATFORM} or $TESTME_PLATFORM
 Combined OS-ARCH: "macosx-arm64", "linux-x64", "windows-x64"
 .TP
-.B ${CC}
+.B ${CC} or $TESTME_CC
 Compiler name: "gcc", "clang", "msvc"
 .TP
-.B ${PROFILE}
+.B ${PROFILE} or $TESTME_PROFILE
 Build profile from \fB\-\-profile\fR option, config file, PROFILE environment variable, or default "dev"
+.TP
+.B $TESTME_VERBOSE
+Set to "1" when \fB\-\-verbose\fR flag is used
+.TP
+.B $TESTME_DEPTH
+Current depth value from \fB\-\-depth\fR flag
+.TP
+.B $TESTME_ITERATIONS
+Iteration count from \fB\-\-iterations\fR flag (defaults to 1). TestMe does NOT automatically repeat test execution - this variable is provided for tests to implement their own iteration logic internally if needed.
+
+These special variables are available in two ways:
+.RS
+.IP 1. 4
+As \fB${...}\fR patterns for expansion in configuration values (compiler flags, library paths, env values)
+.IP 2. 4
+As actual environment variables (with TESTME_ prefix) accessible in all test and service scripts via standard environment access methods (e.g., \fB$TESTME_PLATFORM\fR in shell scripts, \fBgetenv("TESTME_PLATFORM")\fR in C, \fBprocess.env.TESTME_PLATFORM\fR in JavaScript/TypeScript)
+.RE
 
 Example usage in compiler configuration:
 .nf

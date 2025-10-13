@@ -149,6 +149,20 @@ export class CliParser {
                     }
                     break;
 
+                case "--iterations":
+                case "-i":
+                    if (i + 1 < args.length) {
+                        const iterationsValue = parseInt(args[i + 1]!, 10);
+                        if (isNaN(iterationsValue) || iterationsValue < 1) {
+                            throw new Error(`${arg} requires a positive number`);
+                        }
+                        options.iterations = iterationsValue;
+                        i += 2;
+                    } else {
+                        throw new Error(`${arg} requires a number value`);
+                    }
+                    break;
+
                 case "--init":
                     options.init = true;
                     i++;
@@ -216,6 +230,7 @@ OPTIONS:
     -d, --debug            Launch debugger (GDB on Linux, Xcode on macOS)
         --depth <NUMBER>   Run tests with depth requirement <= NUMBER (default: 0)
     -h, --help             Show this help message
+    -i, --iterations <N>   Set iteration count (exports TESTME_ITERATIONS for tests to use, TestMe does not repeat execution)
         --init             Create testme.json5 configuration file in current directory
     -k, --keep             Keep .testme artifacts after running tests
     -l, --list             List discovered tests without running them

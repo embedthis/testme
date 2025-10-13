@@ -46,7 +46,7 @@ export class TypeScriptTestHandler extends BaseTestHandler {
             return await this.runCommand("bun", [file.path], {
                 cwd: file.directory,
                 timeout: config.execution?.timeout || 30000,
-                env: await this.getTestEnvironment(config),
+                env: await this.getTestEnvironment(config, file),
             });
         });
 
@@ -226,7 +226,7 @@ export class TypeScriptTestHandler extends BaseTestHandler {
         // Run test normally - user will attach debugger
         const result = await this.runCommand('bun', [file.path], {
             cwd: file.directory,
-            env: await this.getTestEnvironment(config),
+            env: await this.getTestEnvironment(config, file),
         });
 
         const duration = performance.now() - startTime;
@@ -300,7 +300,7 @@ export class TypeScriptTestHandler extends BaseTestHandler {
         console.log(`Launching custom debugger: ${debuggerPath}`);
         const result = await this.runCommand(debuggerPath, [file.path], {
             cwd: file.directory,
-            env: await this.getTestEnvironment(config),
+            env: await this.getTestEnvironment(config, file),
         });
 
         const duration = performance.now() - startTime;

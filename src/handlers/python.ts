@@ -46,7 +46,7 @@ export class PythonTestHandler extends BaseTestHandler {
             return await this.runCommand(pythonCommand, [file.path], {
                 cwd: file.directory,
                 timeout: config.execution?.timeout || 30000,
-                env: await this.getTestEnvironment(config),
+                env: await this.getTestEnvironment(config, file),
             });
         });
 
@@ -131,7 +131,7 @@ export class PythonTestHandler extends BaseTestHandler {
         const pythonCommand = await this.getPythonCommand();
         const result = await this.runCommand(pythonCommand, [file.path], {
             cwd: file.directory,
-            env: await this.getTestEnvironment(config),
+            env: await this.getTestEnvironment(config, file),
         });
 
         const duration = performance.now() - startTime;
@@ -176,7 +176,7 @@ export class PythonTestHandler extends BaseTestHandler {
         const pythonCommand = await this.getPythonCommand();
         const result = await this.runCommand(pythonCommand, ['-m', 'pdb', file.path], {
             cwd: file.directory,
-            env: await this.getTestEnvironment(config),
+            env: await this.getTestEnvironment(config, file),
         });
 
         const duration = performance.now() - startTime;
@@ -212,7 +212,7 @@ export class PythonTestHandler extends BaseTestHandler {
         console.log(`Launching custom debugger: ${debuggerPath}`);
         const result = await this.runCommand(debuggerPath, [file.path], {
             cwd: file.directory,
-            env: await this.getTestEnvironment(config),
+            env: await this.getTestEnvironment(config, file),
         });
 
         const duration = performance.now() - startTime;

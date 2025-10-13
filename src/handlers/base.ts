@@ -1,10 +1,10 @@
-import {
+import type {
     TestFile,
     TestResult,
     TestConfig,
-    TestStatus,
     TestHandler,
 } from "../types.ts";
+import { TestStatus } from "../types.ts";
 import { GlobExpansion } from "../utils/glob-expansion.ts";
 import { ErrorMessages } from "../utils/error-messages.ts";
 import { PlatformDetector } from "../platform/detector.ts";
@@ -32,18 +32,18 @@ export abstract class BaseTestHandler implements TestHandler {
 
     /*
      Optional preparation step before test execution
-     @param file Test file to prepare
+     @param _file Test file to prepare
      */
-    async prepare?(file: TestFile): Promise<void> {
+    async prepare?(_file: TestFile): Promise<void> {
         // Default implementation - no preparation needed
     }
 
     /*
      Optional cleanup step after test execution
-     @param file Test file to clean up
-     @param config Test configuration that may affect cleanup behavior
+     @param _file Test file to clean up
+     @param _config Test configuration that may affect cleanup behavior
      */
-    async cleanup?(file: TestFile, config?: TestConfig): Promise<void> {
+    async cleanup?(_file: TestFile, _config?: TestConfig): Promise<void> {
         // Default implementation - no cleanup needed
     }
 
@@ -198,6 +198,9 @@ Original error: ${error}`;
             env.TESTME_DEPTH = config.execution.depth.toString();
         }
 
+        // Set TESTME_ITERATIONS (default to 1 if not specified)
+        env.TESTME_ITERATIONS = (config.execution?.iterations ?? 1).toString();
+
         // Create special variables for expansion if we have file context
         let specialVars;
         if (file) {
@@ -208,6 +211,15 @@ Original error: ${error}`;
                 compiler,
                 config.profile
             );
+
+            // Export special variables as environment variables for tests
+            if (specialVars.PLATFORM !== undefined) env.TESTME_PLATFORM = specialVars.PLATFORM;
+            if (specialVars.PROFILE !== undefined) env.TESTME_PROFILE = specialVars.PROFILE;
+            if (specialVars.OS !== undefined) env.TESTME_OS = specialVars.OS;
+            if (specialVars.ARCH !== undefined) env.TESTME_ARCH = specialVars.ARCH;
+            if (specialVars.CC !== undefined) env.TESTME_CC = specialVars.CC;
+            if (specialVars.TESTDIR !== undefined) env.TESTME_TESTDIR = specialVars.TESTDIR;
+            if (specialVars.CONFIGDIR !== undefined) env.TESTME_CONFIGDIR = specialVars.CONFIGDIR;
         }
 
         // Add environment variables from configuration with expansion

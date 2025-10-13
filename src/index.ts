@@ -7,7 +7,7 @@ import { ServiceManager } from "./services.ts";
 import { TestDiscovery } from "./discovery.ts";
 import { VERSION } from "./version.ts";
 import type { TestConfig, TestFile } from "./types.ts";
-import { resolve, dirname, relative, join } from "path";
+import { resolve, relative, join } from "path";
 import { writeFile } from "fs/promises";
 import { existsSync } from "fs";
 
@@ -584,6 +584,15 @@ class TestMeApp {
             };
         }
 
+        if (options.iterations !== undefined) {
+            mergedConfig.execution = {
+                ...mergedConfig.execution,
+                timeout: mergedConfig.execution?.timeout ?? 30000,
+                parallel: mergedConfig.execution?.parallel ?? true,
+                iterations: options.iterations,
+            };
+        }
+
         if (options.profile !== undefined) {
             mergedConfig.profile = options.profile;
         }
@@ -604,10 +613,12 @@ class TestMeApp {
         let isQuiet = false;
         let config: TestConfig | undefined;
         let options: any; // Declare at function level so it's accessible in catch block
+        let parsingComplete = false; // Track if CLI parsing completed successfully
         try {
             // Parse command line arguments
             options = CliParser.parse(args);
             CliParser.validateOptions(options);
+            parsingComplete = true; // Mark parsing as complete
             isQuiet = options.quiet;
 
             // Handle help option
@@ -721,6 +732,16 @@ class TestMeApp {
                 };
             }
 
+            // Apply iterations flag from CLI - sets iteration count
+            if (options.iterations !== undefined) {
+                config.execution = {
+                    ...config.execution,
+                    timeout: config.execution?.timeout ?? 30000,
+                    parallel: config.execution?.parallel ?? true,
+                    iterations: options.iterations,
+                };
+            }
+
             const rootDir = resolve(process.cwd());
 
             // Handle clean option
@@ -776,30 +797,32 @@ class TestMeApp {
                 options
             );
         } catch (error) {
-            // Ensure cleanup runs even on error
-            try {
-                if (!options.noServices && config?.services?.cleanup && this.serviceManager) {
+            // Only run cleanup if parsing completed and services were potentially started
+            if (parsingComplete && options && !options.noServices && config?.services?.cleanup && this.serviceManager) {
+                try {
                     await this.serviceManager.runCleanup(config);
-                }
-            } catch (cleanupError) {
-                if (!isQuiet) {
-                    console.error("❌ Cleanup failed:", cleanupError);
+                } catch (cleanupError) {
+                    if (!isQuiet) {
+                        console.error("❌ Cleanup failed:", cleanupError);
+                    }
                 }
             }
 
             // Don't output errors in quiet mode
             if (!isQuiet) {
-                this.handleError(error);
+                this.handleError(error, parsingComplete);
             }
             return 1;
         }
     }
 
-    private handleError(error: unknown): void {
+    private handleError(error: unknown, showStack: boolean = false): void {
         if (error instanceof Error) {
             console.error(`❌ Error: ${error.message}`);
 
-            if (process.env.DEBUG || process.env.NODE_ENV === "development") {
+            // Only show stack trace if explicitly enabled via DEBUG env or in development mode
+            // Don't show stack for CLI parsing errors (showStack=false)
+            if (showStack && (process.env.DEBUG || process.env.NODE_ENV === "development")) {
                 console.error("Stack trace:", error.stack);
             }
         } else {

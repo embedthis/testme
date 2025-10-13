@@ -1,4 +1,5 @@
-import { TestFile, TestResult, TestConfig, TestStatus, TestHandler, TestSuite, DiscoveryOptions, TestType } from './types.ts';
+import type { TestFile, TestResult, TestConfig, TestHandler, TestSuite, DiscoveryOptions } from './types.ts';
+import { TestStatus, TestType } from './types.ts';
 import { TestDiscovery } from './discovery.ts';
 import { ArtifactManager } from './artifacts.ts';
 import { TestReporter } from './reporter.ts';
@@ -67,15 +68,13 @@ class Semaphore {
  Orchestrates test discovery, execution, and reporting across multiple test types
  */
 export class TestRunner {
-  private handlers: TestHandler[];
   private artifactManager: ArtifactManager;
 
   /*
    Creates a new TestRunner instance
-   Initializes handlers for all supported test types (Shell, C, JS, TS, ES)
+   Initializes artifact manager for test build outputs
    */
   constructor() {
-    this.handlers = createHandlers();
     this.artifactManager = new ArtifactManager();
   }
 
@@ -96,7 +95,6 @@ export class TestRunner {
    */
   async runTests(testSuite: TestSuite): Promise<TestResult[]> {
     const reporter = new TestReporter(testSuite.config);
-    const results: TestResult[] = [];
 
     // Only show "Running tests..." if not in quiet mode and we have tests to run
     if (!this.isQuietMode(testSuite.config) && testSuite.tests.length > 0) {
@@ -225,10 +223,6 @@ export class TestRunner {
         error: `Test execution failed: ${error}`
       };
     }
-  }
-
-  private findHandler(testFile: TestFile): TestHandler | undefined {
-    return this.handlers.find(handler => handler.canHandle(testFile));
   }
 
   /*
@@ -405,6 +399,8 @@ export class TestRunner {
           ...testSpecificConfig,
           // Preserve execution settings that may have CLI overrides
           execution: {
+            timeout: testSpecificConfig.execution?.timeout ?? 30000,
+            parallel: testSpecificConfig.execution?.parallel ?? true,
             ...testSpecificConfig.execution,
             // Preserve CLI-specific overrides from global config
             ...(globalConfig.execution?.showCommands && { showCommands: globalConfig.execution.showCommands }),
@@ -412,9 +408,15 @@ export class TestRunner {
             ...(globalConfig.execution?.keepArtifacts && { keepArtifacts: globalConfig.execution.keepArtifacts }),
             ...(globalConfig.execution?.stepMode && { stepMode: globalConfig.execution.stepMode }),
             ...(globalConfig.execution?.depth !== undefined && { depth: globalConfig.execution.depth }),
+            ...(globalConfig.execution?.workers !== undefined && { workers: globalConfig.execution.workers }),
+            ...(globalConfig.execution?.iterations !== undefined && { iterations: globalConfig.execution.iterations }),
           },
           // Preserve output settings that may have CLI overrides
           output: {
+            verbose: testSpecificConfig.output?.verbose ?? false,
+            colors: testSpecificConfig.output?.colors ?? true,
+            format: testSpecificConfig.output?.format ?? 'simple',
+            quiet: testSpecificConfig.output?.quiet ?? false,
             ...testSpecificConfig.output,
             ...(globalConfig.output?.verbose !== undefined && { verbose: globalConfig.output.verbose }),
             ...(globalConfig.output?.format && { format: globalConfig.output.format }),
