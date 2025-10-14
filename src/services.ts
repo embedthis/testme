@@ -375,13 +375,16 @@ export class ServiceManager {
      * Runs the cleanup command in the foreground
      *
      * @param config - Test configuration containing service settings
+     * @param allTestsPassed - Optional boolean indicating if all tests passed
      *
      * @remarks
      * Cleanup script runs after all tests complete.
      * Automatically kills the setup process first if it's still running.
      * Errors in cleanup are logged but don't fail the test run.
+     * Sets TESTME_SUCCESS=1 if allTestsPassed is true, 0 otherwise.
+     * Sets TESTME_KEEP=1 if keepArtifacts is enabled, 0 otherwise.
      */
-    async runCleanup(config: TestConfig): Promise<void> {
+    async runCleanup(config: TestConfig, allTestsPassed?: boolean): Promise<void> {
         const cleanupCommand = config.services?.cleanup;
         if (!cleanupCommand) {
             return;
@@ -406,12 +409,21 @@ export class ServiceManager {
             const stdoutMode = config.output?.verbose ? "inherit" : "pipe";
             const stderrMode = config.output?.verbose ? "inherit" : "pipe";
 
+            // Get service environment and add cleanup-specific variables
+            const env = await this.getServiceEnvironment(config);
+
+            // Add TESTME_SUCCESS (1 if all tests passed, 0 otherwise)
+            env.TESTME_SUCCESS = allTestsPassed === true ? '1' : '0';
+
+            // Add TESTME_KEEP (1 if keepArtifacts is enabled, 0 otherwise)
+            env.TESTME_KEEP = config.execution?.keepArtifacts === true ? '1' : '0';
+
             // Run cleanup in foreground with proper environment
             const cleanupProcess = Bun.spawn([command, ...args], {
                 stdout: stdoutMode,
                 stderr: stderrMode,
                 cwd: config.configDir, // Run in the directory containing testme.json5
-                env: await this.getServiceEnvironment(config)
+                env
             });
 
             // Set up timeout
@@ -666,8 +678,9 @@ export class ServiceManager {
         if (specialVars.OS !== undefined) env.TESTME_OS = specialVars.OS;
         if (specialVars.ARCH !== undefined) env.TESTME_ARCH = specialVars.ARCH;
         if (specialVars.CC !== undefined) env.TESTME_CC = specialVars.CC;
-        if (specialVars.TESTDIR !== undefined) env.TESTME_TESTDIR = specialVars.TESTDIR;
-        if (specialVars.CONFIGDIR !== undefined) env.TESTME_CONFIGDIR = specialVars.CONFIGDIR;
+        // Use '.' for empty relative paths (when in the same directory)
+        if (specialVars.TESTDIR !== undefined) env.TESTME_TESTDIR = specialVars.TESTDIR || '.';
+        if (specialVars.CONFIGDIR !== undefined) env.TESTME_CONFIGDIR = specialVars.CONFIGDIR || '.';
 
         // Add environment variables from configuration with expansion
         if (config.env) {

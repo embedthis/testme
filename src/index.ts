@@ -448,6 +448,7 @@ class TestMeApp {
 
             console.log(`\n🧪 Running ${filteredTests.length} test(s) in: ${relative(rootDir, configDir) || '.'}`);
 
+            let groupExitCode = 0;
             try {
                 // Run services for this configuration group
                 if (!options.noServices && mergedConfig.services?.prep) {
@@ -462,15 +463,16 @@ class TestMeApp {
                 const results = await this.runner.executeTestsWithConfig(filteredTests, mergedConfig, rootDir);
 
                 allResults.push(...results);
-                const exitCode = this.runner.getExitCode(results);
-                if (exitCode !== 0) {
-                    totalExitCode = exitCode;
+                groupExitCode = this.runner.getExitCode(results);
+                if (groupExitCode !== 0) {
+                    totalExitCode = groupExitCode;
                 }
 
             } finally {
                 // Cleanup for this configuration group
                 if (!options.noServices && mergedConfig.services?.cleanup) {
-                    await this.getServiceManager(rootDir).runCleanup(mergedConfig);
+                    const allTestsPassed = groupExitCode === 0;
+                    await this.getServiceManager(rootDir).runCleanup(mergedConfig, allTestsPassed);
                 }
             }
         }
@@ -800,7 +802,8 @@ class TestMeApp {
             // Only run cleanup if parsing completed and services were potentially started
             if (parsingComplete && options && !options.noServices && config?.services?.cleanup && this.serviceManager) {
                 try {
-                    await this.serviceManager.runCleanup(config);
+                    // If we're in the error handler, tests did not pass
+                    await this.serviceManager.runCleanup(config, false);
                 } catch (cleanupError) {
                     if (!isQuiet) {
                         console.error("❌ Cleanup failed:", cleanupError);

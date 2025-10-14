@@ -14,7 +14,8 @@ int main(int argc, char **argv) {
 
     tinfo("Message before crash");
 
-    exit(2);
+    // Enable to test
+    // exit(2);
 
     /*
         Test string operations
