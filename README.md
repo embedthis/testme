@@ -635,23 +635,32 @@ Filter tests using various pattern types:
 -   **Directory names**: `"integration"`, `"unit/api"` (runs all tests in directory)
 -   **Path patterns**: `"**/math*"`, `"test/unit/*.tst.c"`
 
-### Common Options
+### Command Line Options
 
-| Option                 | Description                                                                   |
-| ---------------------- | ----------------------------------------------------------------------------- |
-| `-l, --list`           | List discovered tests without running                                         |
-| `-v, --verbose`        | Show detailed output                                                          |
-| `-q, --quiet`          | Silent mode (exit codes only)                                                 |
-| `-c, --config <FILE>`  | Use specific config file                                                      |
-| `--clean`              | Remove all `.testme` artifacts                                                |
-| `-d, --debug`          | Launch debugger (GDB/Xcode)                                                   |
-| `-k, --keep`           | Keep artifacts after tests                                                    |
-| `--depth <N>`          | Run tests requiring depth ≤ N                                                 |
-| `-i, --iterations <N>` | Set iteration count (exports `TESTME_ITERATIONS` for tests to use internally) |
-| `-w, --workers <N>`    | Set parallel workers                                                          |
-| `-s, --show`           | Display C compile commands                                                    |
-| `--step`               | Run tests one at a time with prompts                                          |
-| `--no-services`        | Skip all service commands (skip, prep, setup, cleanup)                        |
+All available options sorted alphabetically:
+
+| Option                 | Description                                                                                            |
+| ---------------------- | ------------------------------------------------------------------------------------------------------ |
+| `--chdir <DIR>`        | Change to directory before running tests                                                               |
+| `--clean`              | Remove all `.testme` artifact directories                                                              |
+| `-c, --config <FILE>`  | Use specific configuration file                                                                        |
+| `--continue`           | Continue running tests even if some fail, always exit with code 0                                      |
+| `-d, --debug`          | Launch debugger (GDB on Linux, Xcode/LLDB on macOS, VS on Windows)                                     |
+| `--depth <N>`          | Run tests with depth requirement ≤ N (default: 0)                                                      |
+| `-h, --help`           | Show help message                                                                                      |
+| `--init`               | Create `testme.json5` configuration file in current directory                                          |
+| `-i, --iterations <N>` | Set iteration count (exports `TESTME_ITERATIONS` for tests to use internally, does not repeat tests)  |
+| `-k, --keep`           | Keep `.testme` artifacts after running tests                                                           |
+| `-l, --list`           | List discovered tests without running them                                                             |
+| `--new <NAME>`         | Create new test file from template (e.g., `--new math.c` creates `math.tst.c`)                        |
+| `-n, --no-services`    | Skip all service commands (skip, prep, setup, cleanup)                                                 |
+| `-p, --profile <NAME>` | Set build profile (overrides config and `PROFILE` environment variable)                                |
+| `-q, --quiet`          | Run silently with no output, only exit codes                                                           |
+| `-s, --show`           | Display C compile commands                                                                             |
+| `--step`               | Run tests one at a time with prompts (forces serial mode)                                              |
+| `-v, --verbose`        | Enable verbose mode with detailed output (sets `TESTME_VERBOSE=1`)                                     |
+| `-V, --version`        | Show version information                                                                               |
+| `-w, --workers <N>`    | Number of parallel workers (overrides config)                                                          |
 
 ### Usage Examples
 
