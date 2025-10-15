@@ -29,7 +29,7 @@ export class EjscriptTestHandler extends BaseTestHandler {
             const args = this.buildEjsArgs(file, config);
             return await this.runCommand('ejs', args, {
                 cwd: file.directory,
-                timeout: config.execution?.timeout || 30000,
+                timeout: (config.execution?.timeout || 30) * 1000,
                 env: await this.getTestEnvironment(config)
             });
         });

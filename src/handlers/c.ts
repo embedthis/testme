@@ -73,7 +73,7 @@ export class CTestHandler extends BaseTestHandler {
 
             return await this.runCommand(binaryPath, [], {
                 cwd: file.directory, // Always run test with CWD set to test directory
-                timeout: config.execution?.timeout || 30000,
+                timeout: (config.execution?.timeout || 30) * 1000,
                 env: await this.getTestEnvironment(config, file, compileResult.compiler),
             })
         })

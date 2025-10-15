@@ -766,7 +766,7 @@ Environment variables in compiler flags and paths support `${...}` expansion:
 
 #### Execution Settings
 
--   `execution.timeout` - Test timeout in milliseconds (default: 30000)
+-   `execution.timeout` - Test timeout in seconds (default: 30)
 -   `execution.parallel` - Enable parallel execution (default: true)
 -   `execution.workers` - Number of parallel workers (default: 4)
 
@@ -841,11 +841,11 @@ On macOS/Linux, the effective patterns would be:
 -   `services.prep` - Command to run once before all tests begin (waits for completion)
 -   `services.setup` - Command to start background service during test execution
 -   `services.cleanup` - Command to run after all tests complete for cleanup
--   `services.skipTimeout` - Skip script timeout in milliseconds (default: 30000)
--   `services.prepTimeout` - Prep command timeout in milliseconds (default: 30000)
--   `services.setupTimeout` - Setup command timeout in milliseconds (default: 30000)
--   `services.cleanupTimeout` - Cleanup command timeout in milliseconds (default: 10000)
--   `services.delay` - Delay after setup before running tests in milliseconds (default: 0)
+-   `services.skipTimeout` - Skip script timeout in seconds (default: 30)
+-   `services.prepTimeout` - Prep command timeout in seconds (default: 30)
+-   `services.setupTimeout` - Setup command timeout in seconds (default: 30)
+-   `services.cleanupTimeout` - Cleanup command timeout in seconds (default: 10)
+-   `services.delay` - Delay after setup before running tests in seconds (default: 0)
 
 #### Environment Variables
 

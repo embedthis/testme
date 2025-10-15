@@ -3,30 +3,36 @@ import { join, dirname, basename, extname } from 'path';
 import { readdir, stat } from 'node:fs/promises';
 
 /*
- TestDiscovery - Test file discovery engine
+ TestDiscovery - Pattern-driven test file discovery engine
 
  Responsibilities:
  - Recursively walks directory trees to find test files
- - Identifies test types by file extension
- - Filters tests by include/exclude patterns
- - Supports multiple pattern matching modes
+ - Uses include patterns to determine which files are tests
+ - Identifies test types by final file extension (.c, .js, .sh, etc.)
+ - Supports platform-specific pattern matching
  - Creates TestFile objects with metadata
 
- Supported Test Types:
- - Shell (.tst.sh)
- - PowerShell (.tst.ps1)
- - Batch (.tst.bat, .tst.cmd)
- - C (.tst.c)
- - JavaScript (.tst.js)
- - TypeScript (.tst.ts)
- - Ejscript (.tst.es)
+ Discovery Strategy:
+ - Pattern-driven: Files are discovered based on configured include patterns
+ - No hardcoded expectations: Any naming convention works (*.tst.c, *.test.c, *.spec.c, etc.)
+ - Platform-specific: Patterns in platform sections (macosx, linux, windows) only apply on that platform
+ - Type detection: Final extension determines test type (.c → C, .js → JavaScript, etc.)
 
- Pattern Matching Modes:
- 1. Extension: "*.tst.c" matches all C tests
- 2. Base name: "math" matches math.tst.c, math.tst.js, etc.
- 3. Directory: "integration" matches all tests in integration/
- 4. Path suffix: "test/math.tst.c" matches specific test
- 5. Glob: "**​/api*" for complex patterns
+ Supported Test Types (by final extension):
+ - C (.c)
+ - JavaScript (.js)
+ - TypeScript (.ts)
+ - Shell (.sh)
+ - PowerShell (.ps1)
+ - Batch (.bat, .cmd)
+ - Python (.py)
+ - Go (.go)
+ - Ejscript (.es)
+
+ Pattern Matching:
+ - Fully glob-based: patterns like "**​/*.tst.c", "**​/*.test.js", etc.
+ - Platform-specific patterns enable platform-specific test files
+ - Patterns are evaluated against relative paths from root directory
 
  Exclusions:
  - node_modules directories
@@ -35,18 +41,19 @@ import { readdir, stat } from 'node:fs/promises';
  - Custom exclusion patterns
  */
 export class TestDiscovery {
-    // Mapping of file extensions to test types
-    private static readonly TEST_EXTENSIONS = {
-        '.tst.sh': TestType.Shell,
-        '.tst.ps1': TestType.PowerShell,
-        '.tst.bat': TestType.Batch,
-        '.tst.cmd': TestType.Batch,
-        '.tst.c': TestType.C,
-        '.tst.js': TestType.JavaScript,
-        '.tst.ts': TestType.TypeScript,
-        '.tst.es': TestType.Ejscript,
-        '.tst.py': TestType.Python,
-        '.tst.go': TestType.Go
+    // Mapping of final file extensions to test types
+    // File type is determined purely by the rightmost extension
+    private static readonly EXTENSION_TO_TYPE: Record<string, TestType> = {
+        '.c': TestType.C,
+        '.js': TestType.JavaScript,
+        '.ts': TestType.TypeScript,
+        '.sh': TestType.Shell,
+        '.ps1': TestType.PowerShell,
+        '.bat': TestType.Batch,
+        '.cmd': TestType.Batch,
+        '.py': TestType.Python,
+        '.go': TestType.Go,
+        '.es': TestType.Ejscript
     };
 
     /*
@@ -69,6 +76,7 @@ export class TestDiscovery {
 
     /*
      Recursively searches a directory for test files
+     Pattern-driven: Only files matching include patterns are analyzed
      @param dirPath Directory path to search
      @param options Discovery options
      @param tests Array to accumulate found test files
@@ -94,9 +102,16 @@ export class TestDiscovery {
                     // Recursively search subdirectories
                     await this.searchDirectory(fullPath, options, tests);
                 } else if (stats.isFile()) {
-                    const testFile = this.analyzeFile(fullPath);
-                    if (testFile && this.matchesExcludePatterns(fullPath, options.excludePatterns)) {
-                        tests.push(testFile);
+                    // First check if file matches include patterns
+                    if (this.matchesIncludePatterns(fullPath, options.patterns, options.rootDir)) {
+                        // Then check if it's excluded
+                        if (this.matchesExcludePatterns(fullPath, options.excludePatterns)) {
+                            // Analyze file based on final extension
+                            const testFile = this.analyzeFileByExtension(fullPath);
+                            if (testFile) {
+                                tests.push(testFile);
+                            }
+                        }
                     }
                 }
             }
@@ -107,31 +122,52 @@ export class TestDiscovery {
     }
 
     /*
-     Analyzes a file to determine if it's a test file
-     @param filePath Path to the file to analyze
-     @returns TestFile object if it's a test, null otherwise
+     Checks if a file matches any include patterns
+     @param filePath Full path to the file
+     @param patterns Array of include patterns
+     @param rootDir Root directory for relative path calculation
+     @returns true if file matches at least one include pattern
      */
-    private static analyzeFile(filePath: string): TestFile | null {
+    private static matchesIncludePatterns(filePath: string, patterns: string[], rootDir: string): boolean {
+        if (!patterns.length) return false;
+
+        const relativePath = filePath.startsWith(rootDir)
+            ? filePath.slice(rootDir.length).replace(/^[\/\\]/, '')
+            : filePath;
+        const normalizedPath = relativePath.replace(/\\/g, '/');
+
+        return patterns.some(pattern => this.matchesGlob(normalizedPath, pattern));
+    }
+
+    /*
+     Analyzes a file by its final extension to determine test type
+     @param filePath Path to the file to analyze
+     @returns TestFile object if extension is recognized, null otherwise
+     */
+    private static analyzeFileByExtension(filePath: string): TestFile | null {
         const fileName = basename(filePath);
         const directory = dirname(filePath);
 
-        // Check if file matches any test extension pattern
-        for (const [extension, testType] of Object.entries(this.TEST_EXTENSIONS)) {
-            if (fileName.endsWith(extension)) {
-                // Create unique artifact directory per test file
-                const testBaseName = fileName.slice(0, -extension.length);
-                return {
-                    path: filePath,
-                    name: fileName,
-                    extension,
-                    type: testType,
-                    directory,
-                    artifactDir: join(directory, '.testme', testBaseName)
-                };
-            }
+        // Extract final extension (.c, .js, .sh, etc.)
+        const ext = extname(fileName).toLowerCase();
+
+        // Map extension to test type
+        const testType = this.EXTENSION_TO_TYPE[ext];
+        if (!testType) {
+            return null; // Unknown extension
         }
 
-        return null;
+        // Create artifact directory based on full filename without final extension
+        const testBaseName = fileName.slice(0, -ext.length);
+
+        return {
+            path: filePath,
+            name: fileName,
+            extension: ext,
+            type: testType,
+            directory,
+            artifactDir: join(directory, '.testme', testBaseName)
+        };
     }
 
     /*
@@ -180,15 +216,15 @@ export class TestDiscovery {
     private static filterByPatterns(tests: TestFile[], patterns: string[], rootDir: string): TestFile[] {
         if (!patterns.length) return tests;
 
-        // Separate extension patterns from other patterns
-        const extensionPatterns = patterns.filter(p => p.startsWith('.tst.') || p.startsWith('**/*.tst.'));
-        const otherPatterns = patterns.filter(p => !p.startsWith('.tst.') && !p.startsWith('**/*.tst.'));
+        // Separate extension patterns (starting with .) from path patterns
+        const extensionPatterns = patterns.filter(p => p.startsWith('.') && !p.includes('/'));
+        const otherPatterns = patterns.filter(p => !extensionPatterns.includes(p));
 
         return tests.filter(test => {
             // First check if test matches any non-extension pattern (or if there are no other patterns)
             const matchesOtherPattern = otherPatterns.length === 0 || otherPatterns.some(pattern => {
-                // Get base name without test extension for matching
-                const baseName = this.getBaseNameWithoutTestExtension(test.name);
+                // Get base name without final extension for matching
+                const baseName = this.getBaseNameWithoutExtension(test.name);
 
                 // Check if pattern matches a directory component (relative to rootDir)
                 const relativePath = test.directory.startsWith(rootDir)
@@ -238,15 +274,8 @@ export class TestDiscovery {
             // If there are extension patterns, also check if test matches any of them
             // This implements AND logic: test must match other patterns AND extension patterns
             const matchesExtensionPattern = extensionPatterns.length === 0 || extensionPatterns.some(pattern => {
-                // Extension pattern like ".tst.c" or "**/*.tst.c"
-                if (pattern.startsWith('.tst.')) {
-                    return test.extension === pattern;
-                }
-                if (pattern.startsWith('**/*.tst.')) {
-                    const extension = pattern.substring(4); // Remove "***/" to get ".tst.c"
-                    return test.extension === extension;
-                }
-                return false;
+                // Extension pattern like ".c" or ".js"
+                return test.extension === pattern || test.name.endsWith(pattern);
             });
 
             return matchesOtherPattern && matchesExtensionPattern;
@@ -254,19 +283,13 @@ export class TestDiscovery {
     }
 
     /*
-     Extracts the base name from a test file name by removing the test extension
-     @param fileName Full test file name (e.g., "math.tst.c")
-     @returns Base name without test extension (e.g., "math")
+     Extracts the base name from a file name by removing the final extension
+     @param fileName Full file name (e.g., "math.tst.c")
+     @returns Base name without final extension (e.g., "math.tst")
      */
-    private static getBaseNameWithoutTestExtension(fileName: string): string {
-        // Check each test extension and remove it if found
-        for (const extension of Object.keys(this.TEST_EXTENSIONS)) {
-            if (fileName.endsWith(extension)) {
-                return fileName.slice(0, -extension.length);
-            }
-        }
-        // If no test extension found, return the filename as-is
-        return fileName;
+    private static getBaseNameWithoutExtension(fileName: string): string {
+        const ext = extname(fileName);
+        return ext ? fileName.slice(0, -ext.length) : fileName;
     }
 
     /*
@@ -348,18 +371,18 @@ export class TestDiscovery {
 
     /*
      Gets the test type for a given file extension
-     @param extension File extension (e.g., '.tst.js')
+     @param extension File extension (e.g., '.c', '.js', '.sh')
      @returns TestType enum value or null if not supported
      */
     static getTestTypeFromExtension(extension: string): TestType | null {
-        return this.TEST_EXTENSIONS[extension as keyof typeof this.TEST_EXTENSIONS] || null;
+        return this.EXTENSION_TO_TYPE[extension.toLowerCase()] || null;
     }
 
     /*
-     Returns array of all supported test file extensions
-     @returns Array of supported extensions
+     Returns array of all supported final file extensions
+     @returns Array of supported extensions (.c, .js, .sh, etc.)
      */
     static getSupportedExtensions(): string[] {
-        return Object.keys(this.TEST_EXTENSIONS);
+        return Object.keys(this.EXTENSION_TO_TYPE);
     }
 }

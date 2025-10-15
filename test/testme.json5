@@ -79,7 +79,7 @@
 
     // Test execution settings
     execution: {
-        timeout: 30000, // Timeout per test in milliseconds
+        timeout: 30, // Timeout per test in seconds
         parallel: true, // Run tests in parallel
         workers: 4, // Number of parallel workers
     },
@@ -119,11 +119,11 @@
         prep: '', // Script to run once before all tests begin (waits for completion)
         setup: '', // Script to start background service during test execution, runs before tests
         cleanup: '', // Script to run after all tests complete for cleanup
-        skipTimeout: 30000, // Skip script timeout in milliseconds
-        prepTimeout: 30000, // Prep timeout in milliseconds
-        setupTimeout: 30000, // Setup timeout in milliseconds
-        cleanupTimeout: 10000, // Cleanup timeout in milliseconds
-        delay: 0, // Delay in milliseconds after setup before running tests
+        skipTimeout: 30, // Skip script timeout in seconds
+        prepTimeout: 30, // Prep timeout in seconds
+        setupTimeout: 30, // Setup timeout in seconds
+        cleanupTimeout: 10, // Cleanup timeout in seconds
+        delay: 0, // Delay in seconds after setup before running tests
     },
 
     // Environment variables to set for test execution

@@ -45,7 +45,7 @@ export class TypeScriptTestHandler extends BaseTestHandler {
             // Bun can execute TypeScript files directly
             return await this.runCommand("bun", [file.path], {
                 cwd: file.directory,
-                timeout: config.execution?.timeout || 30000,
+                timeout: (config.execution?.timeout || 30) * 1000,
                 env: await this.getTestEnvironment(config, file),
             });
         });

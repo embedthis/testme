@@ -139,6 +139,11 @@ export class TestRunner {
         }
       }
 
+      // Show test starting (interactive animation)
+      if (!this.isQuietMode(testSuite.config)) {
+        reporter.reportTestStarting(testFile);
+      }
+
       const result = await this.executeTest(testFile, testSuite.config);
       results.push(result);
 
@@ -163,6 +168,11 @@ export class TestRunner {
       await semaphore.acquire();
 
       try {
+        // Show test starting (interactive animation)
+        if (!this.isQuietMode(testSuite.config)) {
+          reporter.reportTestStarting(testFile);
+        }
+
         const result = await this.executeTest(testFile, testSuite.config);
 
         if (!this.isQuietMode(testSuite.config)) {

@@ -82,7 +82,7 @@ export class ServiceManager {
             return { shouldSkip: false };
         }
 
-        const timeout = config.services?.skipTimeout || 30000;
+        const timeout = (config.services?.skipTimeout || 30) * 1000;
 
         const displayPath = this.getDisplayPath(skipCommand, config);
         if (config.output?.verbose) {
@@ -159,7 +159,7 @@ export class ServiceManager {
             return;
         }
 
-        const timeout = config.services?.prepTimeout || 30000;
+        const timeout = (config.services?.prepTimeout || 30) * 1000;
 
         const displayPath = this.getDisplayPath(prepCommand, config);
         if (config.output?.verbose) {
@@ -232,7 +232,7 @@ export class ServiceManager {
             return;
         }
 
-        const timeout = config.services?.setupTimeout || 30000;
+        const timeout = (config.services?.setupTimeout || 30) * 1000;
 
         const displayPath = this.getDisplayPath(setupCommand, config);
         if (config.output?.verbose) {
@@ -296,10 +296,10 @@ export class ServiceManager {
                     // Output will be shown if the service fails or exits unexpectedly.
 
                     // Apply configured delay after setup starts
-                    const delay = config.services?.delay || 0;
+                    const delay = (config.services?.delay || 0) * 1000;
                     if (delay > 0) {
                         if (config.output?.verbose) {
-                            console.log(`⏳ Waiting ${delay}ms for setup service to initialize...`);
+                            console.log(`⏳ Waiting ${delay / 1000}s for setup service to initialize...`);
                         }
                         await new Promise((resolve) => setTimeout(resolve, delay));
 
@@ -393,7 +393,7 @@ export class ServiceManager {
         // First kill the setup process if it's running
         await this.killSetup();
 
-        const timeout = config.services?.cleanupTimeout || 10000;
+        const timeout = (config.services?.cleanupTimeout || 10) * 1000;
 
         const displayPath = this.getDisplayPath(cleanupCommand, config);
         if (config.output?.verbose) {
