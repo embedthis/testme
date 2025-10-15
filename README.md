@@ -427,10 +427,10 @@ TestMe supports a Jest/Vitest-compatible `expect()` API alongside the traditiona
 import {expect} from 'testme'
 
 //  Basic assertions
-expect(1 + 1).toBe(2)                           // Strict equality (===)
-expect({a: 1}).toEqual({a: 1})                  // Deep equality
-expect('hello').toContain('ell')                // String/array contains
-expect([1, 2, 3]).toHaveLength(3)               // Length check
+expect(1 + 1).toBe(2) // Strict equality (===)
+expect({a: 1}).toEqual({a: 1}) // Deep equality
+expect('hello').toContain('ell') // String/array contains
+expect([1, 2, 3]).toHaveLength(3) // Length check
 
 //  Negation with .not
 expect(5).not.toBe(10)
@@ -452,7 +452,7 @@ expect(10).toBeGreaterThan(5)
 expect(10).toBeGreaterThanOrEqual(10)
 expect(5).toBeLessThan(10)
 expect(5).toBeLessThanOrEqual(5)
-expect(0.1 + 0.2).toBeCloseTo(0.3)              // Floating point comparison
+expect(0.1 + 0.2).toBeCloseTo(0.3) // Floating point comparison
 
 //  String/Regex matching
 expect('hello world').toMatch(/world/)
