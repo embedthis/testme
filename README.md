@@ -1,4 +1,4 @@
-# TestMe - Multi-language Test Runner
+# TestMe - Test Runner for System Projects
 
 <p align="center">
   <img src="doc/logo.png" alt="TestMe Logo" width="400"/>

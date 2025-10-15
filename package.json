@@ -2,7 +2,7 @@
     "name": "@embedthis/testme",
     "owner": "embedthis",
     "version": "0.8.19",
-    "description": "Multi-language test runner for shell, C, JavaScript, TypeScript, Python, and Go tests",
+    "description": "Test runner for system projects",
     "author": "Embedthis Software",
     "license": "GPL-2.0",
     "repository": {
