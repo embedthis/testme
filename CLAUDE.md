@@ -156,13 +156,24 @@ All core types are defined here as `type` aliases (not interfaces):
 
 #### Test Discovery Process (`src/discovery.ts`)
 
+**Pattern-Driven Discovery:**
 -   Recursively walks directory trees starting from current working directory
--   Filters files by extension patterns (`.tst.sh`, `.tst.ps1`, `.tst.bat`, `.tst.cmd`, `.tst.c`, `.tst.js`, `.tst.ts`, `.tst.py`, `.tst.go`, `.tst.es`)
--   Supports pattern matching:
-    -   File patterns: `*.tst.c`
-    -   Base names: `math` (matches math.tst.c, math.tst.js, etc.)
-    -   Directory names: `integration` (runs all tests in directory)
-    -   Path patterns: `**/math*`, `test/unit/*.tst.c`
+-   Files are discovered based on configured include patterns (no hardcoded expectations)
+-   File type determined by final extension: `.c` → C, `.js` → JavaScript, `.sh` → Shell, etc.
+-   Platform-specific patterns (in `macosx:`, `linux:`, `windows:` sections) only apply on that platform
+-   Any naming convention works: `*.tst.c`, `*.test.c`, `*.spec.js`, `*.tst.macosx.c`, etc.
+
+**Pattern Matching Modes:**
+-   **Glob patterns**: `**/*.tst.c`, `**/*.test.js`, `test/**/*.c`
+-   **Platform-specific**: `**/*.tst.macosx.c` (only on macOS), `**/*.tst.win.c` (only on Windows)
+-   **Base names**: `math` matches math.tst.c, math.tst.js, etc.
+-   **Directory names**: `integration` runs all tests in that directory
+-   **Path patterns**: `**/math*`, `test/unit/*.tst.c`
+
+**Implementation:**
+-   `matchesIncludePatterns()` checks files against patterns first
+-   `analyzeFileByExtension()` extracts final extension to determine test type
+-   `EXTENSION_TO_TYPE` map: `.c` → C, `.js` → JavaScript, `.sh` → Shell, etc.
 -   Respects exclude patterns (node_modules, .testme, hidden directories)
 -   Creates `TestFile` objects with artifact directory paths
 
@@ -202,7 +213,7 @@ The configuration file uses this hierarchy:
 -   `compiler.c` - C compilation settings (compiler, flags, libraries)
     -   `compiler` - Can be: "default" (auto-detect), string (e.g., "gcc"), or platform map: `{ windows: 'msvc', macosx: 'clang', linux: 'gcc' }`
 -   `compiler.es` - Ejscript settings (require modules)
--   `execution` - Runtime behavior (timeout, parallel, workers)
+-   `execution` - Runtime behavior (timeout in seconds, parallel, workers)
 -   `output` - Display formatting (verbose, format, colors)
 -   `patterns` - File discovery (include/exclude glob patterns) with platform-specific blending
 -   `services` - Service scripts (skip, prep, setup, cleanup)
@@ -211,10 +222,12 @@ The configuration file uses this hierarchy:
 ### Default Behavior
 
 -   Uses `gcc` with `-std=c99 -Wall -Wextra` for C compilation
--   30-second timeout per test
+-   30-second timeout per test (configured in seconds, not milliseconds)
 -   Parallel execution with max 4 concurrent tests
 -   Simple colored output format
--   Discovers all `.tst.*` files (sh, ps1, bat, cmd, c, js, ts, py, go, es), excludes node_modules/.testme/hidden dirs
+-   Default patterns discover: `**/*.tst.c`, `**/*.tst.js`, `**/*.tst.ts`, `**/*.tst.py`, `**/*.tst.go`, `**/*.tst.es`
+-   Platform-specific defaults: `**/*.tst.sh` (macOS/Linux), `**/*.tst.ps1` (Windows)
+-   Excludes: node_modules, .testme, hidden directories
 -   Tests enabled by default with depth requirement of 0
 
 ### Key Features
@@ -239,6 +252,31 @@ The configuration file uses this hierarchy:
 -   Setup: background service during tests
 -   Cleanup: runs after all tests (kills setup if running)
 
+**Platform-Specific Tests:**
+
+Create tests that only run on specific platforms using pattern configuration:
+
+```json5
+{
+    patterns: {
+        include: ['**/*.tst.c'],  // All platforms
+        macosx: {
+            include: ['**/*.tst.macosx.c']  // macOS only
+        },
+        linux: {
+            include: ['**/*.tst.linux.c']  // Linux only
+        },
+        windows: {
+            include: ['**/*.tst.win.c']  // Windows only
+        }
+    }
+}
+```
+
+-   Tests not matching current platform are never discovered
+-   File type determined by final extension (`.c`, `.js`, `.sh`)
+-   Naming before final extension is arbitrary (`test.tst.macosx.c`, `windows-api.tst.win.c`)
+
 ## Development Notes
 
 ### Code Style Requirements
@@ -250,29 +288,43 @@ The configuration file uses this hierarchy:
 
 ### Test File Conventions
 
-Test files must use these specific extensions:
+**Flexible Naming:**
+-   Test files can use ANY naming convention that matches configured patterns
+-   Default patterns: `**/*.tst.sh`, `**/*.tst.c`, `**/*.tst.js`, etc.
+-   Custom patterns supported: `**/*.test.c`, `**/*.spec.js`, `**/*_test.py`
+-   Platform-specific naming: `**/*.tst.macosx.c` (macOS only), `**/*.tst.win.c` (Windows only)
 
--   `.tst.sh` - Shell script tests (bash, sh, zsh)
--   `.tst.ps1` - PowerShell script tests (Windows)
--   `.tst.bat`, `.tst.cmd` - Batch script tests (Windows)
--   `.tst.c` - C program tests
--   `.tst.js` - JavaScript tests (Bun runtime)
--   `.tst.ts` - TypeScript tests (Bun runtime)
--   `.tst.py` - Python script tests
--   `.tst.go` - Go program tests
--   `.tst.es` - Ejscript tests (ejs runtime)
+**Recognized Test Types (by final extension):**
+-   `.c` - C program tests (compiled with gcc/clang/msvc)
+-   `.js` - JavaScript tests (Bun runtime)
+-   `.ts` - TypeScript tests (Bun runtime)
+-   `.sh` - Shell script tests (bash, sh, zsh)
+-   `.ps1` - PowerShell script tests (Windows)
+-   `.bat`, `.cmd` - Batch script tests (Windows)
+-   `.py` - Python script tests
+-   `.go` - Go program tests
+-   `.es` - Ejscript tests (ejs runtime)
 
-Exit code 0 indicates test success, non-zero indicates failure.
+**Examples:**
+-   `math.tst.c` - Standard C test (all platforms)
+-   `windows-api.tst.win.c` - Windows-only C test
+-   `posix-calls.tst.macosx.c` - macOS-only C test
+-   `integration.test.js` - Custom naming if pattern configured
+-   `unit_tests.spec.ts` - Custom naming if pattern configured
 
-All tests execute with their working directory set to the directory containing the test file.
+**Execution Rules:**
+-   Exit code 0 indicates test success, non-zero indicates failure
+-   All tests execute with their working directory set to the directory containing the test file
+-   Platform-specific tests are only discovered on their target platform
 
 ### Adding New Language Support
 
 1. Add new `TestType` enum value in `types.ts`
 2. Create handler in `src/handlers/` extending `BaseTestHandler`
-3. Add file extension mapping to `TestDiscovery.TEST_EXTENSIONS` in `discovery.ts`
+3. Add file extension mapping to `TestDiscovery.EXTENSION_TO_TYPE` in `discovery.ts` (e.g., `.rb` → Ruby)
 4. Register handler in `handlers/index.ts` `createHandlers()` function
-5. Update documentation (README.md, man page, DESIGN.md)
+5. Add default pattern to `ConfigManager.DEFAULT_CONFIG.patterns` in `config.ts`
+6. Update documentation (README.md, man page, DESIGN.md, CLAUDE.md)
 
 ### Pattern Matching Implementation
 
@@ -340,7 +392,7 @@ Services are managed per configuration group:
 -   Each config directory gets its own service lifecycle
 -   Setup processes run in background and are killed on exit or during cleanup
 -   Skip scripts can output messages (stdout/stderr) that are displayed in verbose mode
--   Service timeouts are configurable independently (skip, prep, setup, cleanup)
+-   Service timeouts and delays are configurable in seconds (skip, prep, setup, cleanup, delay)
 
 ## Installation and Distribution
 
