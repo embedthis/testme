@@ -2,7 +2,7 @@
     services: {
         setup: './mock_service.js',
         cleanup: './cleanup.js',
-        delay: 3000  // 3 second delay
+        delay: 3  // 3 second delay
     },
     output: {
         verbose: false

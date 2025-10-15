@@ -446,7 +446,16 @@ class TestMeApp {
                 }
             }
 
-            console.log(`\n🧪 Running ${filteredTests.length} test(s) in: ${relative(rootDir, configDir) || '.'}`);
+            // Show parallel execution info if enabled
+            const isParallel = mergedConfig.execution?.parallel !== false;
+            const workers = mergedConfig.execution?.workers || 4;
+            const locationStr = relative(rootDir, configDir) || '.';
+
+            if (isParallel && workers > 1) {
+                console.log(`\n🧪 Running ${filteredTests.length} test(s) with ${workers} in parallel`);
+            } else {
+                console.log(`\n🧪 Running ${filteredTests.length} test(s) in: ${locationStr}`);
+            }
 
             let groupExitCode = 0;
             try {
@@ -677,7 +686,7 @@ class TestMeApp {
             if (options.keep) {
                 config.execution = {
                     ...config.execution,
-                    timeout: config.execution?.timeout ?? 30000,
+                    timeout: config.execution?.timeout ?? 30,
                     parallel: config.execution?.parallel ?? true,
                     keepArtifacts: true,
                 };
@@ -687,7 +696,7 @@ class TestMeApp {
             if (options.step) {
                 config.execution = {
                     ...config.execution,
-                    timeout: config.execution?.timeout ?? 30000,
+                    timeout: config.execution?.timeout ?? 30,
                     parallel: false, // Force serial mode
                     stepMode: true,
                 };
@@ -697,7 +706,7 @@ class TestMeApp {
             if (options.depth !== undefined) {
                 config.execution = {
                     ...config.execution,
-                    timeout: config.execution?.timeout ?? 30000,
+                    timeout: config.execution?.timeout ?? 30,
                     parallel: config.execution?.parallel ?? true,
                     depth: options.depth,
                 };
@@ -707,7 +716,7 @@ class TestMeApp {
             if (options.debug) {
                 config.execution = {
                     ...config.execution,
-                    timeout: config.execution?.timeout ?? 30000,
+                    timeout: config.execution?.timeout ?? 30,
                     parallel: false, // Force serial mode for debugging
                     debugMode: true,
                     keepArtifacts: true, // Keep artifacts for debugging
@@ -718,7 +727,7 @@ class TestMeApp {
             if (options.show) {
                 config.execution = {
                     ...config.execution,
-                    timeout: config.execution?.timeout ?? 30000,
+                    timeout: config.execution?.timeout ?? 30,
                     parallel: config.execution?.parallel ?? true,
                     showCommands: true,
                 };
@@ -728,7 +737,7 @@ class TestMeApp {
             if (options.workers !== undefined) {
                 config.execution = {
                     ...config.execution,
-                    timeout: config.execution?.timeout ?? 30000,
+                    timeout: config.execution?.timeout ?? 30,
                     parallel: config.execution?.parallel ?? true,
                     workers: options.workers,
                 };
@@ -738,7 +747,7 @@ class TestMeApp {
             if (options.iterations !== undefined) {
                 config.execution = {
                     ...config.execution,
-                    timeout: config.execution?.timeout ?? 30000,
+                    timeout: config.execution?.timeout ?? 30,
                     parallel: config.execution?.parallel ?? true,
                     iterations: options.iterations,
                 };

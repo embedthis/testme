@@ -266,7 +266,7 @@ Control test execution behavior:
 .nf
 {
     execution: {
-        timeout: 30000,        // Timeout per test (ms)
+        timeout: 30,           // Timeout per test (seconds)
         parallel: true,        // Run tests in parallel
         workers: 4,            // Number of parallel workers
     }
@@ -328,18 +328,18 @@ Configure skip, prep, setup and cleanup commands:
         prep: "make build",
         setup: "docker-compose up -d",
         cleanup: "docker-compose down",
-        skipTimeout: 30000,
-        prepTimeout: 30000,
-        setupTimeout: 30000,
-        cleanupTimeout: 10000,
-        delay: 3000                // Wait 3 seconds after setup before tests
+        skipTimeout: 30,             // Timeout in seconds
+        prepTimeout: 30,             // Timeout in seconds
+        setupTimeout: 30,            // Timeout in seconds
+        cleanupTimeout: 10,          // Timeout in seconds
+        delay: 3                     // Wait 3 seconds after setup before tests
     }
 }
 .fi
 
 The skip command runs first to determine if tests should be executed. Exit code 0 enables tests, non-zero skips them. The skip script can output a message (stdout or stderr) explaining why tests are skipped, displayed in verbose mode.
 
-The prep command runs once before all tests begin and waits for completion. The setup command starts a background service that runs during test execution. The \fBdelay\fR field specifies milliseconds to wait after the setup service starts before beginning test execution, allowing time for service initialization. The cleanup command runs after all tests complete to clean up resources.
+The prep command runs once before all tests begin and waits for completion. The setup command starts a background service that runs during test execution. The \fBdelay\fR field specifies seconds to wait after the setup service starts before beginning test execution, allowing time for service initialization. The cleanup command runs after all tests complete to clean up resources.
 
 .SS Environment Variables
 Configure environment variables available to all tests during execution. Supports platform-specific overrides via \fBwindows\fR, \fBmacosx\fR, and \fBlinux\fR keys:

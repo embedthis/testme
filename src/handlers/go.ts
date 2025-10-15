@@ -43,7 +43,7 @@ export class GoTestHandler extends BaseTestHandler {
         const { result, duration } = await this.measureExecution(async () => {
             return await this.runCommand("go", ["run", file.path], {
                 cwd: file.directory,
-                timeout: config.execution?.timeout || 30000,
+                timeout: (config.execution?.timeout || 30) * 1000,
                 env: await this.getTestEnvironment(config, file),
             });
         });

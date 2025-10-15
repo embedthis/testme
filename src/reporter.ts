@@ -1,13 +1,19 @@
-import { TestResult, TestStatus, TestConfig } from './types.ts';
+import type { TestResult, TestFile, TestConfig } from './types.ts';
+import { TestStatus } from './types.ts';
 import { relative } from 'path';
+import { isInteractiveTTY, writeOverwritable, clearCurrentLine } from './utils/tty.ts';
 
 export class TestReporter {
   private config: TestConfig;
   private invocationDir: string;
+  private runningTests: Set<TestFile>;
+  private hasRunningLine: boolean;
 
   constructor(config: TestConfig, invocationDir?: string) {
     this.config = config;
     this.invocationDir = invocationDir || process.cwd();
+    this.runningTests = new Set();
+    this.hasRunningLine = false;
   }
 
   reportResults(results: TestResult[], elapsedTime?: number): void {
@@ -35,11 +41,63 @@ export class TestReporter {
     }
   }
 
+  reportTestStarting(testFile: TestFile): void {
+    // Track this test as running
+    this.runningTests.add(testFile);
+
+    // Only show running status in interactive terminals (not in quiet mode)
+    if (!this.config.output?.quiet && isInteractiveTTY()) {
+      // If we already have a running line displayed, don't show another one
+      // (in parallel mode, we only show one "RUN" line at a time)
+      if (!this.hasRunningLine) {
+        const relativePath = this.getRelativePath(testFile.path);
+        const typeIcon = this.getTypeIcon(testFile.type);
+        const runningStatus = this.config.output?.colors
+          ? this.blue('⟳ RUN ')
+          : 'RUNNING';
+
+        writeOverwritable(`${runningStatus} ${typeIcon}  ${relativePath}`);
+        this.hasRunningLine = true;
+      }
+    }
+  }
+
   reportProgress(result: TestResult): void {
+    // Remove this test from running set
+    this.runningTests.delete(result.file);
+
     const status = this.formatStatus(result.status);
     const duration = this.formatDuration(result.duration);
     const relativePath = this.getRelativePath(result.file.path);
-    console.log(`${status} ${relativePath} (${duration})`);
+    const typeIcon = this.getTypeIcon(result.file.type);
+
+    // If we're in an interactive terminal
+    if (isInteractiveTTY()) {
+      // Clear the "running" line if one exists
+      if (this.hasRunningLine) {
+        clearCurrentLine();
+        this.hasRunningLine = false;
+      }
+
+      // Print the completed test result on a new line
+      console.log(`${status} ${typeIcon}  ${relativePath} (${duration})`);
+
+      // If there are still tests running, show the next one
+      if (this.runningTests.size > 0) {
+        const nextRunning = Array.from(this.runningTests)[0];
+        const nextPath = this.getRelativePath(nextRunning.path);
+        const nextIcon = this.getTypeIcon(nextRunning.type);
+        const runningStatus = this.config.output?.colors
+          ? this.blue('⟳ RUN ')
+          : 'RUNNING';
+
+        writeOverwritable(`${runningStatus} ${nextIcon}  ${nextPath}`);
+        this.hasRunningLine = true;
+      }
+    } else {
+      // Non-interactive mode: still show type icon but no animation
+      console.log(`${status} ${typeIcon}  ${relativePath} (${duration})`);
+    }
   }
 
   reportTestsStarting(): void {

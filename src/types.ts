@@ -107,7 +107,7 @@ export type DebugConfig = {
  Configuration for test execution behavior
  */
 export type ExecutionConfig = {
-  timeout: number;
+  timeout: number; // Timeout per test in seconds
   parallel: boolean;
   workers?: number;
   keepArtifacts?: boolean;
@@ -157,11 +157,11 @@ export type ServiceConfig = {
   prep?: string;
   setup?: string;
   cleanup?: string;
-  skipTimeout?: number;
-  prepTimeout?: number;
-  setupTimeout?: number;
-  cleanupTimeout?: number;
-  delay?: number; // Delay in milliseconds after setup before running tests
+  skipTimeout?: number; // Skip script timeout in seconds
+  prepTimeout?: number; // Prep timeout in seconds
+  setupTimeout?: number; // Setup timeout in seconds
+  cleanupTimeout?: number; // Cleanup timeout in seconds
+  delay?: number; // Delay in seconds after setup before running tests
 }
 
 /*

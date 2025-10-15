@@ -84,7 +84,7 @@ export class ConfigManager {
             }
         },
         execution: {
-            timeout: 30000, // 30 seconds
+            timeout: 30, // 30 seconds
             parallel: true,
             workers: 4
         },

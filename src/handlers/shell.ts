@@ -54,7 +54,7 @@ export class ShellTestHandler extends BaseTestHandler {
 
             return await this.runCommand(shell, args, {
                 cwd: file.directory,
-                timeout: config.execution?.timeout || 30000,
+                timeout: (config.execution?.timeout || 30) * 1000,
                 env: await this.getTestEnvironment(config, file),
             });
         });
