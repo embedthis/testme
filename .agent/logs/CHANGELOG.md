@@ -1,14 +1,94 @@
 # TestMe Changelog
 
+## 2025-10-16
+
+### Parallel Worker Count Display Fix
+
+-   **FIX**: Fixed parallel worker count display to not exceed number of tests
+    -   Issue: Test runner showed "Running 1 test(s) with 4 in parallel" when only 1 test
+    -   Root cause: Display always showed configured worker count regardless of test count
+    -   Solution: Calculate `actualWorkers = Math.min(workers, testCount)` for display
+    -   Display now shows sensible messages:
+        -   1 test: "Running 1 test(s) in: directory" (no parallel mention)
+        -   2 tests with 4 workers: "Running 2 test(s) with 2 in parallel"
+        -   7 tests with 4 workers: "Running 7 test(s) with 4 in parallel"
+    -   Files modified: [src/index.ts](../../src/index.ts:455-462)
+    -   Improves clarity and prevents confusing output
+
+### Documentation Updates - Jest API and Project Purpose
+
+-   **DOC**: Clarified TestMe's purpose and ideal use cases
+    -   Added "Ideal Use Cases" section to [CLAUDE.md](../../CLAUDE.md):
+        -   Embedded systems projects
+        -   C/C++/Rust projects
+        -   Make/CMake-based projects
+        -   Core infrastructure
+        -   Multi-language projects
+    -   Added "When to Use Alternatives" section recommending Jest/Vitest for:
+        -   Cloud-native JavaScript/TypeScript projects
+        -   Projects needing rich plugin ecosystems
+        -   Projects requiring framework integration (React, Vue, Angular)
+    -   Updated [README.md](../../README.md) with similar guidance prominently at top
+    -   Key message: "TestMe focuses on simplicity and direct execution for system-level projects"
+
+-   **DOC**: Comprehensive Jest/Vitest API documentation updates
+    -   **README.md** updates:
+        -   Added Jest API to Features section
+        -   Enhanced JavaScript Testing section with comprehensive matcher examples
+        -   Added all matcher categories with examples:
+            -   Equality, Truthiness, Type Checking, Numeric, Strings/Collections
+            -   Objects, Errors, Modifiers (.not, .resolves, .rejects)
+        -   Added "Choosing Between APIs" guidance
+        -   Enhanced TypeScript section with Jest API examples
+        -   Demonstrated async/await support with typed functions
+    -   **CLAUDE.md** updates:
+        -   Enhanced JavaScript/TypeScript Module section
+        -   Listed all Jest API capabilities (30+ matchers)
+        -   Noted TypeScript type definitions (expect.d.ts)
+        -   Mentioned deep equality algorithm
+    -   **Man Page (doc/tm.1)** updates:
+        -   Split into "Traditional API" and "Jest/Vitest-Compatible API" sections
+        -   Added comprehensive matcher list with categories
+        -   Included code examples
+        -   Reference to doc/JEST_API.md
+    -   All documentation now presents Jest API as first-class feature
+
 ## 2025-10-15
+
+### Improved Parallel Test Execution
+
+-   **FIX**: Improved parallel test execution to use true worker pool pattern
+    -   Tests now start immediately as workers become available
+    -   Removed batching behavior where tests waited for entire batch to complete
+    -   Long-running tests no longer block short tests from starting
+    -   Better CPU/worker utilization with continuous task queue processing
+    -   Implementation changed from semaphore-gated `Promise.all()` to worker pool with shared queue
+    -   Each worker continuously pulls and processes tests until queue is empty
+    -   Files modified: [src/runner.ts](../../src/runner.ts) `runTestsParallel()` method
+
+### Jest/Vitest-Compatible expect() API
+
+-   **DEV**: Added comprehensive Jest/Vitest-compatible `expect()` API for JavaScript/TypeScript tests
+    -   Full backward compatibility with existing `t*` functions
+    -   Equality matchers: `toBe()`, `toEqual()`, `toStrictEqual()`
+    -   Truthiness matchers: `toBeTruthy()`, `toBeFalsy()`, `toBeNull()`, `toBeUndefined()`, `toBeDefined()`, `toBeNaN()`
+    -   Type matchers: `toBeInstanceOf()`, `toBeTypeOf()`
+    -   Numeric matchers: `toBeGreaterThan()`, `toBeLessThan()`, `toBeCloseTo()`, etc.
+    -   String/Collection matchers: `toMatch()`, `toContain()`, `toHaveLength()`
+    -   Object matchers: `toHaveProperty()`, `toMatchObject()`
+    -   Error matchers: `toThrow()`, `toThrowError()`
+    -   Modifiers: `.not`, `.resolves`, `.rejects`
+    -   Custom deep equality with proper handling of undefined properties
+    -   TypeScript type definitions in [src/modules/js/expect.d.ts](../../src/modules/js/expect.d.ts)
+    -   Comprehensive test suite in [test/jest-api/](../../test/jest-api/) (7 test files, all passing)
+    -   Documentation: [doc/JEST_API.md](../../doc/JEST_API.md) and updated [README.md](../../README.md)
 
 ### Documentation Maintenance
 
 -   **DOC**: Updated `.agent` project documentation structure
-    -   Verified DESIGN.md reflects current architecture (pattern-based discovery, environment variable exports, service management)
+    -   Verified DESIGN.md reflects current architecture
     -   Reviewed PLAN.md current status and priorities
     -   Updated CHANGELOG.md with documentation maintenance entry
-    -   Confirmed PROCEDURE.md and REFERENCES.md are current
     -   All documentation synchronized with codebase state as of 2025-10-15
 
 ## 2025-10-13

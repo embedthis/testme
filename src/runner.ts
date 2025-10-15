@@ -155,40 +155,56 @@ export class TestRunner {
     return results;
   }
 
+  /*
+   Runs tests in parallel using a worker pool pattern
+
+   Key design: Uses a shared queue where workers continuously pull tests and process them.
+   As soon as a worker finishes a test, it immediately starts the next one from the queue.
+   This ensures maximum parallelism and prevents long-running tests from blocking shorter ones.
+
+   Benefits over semaphore/Promise.all approach:
+   - True streaming execution: tests start immediately as workers free up
+   - No batching delays: long tests don't hold up entire batches
+   - Better resource utilization: workers never sit idle while tests remain
+
+   @param testSuite Test suite containing tests and configuration
+   @param reporter Reporter for progress updates
+   @returns Promise resolving to array of test results
+   */
   private async runTestsParallel(testSuite: TestSuite, reporter: TestReporter): Promise<TestResult[]> {
     const workers = testSuite.config.execution?.workers || 4;
     const results: TestResult[] = [];
+    const testsQueue = [...testSuite.tests];
+    const activeWorkers: Promise<void>[] = [];
 
-    // Create a semaphore to limit concurrent executions
-    const semaphore = new Semaphore(workers);
+    // Worker function that processes tests from the queue
+    // Each worker runs in a loop, continuously pulling tests until queue is empty
+    const worker = async () => {
+      while (testsQueue.length > 0) {
+        const testFile = testsQueue.shift();
+        if (!testFile) break;
 
-    // Create promises for all tests but limit concurrent execution
-    const testPromises = testSuite.tests.map(async (testFile) => {
-      // Acquire semaphore before starting test
-      await semaphore.acquire();
-
-      try {
         // Show test starting (interactive animation)
         if (!this.isQuietMode(testSuite.config)) {
           reporter.reportTestStarting(testFile);
         }
 
         const result = await this.executeTest(testFile, testSuite.config);
+        results.push(result);
 
         if (!this.isQuietMode(testSuite.config)) {
           reporter.reportProgress(result);
         }
-
-        return result;
-      } finally {
-        // Always release semaphore
-        semaphore.release();
       }
-    });
+    };
 
-    // Wait for all tests to complete
-    const allResults = await Promise.all(testPromises);
-    results.push(...allResults);
+    // Start worker pool
+    for (let i = 0; i < Math.min(workers, testSuite.tests.length); i++) {
+      activeWorkers.push(worker());
+    }
+
+    // Wait for all workers to complete
+    await Promise.all(activeWorkers);
 
     return results;
   }
@@ -263,8 +279,13 @@ export class TestRunner {
     }
   }
 
-  async listTests(options: DiscoveryOptions, config: TestConfig, invocationDir?: string): Promise<void> {
-    const tests = await this.discoverTests(options);
+  async listTests(options: DiscoveryOptions, config: TestConfig, invocationDir?: string, cliPatterns?: string[]): Promise<void> {
+    let tests = await this.discoverTests(options);
+
+    // If CLI patterns are provided, apply them as an additional filter
+    if (cliPatterns && cliPatterns.length > 0) {
+      tests = TestDiscovery.filterTestsByPatterns(tests, cliPatterns, options.rootDir);
+    }
 
     if (!tests.length) {
       console.log('No tests discovered');

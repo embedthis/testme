@@ -10,13 +10,38 @@
   <a href="https://github.com/embedthis/testme/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License"></a>
 </p>
 
-TestMe is a powerful, multi-language test runner built with [Bun](https://bun.sh) that can discover, compile, and execute tests across different programming languages with configurable patterns and parallel execution.
+TestMe is a specialized test runner designed for **embedded systems**, **C/C++/Rust**, and **core infrastructure projects** that use Make or CMake build systems. It discovers, compiles, and executes tests across multiple programming languages with configurable patterns and parallel execution -- ideal for low-level and performance-critical codebases.
+
+## 🎯 Ideal Use Cases
+
+TestMe is purpose-built for:
+
+-   **Embedded systems** - Cross-platform firmware and IoT device testing
+-   **C/C++/Rust projects** - Native compilation with GCC/Clang/MSVC, direct binary execution
+-   **Make/CMake-based projects** - Seamless integration with traditional build systems
+-   **Core infrastructure** - System-level components, libraries, and low-level tools
+-   **Multi-language tests** - Write tests in C, C++, shell scripts, Python, Go or Javascript/Typescript
+
+## ⚠️ When to Consider Alternatives
+
+For cloud-native or application-level projects written in JavaScript/TypeScript, or Python, **[Jest](https://jestjs.io/)** or **[Vitest](https://vitest.dev/)** may be better choices. They provide:
+
+-   Superior TypeScript transpilation and module resolution
+-   Rich ecosystem of plugins, matchers, and integrations
+-   Advanced watch mode with hot module reload
+-   Integrated code coverage, snapshot testing, and mocking
+-   First-class framework support (React, Vue, Angular, Svelte)
+
+**TestMe focuses on simplicity and direct execution** for system-level projects.
+
+---
 
 TestMe is under very active development at this time and may be a little unstable. Please report any issues you find and we will try to fix them quickly.
 
 ## 🚀 Features
 
 -   **Multi-language Support**: Shell (`.tst.sh`), PowerShell (`.tst.ps1`), Batch (`.tst.bat`, `.tst.cmd`), C (`.tst.c`), JavaScript (`.tst.js`), TypeScript (`.tst.ts`), Python (`.tst.py`), and Go (`.tst.go`).
+-   **Jest/Vitest-Compatible API**: Use familiar `expect()` syntax alongside traditional test functions for JavaScript/TypeScript tests
 -   **Automatic Compilation**: C programs are compiled automatically with platform-appropriate compilers (GCC/Clang/MSVC)
 -   **Cross-platform**: Full support for Windows, macOS, and Linux with native test types for each platform
 -   **Recursive Discovery**: Finds test files at any depth in directory trees
@@ -272,6 +297,7 @@ int main() {
 #### C Testing Functions (testme.h)
 
 **Equality Tests:**
+
 -   `teqi(a, b, msg)` - Assert two int values are equal
 -   `teql(a, b, msg)` - Assert two long values are equal
 -   `teqll(a, b, msg)` - Assert two long long values are equal
@@ -281,6 +307,7 @@ int main() {
 -   `tmatch(str, pattern, msg)` - Assert string matches exactly
 
 **Inequality Tests:**
+
 -   `tneqi(a, b, msg)` - Assert two int values are not equal
 -   `tneql(a, b, msg)` - Assert two long values are not equal
 -   `tneqll(a, b, msg)` - Assert two long long values are not equal
@@ -289,6 +316,7 @@ int main() {
 -   `tneqp(a, b, msg)` - Assert two pointer values are not equal
 
 **Comparison Tests (Greater Than):**
+
 -   `tgti(a, b, msg)` - Assert a > b (int)
 -   `tgtl(a, b, msg)` - Assert a > b (long)
 -   `tgtll(a, b, msg)` - Assert a > b (long long)
@@ -299,6 +327,7 @@ int main() {
 -   `tgtez(a, b, msg)` - Assert a >= b (size_t/ssize)
 
 **Comparison Tests (Less Than):**
+
 -   `tlti(a, b, msg)` - Assert a < b (int)
 -   `tltl(a, b, msg)` - Assert a < b (long)
 -   `tltll(a, b, msg)` - Assert a < b (long long)
@@ -309,6 +338,7 @@ int main() {
 -   `tltez(a, b, msg)` - Assert a <= b (size_t/ssize)
 
 **Boolean and String Tests:**
+
 -   `ttrue(expr, msg)` - Assert expression is true
 -   `tfalse(expr, msg)` - Assert expression is false
 -   `tcontains(str, substr, msg)` - Assert string contains substring
@@ -316,21 +346,25 @@ int main() {
 -   `tnotnull(ptr, msg)` - Assert pointer is not NULL
 
 **Control Functions:**
+
 -   `tfail(msg)` - Unconditionally fail test with message
 
 **Environment Functions:**
+
 -   `tget(key, default)` - Get environment variable with default
 -   `tgeti(key, default)` - Get environment variable as integer
 -   `thas(key)` - Check if environment variable exists
 -   `tdepth()` - Get current test depth
 
 **Output Functions:**
+
 -   `tinfo(fmt, ...)` - Print informational message (with auto-newline)
 -   `tdebug(fmt, ...)` - Print debug message (with auto-newline)
 -   `tskip(fmt, ...)` - Print skip message (with auto-newline)
 -   `twrite(fmt, ...)` - Print output message (with auto-newline)
 
 **Legacy Functions (deprecated):**
+
 -   `teq(a, b, msg)` - Use `teqi()` instead
 -   `tneq(a, b, msg)` - Use `tneqi()` instead
 -   `tassert(expr, msg)` - Use `ttrue()` instead
@@ -369,6 +403,8 @@ if (thas('TESTME_VERBOSE')) {
 
 #### JavaScript Testing Functions (testme module)
 
+**Traditional API:**
+
 -   `teq(received, expected, msg)` - Assert two values are equal
 -   `tneq(received, expected, msg)` - Assert two values are not equal
 -   `ttrue(expr, msg)` - Assert expression is true
@@ -383,11 +419,87 @@ if (thas('TESTME_VERBOSE')) {
 -   `tinfo(...)`, `tdebug(...)` - Print informational messages
 -   `tassert(expr, msg)` - Alias for `ttrue`
 
+**Jest/Vitest-Compatible API:**
+
+TestMe supports a Jest/Vitest-compatible `expect()` API alongside the traditional `t*` functions. This allows developers familiar with modern JavaScript testing frameworks to use their preferred syntax:
+
+```javascript
+import {expect} from 'testme'
+
+//  Basic assertions
+expect(1 + 1).toBe(2)                           // Strict equality (===)
+expect({a: 1}).toEqual({a: 1})                  // Deep equality
+expect('hello').toContain('ell')                // String/array contains
+expect([1, 2, 3]).toHaveLength(3)               // Length check
+
+//  Negation with .not
+expect(5).not.toBe(10)
+expect('test').not.toContain('xyz')
+
+//  Truthiness
+expect(true).toBeTruthy()
+expect(0).toBeFalsy()
+expect(null).toBeNull()
+expect(undefined).toBeUndefined()
+expect('value').toBeDefined()
+
+//  Type checking
+expect(new Date()).toBeInstanceOf(Date)
+expect('hello').toBeTypeOf('string')
+
+//  Numeric comparisons
+expect(10).toBeGreaterThan(5)
+expect(10).toBeGreaterThanOrEqual(10)
+expect(5).toBeLessThan(10)
+expect(5).toBeLessThanOrEqual(5)
+expect(0.1 + 0.2).toBeCloseTo(0.3)              // Floating point comparison
+
+//  String/Regex matching
+expect('hello world').toMatch(/world/)
+expect('test@example.com').toMatch(/^[\w.]+@[\w.]+$/)
+
+//  Object matchers
+expect({name: 'Alice', age: 30}).toHaveProperty('name', 'Alice')
+expect({a: 1, b: 2, c: 3}).toMatchObject({a: 1, b: 2})
+expect([{id: 1}, {id: 2}]).toContainEqual({id: 1})
+
+//  Error handling
+expect(() => {
+    throw new Error('fail')
+}).toThrow('fail')
+expect(() => JSON.parse('invalid')).toThrowError(SyntaxError)
+
+//  Async/Promise support
+await expect(Promise.resolve(42)).resolves.toBe(42)
+await expect(Promise.reject(new Error('fail'))).rejects.toThrow()
+await expect(fetchData()).resolves.toHaveProperty('status', 'ok')
+```
+
+**Available Matchers:**
+
+-   **Equality**: `toBe()`, `toEqual()`, `toStrictEqual()`
+-   **Truthiness**: `toBeTruthy()`, `toBeFalsy()`, `toBeNull()`, `toBeUndefined()`, `toBeDefined()`, `toBeNaN()`
+-   **Type Checking**: `toBeInstanceOf()`, `toBeTypeOf()`
+-   **Numeric**: `toBeGreaterThan()`, `toBeGreaterThanOrEqual()`, `toBeLessThan()`, `toBeLessThanOrEqual()`, `toBeCloseTo()`
+-   **Strings/Collections**: `toMatch()`, `toContain()`, `toContainEqual()`, `toHaveLength()`
+-   **Objects**: `toHaveProperty()`, `toMatchObject()`
+-   **Errors**: `toThrow()`, `toThrowError()`
+-   **Modifiers**: `.not` (negation), `.resolves` (promise resolution), `.rejects` (promise rejection)
+
+**Choosing Between APIs:**
+
+-   **Use `expect()` API** if you're familiar with Jest/Vitest or prefer expressive, chainable assertions
+-   **Use `t*` functions** if you prefer traditional assertion functions or are writing C-style tests
+
+Both APIs are fully supported and can be mixed in the same project. See [doc/JEST_API.md](doc/JEST_API.md) for complete API documentation and migration guide.
+
 ### TypeScript Tests (`.tst.ts`)
 
-TypeScript tests executed are with the Bun runtime (includes automatic transpilation). Import the `testme` module for built-in testing utilities.
+TypeScript tests are executed with the Bun runtime (includes automatic transpilation). Import the `testme` module for built-in testing utilities.
 
 **Note**: TestMe automatically installs and links the `testme` module when running TS tests if not already linked.
+
+**Traditional API:**
 
 ```typescript
 // test_types.tst.ts
@@ -413,7 +525,38 @@ const binPath: string | null = tget('BIN', '/default/bin')
 ttrue(binPath !== null, 'BIN environment variable available')
 ```
 
-**Note**: TypeScript tests use the same testing functions as JavaScript tests since both run on the Bun runtime with full TypeScript support.
+**Jest/Vitest API (with full TypeScript type inference):**
+
+```typescript
+// test_api.tst.ts
+import {expect} from 'testme'
+
+interface ApiResponse {
+    status: 'ok' | 'error'
+    data?: unknown
+    error?: string
+}
+
+const response: ApiResponse = {
+    status: 'ok',
+    data: {users: [{id: 1, name: 'Alice'}]},
+}
+
+// Type-safe assertions with IntelliSense support
+expect(response.status).toBe('ok')
+expect(response).toHaveProperty('data')
+expect(response.data).toBeDefined()
+expect(response).not.toHaveProperty('error')
+
+// Works seamlessly with async/await
+async function fetchUser(id: number): Promise<User> {
+    return {name: 'Alice', age: 30}
+}
+
+await expect(fetchUser(1)).resolves.toMatchObject({name: 'Alice'})
+```
+
+**Note**: TypeScript tests support both the traditional `t*` functions and the Jest/Vitest `expect()` API. Both run on the Bun runtime with full TypeScript type checking and IntelliSense support.
 
 ### Python Tests (`.tst.py`)
 

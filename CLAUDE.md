@@ -1,6 +1,18 @@
 # TestMe - Multi-Language Test Runner
 
-TestMe is a powerful, multi-language test runner built with Bun that discovers, compiles, and executes tests across shell, PowerShell, Batch, C, JavaScript, TypeScript, Python, Go, and Ejscript with configurable patterns and parallel execution.
+TestMe is a specialized test runner designed for **embedded systems**, **C/C++/Rust**, and **core infrastructure projects** that use Make or CMake build systems. It discovers, compiles, and executes tests across multiple programming languages with configurable patterns and parallel execution -- ideal for low-level and performance-critical codebases.
+
+## 🎯 Ideal Use Cases
+
+TestMe is purpose-built for:
+
+-   **Embedded systems** - Cross-platform firmware and IoT device testing
+-   **C/C++/Rust projects** - Native compilation with GCC/Clang/MSVC, direct binary execution
+-   **Make/CMake-based projects** - Seamless integration with traditional build systems
+-   **Core infrastructure** - System-level components, libraries, and low-level tools
+-   **Multi-language tests** - Write tests in C, C++, shell scripts, Python, Go or Javascript/Typescript
+
+**TestMe focuses on simplicity and direct execution** for system-level projects.
 
 ## Development Commands
 
@@ -138,7 +150,12 @@ TestMe provides runtime helpers for different test languages:
 -   **JavaScript/TypeScript Module** (`src/modules/js/`): Test utilities for Bun runtime
 
     -   Importable via `import { ... } from 'testme'`
-    -   Provides test assertion helpers
+    -   Provides traditional test assertion helpers: `teq()`, `tneq()`, `ttrue()`, `tfalse()`, etc.
+    -   Provides Jest/Vitest-compatible `expect()` API with 30+ matchers
+    -   Full TypeScript support with type definitions in `expect.d.ts`
+    -   Supports `.not` negation, `.resolves` and `.rejects` for promises
+    -   Deep equality algorithm for objects, arrays, Maps, Sets, Dates, RegExp
+    -   See `src/modules/js/expect.js` for implementation details
 
 -   **Ejscript Module** (`src/modules/es/`): Test helpers for Ejscript runtime
     -   Loadable via `--require` flag in configuration
@@ -157,6 +174,7 @@ All core types are defined here as `type` aliases (not interfaces):
 #### Test Discovery Process (`src/discovery.ts`)
 
 **Pattern-Driven Discovery:**
+
 -   Recursively walks directory trees starting from current working directory
 -   Files are discovered based on configured include patterns (no hardcoded expectations)
 -   File type determined by final extension: `.c` → C, `.js` → JavaScript, `.sh` → Shell, etc.
@@ -164,6 +182,7 @@ All core types are defined here as `type` aliases (not interfaces):
 -   Any naming convention works: `*.tst.c`, `*.test.c`, `*.spec.js`, `*.tst.macosx.c`, etc.
 
 **Pattern Matching Modes:**
+
 -   **Glob patterns**: `**/*.tst.c`, `**/*.test.js`, `test/**/*.c`
 -   **Platform-specific**: `**/*.tst.macosx.c` (only on macOS), `**/*.tst.win.c` (only on Windows)
 -   **Base names**: `math` matches math.tst.c, math.tst.js, etc.
@@ -171,6 +190,7 @@ All core types are defined here as `type` aliases (not interfaces):
 -   **Path patterns**: `**/math*`, `test/unit/*.tst.c`
 
 **Implementation:**
+
 -   `matchesIncludePatterns()` checks files against patterns first
 -   `analyzeFileByExtension()` extracts final extension to determine test type
 -   `EXTENSION_TO_TYPE` map: `.c` → C, `.js` → JavaScript, `.sh` → Shell, etc.
@@ -259,17 +279,17 @@ Create tests that only run on specific platforms using pattern configuration:
 ```json5
 {
     patterns: {
-        include: ['**/*.tst.c'],  // All platforms
+        include: ['**/*.tst.c'], // All platforms
         macosx: {
-            include: ['**/*.tst.macosx.c']  // macOS only
+            include: ['**/*.tst.macosx.c'], // macOS only
         },
         linux: {
-            include: ['**/*.tst.linux.c']  // Linux only
+            include: ['**/*.tst.linux.c'], // Linux only
         },
         windows: {
-            include: ['**/*.tst.win.c']  // Windows only
-        }
-    }
+            include: ['**/*.tst.win.c'], // Windows only
+        },
+    },
 }
 ```
 
@@ -289,12 +309,14 @@ Create tests that only run on specific platforms using pattern configuration:
 ### Test File Conventions
 
 **Flexible Naming:**
+
 -   Test files can use ANY naming convention that matches configured patterns
 -   Default patterns: `**/*.tst.sh`, `**/*.tst.c`, `**/*.tst.js`, etc.
 -   Custom patterns supported: `**/*.test.c`, `**/*.spec.js`, `**/*_test.py`
 -   Platform-specific naming: `**/*.tst.macosx.c` (macOS only), `**/*.tst.win.c` (Windows only)
 
 **Recognized Test Types (by final extension):**
+
 -   `.c` - C program tests (compiled with gcc/clang/msvc)
 -   `.js` - JavaScript tests (Bun runtime)
 -   `.ts` - TypeScript tests (Bun runtime)
@@ -306,6 +328,7 @@ Create tests that only run on specific platforms using pattern configuration:
 -   `.es` - Ejscript tests (ejs runtime)
 
 **Examples:**
+
 -   `math.tst.c` - Standard C test (all platforms)
 -   `windows-api.tst.win.c` - Windows-only C test
 -   `posix-calls.tst.macosx.c` - macOS-only C test
@@ -313,6 +336,7 @@ Create tests that only run on specific platforms using pattern configuration:
 -   `unit_tests.spec.ts` - Custom naming if pattern configured
 
 **Execution Rules:**
+
 -   Exit code 0 indicates test success, non-zero indicates failure
 -   All tests execute with their working directory set to the directory containing the test file
 -   Platform-specific tests are only discovered on their target platform
@@ -432,4 +456,4 @@ npm publish
 -   Tests in subdirectories need to have unique names to avoid conflicts with tests in the parent or sibling directories.
 -   Create new unit tests in well named sub-directories under test
 -   No need to document publicly Ejscript support.
--   Do not generate shell test or skip scripts if the test needs to run cross-platform. Only use *.js in that case.
+-   Do not generate shell test or skip scripts if the test needs to run cross-platform. Only use \*.js in that case.

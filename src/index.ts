@@ -352,29 +352,32 @@ class TestMeApp {
         baseConfig: TestConfig,
         options: any
     ): Promise<number> {
-        // Discover all tests in the directory tree
-        // If CLI patterns are provided, combine them with platform-specific extension patterns
-        // This ensures that when specifying a directory like "test", only platform-appropriate
-        // test files are discovered (e.g., no .ps1 files on macOS)
-        const discoveryPatterns = patterns.length > 0
-            ? [...patterns, ...(baseConfig.patterns?.include || [])]
-            : baseConfig.patterns?.include || [];
-
+        // Discover all tests in the directory tree using config patterns
+        // This ensures we find all potential test files based on their extensions
         const allTests = await TestDiscovery.discoverTests({
             rootDir,
-            patterns: discoveryPatterns,
+            patterns: baseConfig.patterns?.include || [],
             excludePatterns: baseConfig.patterns?.exclude || []
         });
 
-        if (allTests.length === 0) {
-            console.log("No tests discovered");
+        // If CLI patterns are provided, apply them as an additional filter
+        const filteredTests = patterns.length > 0
+            ? TestDiscovery.filterTestsByPatterns(allTests, patterns, rootDir)
+            : allTests;
+
+        if (filteredTests.length === 0) {
+            if (patterns.length > 0) {
+                console.log(`No tests matching pattern(s): ${patterns.join(', ')}`);
+            } else {
+                console.log("No tests discovered");
+            }
             return 0;
         }
 
         // Group tests by their configuration directory
-        const testGroups = await this.groupTestsByConfig(allTests);
+        const testGroups = await this.groupTestsByConfig(filteredTests);
 
-        console.log(`\nDiscovered ${allTests.length} test(s) in ${testGroups.size} configuration group(s)`);
+        console.log(`\nDiscovered ${filteredTests.length} test(s) in ${testGroups.size} configuration group(s)`);
 
         let allResults: any[] = [];
         let totalExitCode = 0;
@@ -449,10 +452,11 @@ class TestMeApp {
             // Show parallel execution info if enabled
             const isParallel = mergedConfig.execution?.parallel !== false;
             const workers = mergedConfig.execution?.workers || 4;
+            const actualWorkers = Math.min(workers, filteredTests.length);
             const locationStr = relative(rootDir, configDir) || '.';
 
-            if (isParallel && workers > 1) {
-                console.log(`\n🧪 Running ${filteredTests.length} test(s) with ${workers} in parallel`);
+            if (isParallel && actualWorkers > 1) {
+                console.log(`\n🧪 Running ${filteredTests.length} test(s) with ${actualWorkers} in parallel`);
             } else {
                 console.log(`\n🧪 Running ${filteredTests.length} test(s) in: ${locationStr}`);
             }
@@ -765,21 +769,16 @@ class TestMeApp {
 
             // Handle list option
             if (options.list) {
-                // If CLI patterns are provided, combine them with platform-specific extension patterns
-                // This ensures that when specifying a directory like "test", only platform-appropriate
-                // test files are discovered (e.g., no .ps1 files on macOS)
-                const patterns = options.patterns.length
-                    ? [...options.patterns, ...(config.patterns?.include || [])]
-                    : config.patterns?.include || [];
-
+                // Use config patterns for discovery, then filter by CLI patterns if provided
                 await this.runner.listTests(
                     {
                         rootDir,
-                        patterns,
+                        patterns: config.patterns?.include || [],
                         excludePatterns: config.patterns?.exclude || [],
                     },
                     config,
-                    rootDir
+                    rootDir,
+                    options.patterns
                 );
                 return 0;
             }

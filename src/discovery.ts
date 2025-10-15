@@ -1,4 +1,5 @@
-import { TestFile, TestType, DiscoveryOptions } from './types.ts';
+import type { TestFile, DiscoveryOptions } from './types.ts';
+import { TestType } from './types.ts';
 import { join, dirname, basename, extname } from 'path';
 import { readdir, stat } from 'node:fs/promises';
 
@@ -207,6 +208,17 @@ export class TestDiscovery {
     }
 
     /*
+     Public method to filter tests by patterns (used for CLI pattern filtering)
+     @param tests Array of test files to filter
+     @param patterns Array of patterns to match
+     @param rootDir Root directory for relative path calculation
+     @returns Filtered array of test files
+     */
+    static filterTestsByPatterns(tests: TestFile[], patterns: string[], rootDir: string): TestFile[] {
+        return this.filterByPatterns(tests, patterns, rootDir);
+    }
+
+    /*
      Filters test files by include patterns
      @param tests Array of test files to filter
      @param patterns Array of include patterns
@@ -221,10 +233,14 @@ export class TestDiscovery {
         const otherPatterns = patterns.filter(p => !extensionPatterns.includes(p));
 
         return tests.filter(test => {
-            // First check if test matches any non-extension pattern (or if there are no other patterns)
-            const matchesOtherPattern = otherPatterns.length === 0 || otherPatterns.some(pattern => {
-                // Get base name without final extension for matching
+            // First check if test matches any non-extension pattern
+            // If there are ONLY extension patterns (no other patterns), pass this check
+            // If there are other patterns, at least one must match
+            const matchesOtherPattern = (otherPatterns.length === 0 && extensionPatterns.length > 0) || otherPatterns.some(pattern => {
+                // Get base name without final extension for matching (e.g., "math.tst" from "math.tst.c")
                 const baseName = this.getBaseNameWithoutExtension(test.name);
+                // Also get the test base name (e.g., "math" from "math.tst.c")
+                const testBaseName = this.getTestBaseName(test.name);
 
                 // Check if pattern matches a directory component (relative to rootDir)
                 const relativePath = test.directory.startsWith(rootDir)
@@ -265,10 +281,11 @@ export class TestDiscovery {
                 const normalizedRelativePath = relativeFilePath.replace(/\\/g, '/');
                 const normalizedPattern = pattern.replace(/\\/g, '/');
 
-                // Match against relative path, full filename, or base name
+                // Match against relative path, full filename, base name, or test base name
                 return this.matchesGlob(normalizedRelativePath, normalizedPattern) ||
                        this.matchesGlob(test.name, pattern) ||
-                       this.matchesGlob(baseName, pattern);
+                       this.matchesGlob(baseName, pattern) ||
+                       this.matchesGlob(testBaseName, pattern);
             });
 
             // If there are extension patterns, also check if test matches any of them
@@ -290,6 +307,21 @@ export class TestDiscovery {
     private static getBaseNameWithoutExtension(fileName: string): string {
         const ext = extname(fileName);
         return ext ? fileName.slice(0, -ext.length) : fileName;
+    }
+
+    /*
+     Extracts the test base name by removing the full test extension
+     @param fileName Full test file name (e.g., "math.tst.c")
+     @returns Base name without test extension (e.g., "math")
+     */
+    private static getTestBaseName(fileName: string): string {
+        const testExtensions = ['.tst.sh', '.tst.ps1', '.tst.bat', '.tst.cmd', '.tst.c', '.tst.js', '.tst.ts', '.tst.es', '.tst.py', '.tst.go'];
+        for (const ext of testExtensions) {
+            if (fileName.endsWith(ext)) {
+                return fileName.slice(0, -ext.length);
+            }
+        }
+        return fileName;
     }
 
     /*

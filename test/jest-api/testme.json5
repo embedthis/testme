@@ -1,0 +1,11 @@
+{
+    /*
+        Jest/Vitest API tests - comprehensive tests for expect() API
+        Tests the Jest/Vitest-compatible testing interface
+     */
+    enable: true,
+    depth: 0,
+
+    // No special environment variables needed for Jest API tests
+    env: {},
+}

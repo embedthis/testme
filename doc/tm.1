@@ -149,7 +149,10 @@ Get current test execution depth from TESTME_DEPTH environment variable.
 Print informational messages (printf-style formatting).
 
 .SS JavaScript/TypeScript Testing Functions (testme.js)
-Import functions from \fBtestme.js\fR for JavaScript and TypeScript tests:
+TestMe provides two testing APIs for JavaScript and TypeScript tests:
+
+.SS Traditional API
+Import traditional functions from \fBtestme\fR:
 
 .TP
 .B teq(received, expected, msg)
@@ -191,7 +194,57 @@ Print informational messages.
 .B tassert(expr, msg)
 Alias for ttrue() function.
 
-All testing functions automatically handle test failure by printing descriptive error messages with file locations and exiting with non-zero status codes.
+.SS Jest/Vitest-Compatible API
+TestMe also supports a Jest/Vitest-compatible \fBexpect()\fR API. Import \fBexpect\fR from \fBtestme\fR:
+
+.nf
+.RS
+import { expect } from 'testme'
+
+expect(1 + 1).toBe(2)
+expect({ a: 1 }).toEqual({ a: 1 })
+expect('hello').toContain('ell')
+expect([1, 2, 3]).toHaveLength(3)
+
+// Negation
+expect(5).not.toBe(10)
+
+// Async/Promises
+await expect(Promise.resolve(42)).resolves.toBe(42)
+.RE
+.fi
+
+.B Available Matchers:
+.RS
+.TP
+.B Equality
+toBe(), toEqual(), toStrictEqual()
+.TP
+.B Truthiness
+toBeTruthy(), toBeFalsy(), toBeNull(), toBeUndefined(), toBeDefined(), toBeNaN()
+.TP
+.B Type Checking
+toBeInstanceOf(), toBeTypeOf()
+.TP
+.B Numeric
+toBeGreaterThan(), toBeGreaterThanOrEqual(), toBeLessThan(), toBeLessThanOrEqual(), toBeCloseTo()
+.TP
+.B Strings/Collections
+toMatch(), toContain(), toContainEqual(), toHaveLength()
+.TP
+.B Objects
+toHaveProperty(), toMatchObject()
+.TP
+.B Errors
+toThrow(), toThrowError()
+.TP
+.B Modifiers
+.not (negation), .resolves (promise resolution), .rejects (promise rejection)
+.RE
+
+Both APIs are fully supported and can be mixed in the same project. All testing functions automatically handle test failure by printing descriptive error messages with file locations and exiting with non-zero status codes.
+
+For complete Jest API documentation, see \fBdoc/JEST_API.md\fR in the TestMe repository.
 
 .SH WORKING DIRECTORY
 All tests execute with their working directory (CWD) set to the directory containing the test file. This ensures consistent behavior across all test types and allows tests to access relative files reliably.

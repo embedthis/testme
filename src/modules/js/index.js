@@ -1,7 +1,14 @@
 /**
     js/index.js - Testing utilities API for JavaScript and TypeScript tests
     Provides assertion functions, environment variable access, and test utilities
+
+    Supports two testing styles:
+    1. Traditional TestMe API: ttrue(), teq(), etc.
+    2. Jest/Vitest-compatible API: expect().toBe(), etc.
  */
+
+//  Import Jest/Vitest-compatible expect() API
+import {expect} from './expect.js'
 
 let exitCode = 0
 
@@ -246,6 +253,9 @@ process.on('unhandledRejection', (reason) => {
 
 // Export all functions for use in tests
 export {
+    //  Jest/Vitest-compatible API
+    expect,
+    //  Traditional TestMe API
     tassert,
     tcontains,
     tdebug,
@@ -292,6 +302,9 @@ export {
 
 // Default export with all functions
 export default {
+    //  Jest/Vitest-compatible API
+    expect,
+    //  Traditional TestMe API
     tassert,
     tcontains,
     tdebug,
