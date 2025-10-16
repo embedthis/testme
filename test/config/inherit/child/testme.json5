@@ -1,8 +1,8 @@
-// Child config - inherits env and compiler from parent
+// Child config - inherits environment and compiler from parent
 {
-    inherit: ['env', 'compiler'],
+    inherit: ['environment', 'compiler'],
 
-    env: {
+    environment: {
         CHILD_VAR: 'from_child',
         SHARED_VAR: 'child_value', // Overrides parent
     },

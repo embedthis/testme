@@ -108,6 +108,7 @@ async function handleInit(): Promise<void> {
     // Service management for test setup/teardown
     services: {
         skip: '',           // Script to check if tests should be skipped
+        environment: '',    // Script to emit environment variables (key=value lines)
         prep: '',           // Script to run once before all tests
         setup: '',          // Background service to start before tests
         cleanup: '',        // Script to run after all tests
@@ -115,7 +116,7 @@ async function handleInit(): Promise<void> {
     },
 
     // Environment variables for test execution
-    env: {
+    environment: {
         // Example: BIN: '\${../build/\${PLATFORM}-\${PROFILE}/bin}',
     },
 }
@@ -388,7 +389,7 @@ class TestMeApp {
             const groupConfig = await ConfigManager.findConfig(configDir);
 
             // Apply CLI overrides to group config
-            const mergedConfig = this.applyCliOverrides(groupConfig, options);
+            let mergedConfig = this.applyCliOverrides(groupConfig, options);
 
             // Check if tests are disabled for this directory
             if (mergedConfig.enable === false) {
@@ -464,6 +465,21 @@ class TestMeApp {
             let groupExitCode = 0;
             try {
                 // Run services for this configuration group
+                // Environment script runs first and its variables are merged into the config
+                if (!options.noServices && mergedConfig.services?.environment) {
+                    const envVars = await this.getServiceManager(rootDir).runEnvironment(mergedConfig);
+                    // Merge environment variables from script into config
+                    if (Object.keys(envVars).length > 0) {
+                        mergedConfig = {
+                            ...mergedConfig,
+                            environment: {
+                                ...mergedConfig.environment,
+                                ...envVars
+                            }
+                        };
+                    }
+                }
+
                 if (!options.noServices && mergedConfig.services?.prep) {
                     await this.getServiceManager(rootDir).runPrep(mergedConfig);
                 }

@@ -115,19 +115,19 @@
 
     // Service management for test setup/teardown
     services: {
-        skip: '', // Script to check if tests should be skipped (0=run, non-zero=skip)
+        cleanup: '', // Script to run after all tests complete for cleanup
         prep: '', // Script to run once before all tests begin (waits for completion)
         setup: '', // Script to start background service during test execution, runs before tests
-        cleanup: '', // Script to run after all tests complete for cleanup
-        skipTimeout: 30, // Skip script timeout in seconds
+        skip: '', // Script to check if tests should be skipped (0=run, non-zero=skip)
+        cleanupTimeout: 10, // Cleanup timeout in seconds
         prepTimeout: 30, // Prep timeout in seconds
         setupTimeout: 30, // Setup timeout in seconds
-        cleanupTimeout: 10, // Cleanup timeout in seconds
+        skipTimeout: 30, // Skip script timeout in seconds
         delay: 0, // Delay in seconds after setup before running tests
     },
 
     // Environment variables to set for test execution
-    env: {
+    environment: {
         BIN: '${../build/${PLATFORM}-${PROFILE}/bin}',
         HTTP: 'http://localhost:4100',
     },

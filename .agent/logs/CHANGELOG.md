@@ -2,6 +2,67 @@
 
 ## 2025-10-16
 
+### Environment Service Script and Configuration Rename
+
+-   **DEV**: Added new `environment` service script for dynamic environment variable configuration
+    -   **Service Script**: New `services.environment` configuration option runs a script before `prep`
+        -   Script emits key=value lines on stdout (one per line)
+        -   Format: `KEY=VALUE` or `KEY=value with spaces`
+        -   Empty lines and lines starting with `#` are ignored
+        -   Variables are parsed and merged with static environment configuration
+        -   Available to prep, setup, cleanup scripts and all tests
+        -   Default timeout: 30 seconds (configurable via `services.environmentTimeout`)
+    -   **Service Execution Order**: Skip → **Environment** → Prep → Setup → Tests → Cleanup
+    -   **Use Cases**:
+        -   Detecting build artifacts at runtime: `BIN=$(find ../build -name bin)`
+        -   Reading configuration from external sources: `API_KEY=$(cat ~/.secrets/key)`
+        -   Computing values based on system state: `CORES=$(nproc)`
+        -   Platform-specific path detection: `PYTHON=$(which python3)`
+    -   **Implementation**: [src/services.ts](../../src/services.ts:146-239) `runEnvironment()` method
+        -   Executes script in config directory
+        -   Captures stdout and parses key=value pairs
+        -   Returns Record<string, string> of environment variables
+        -   Handles timeouts and errors gracefully
+
+-   **DEV**: Renamed `env` configuration key to `environment` with full backward compatibility
+    -   **Breaking Change**: None - `env` still fully supported as deprecated alias
+    -   **Primary Key**: `environment` replaces `env` in TestConfig
+    -   **Backward Compatibility**: Code checks `config.environment || config.env` throughout
+        -   [src/types.ts](../../src/types.ts:41-42) - Both keys defined in TestConfig
+        -   [src/config.ts](../../src/config.ts:278-301) - Inheritance supports both
+        -   [src/handlers/base.ts](../../src/handlers/base.ts:225-228) - Runtime uses both
+        -   [src/services.ts](../../src/services.ts:788) - Services use both
+    -   **Migration**: Existing testme.json5 files continue to work without changes
+    -   **Updated Files**: All example configs now use `environment`
+        -   test/config/inherit/testme.json5
+        -   test/config/inherit/child/testme.json5
+        -   test/portable/testme.json5
+        -   test/jest-api/testme.json5
+        -   test/testme.json5
+        -   doc/testme.json5
+
+-   **FIX**: Fixed critical bug where environment variables from environment script were lost during test execution
+    -   **Issue**: Variables were correctly parsed and merged into config, but not passed to individual tests
+    -   **Root Cause**: `TestRunner.findConfigForTest()` reloaded config from disk, losing runtime-merged variables
+    -   **Solution**: [src/runner.ts](../../src/runner.ts:456-460) now preserves `environment` from global config
+        -   Merges `globalConfig.environment` into test-specific config
+        -   Ensures environment script variables reach all tests
+    -   **Impact**: Environment script variables now correctly available in all tests
+
+-   **DOC**: Comprehensive documentation updates for environment service script
+    -   **CLAUDE.md**: Updated service lifecycle documentation
+    -   **Man Page** (doc/tm.1): Added environment script section with examples
+    -   **Sample Config** (doc/testme.json5): Added environment script examples and notes
+    -   **Default Template**: `tm --init` now includes `environment` script field
+    -   All documentation mentions both environment script and renamed config key
+
+-   **TEST**: Created and verified comprehensive test suite
+    -   Environment script runs and parses key=value lines
+    -   Variables merge with static environment configuration
+    -   Variables available to all tests
+    -   Script respects timeout configuration
+    -   All tests pass successfully
+
 ### Parallel Worker Count Display Fix
 
 -   **FIX**: Fixed parallel worker count display to not exceed number of tests

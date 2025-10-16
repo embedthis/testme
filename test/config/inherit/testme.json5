@@ -1,6 +1,6 @@
 // Parent config
 {
-    env: {
+    environment: {
         PARENT_VAR: 'from_parent',
         SHARED_VAR: 'parent_value',
     },

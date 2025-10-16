@@ -38,7 +38,8 @@ export type TestConfig = {
   output?: OutputConfig;
   patterns?: PatternConfig;
   services?: ServiceConfig;
-  env?: EnvironmentConfig;
+  environment?: EnvironmentConfig; // Environment variables (replaces 'env')
+  env?: EnvironmentConfig; // Deprecated: use 'environment' instead (supported for backward compatibility)
   configDir?: string; // Directory containing the config file
 }
 
@@ -154,10 +155,12 @@ export type PatternConfig = {
  */
 export type ServiceConfig = {
   skip?: string;
+  environment?: string; // Script to emit environment variables (runs before prep)
   prep?: string;
   setup?: string;
   cleanup?: string;
   skipTimeout?: number; // Skip script timeout in seconds
+  environmentTimeout?: number; // Environment script timeout in seconds
   prepTimeout?: number; // Prep timeout in seconds
   setupTimeout?: number; // Setup timeout in seconds
   cleanupTimeout?: number; // Cleanup timeout in seconds

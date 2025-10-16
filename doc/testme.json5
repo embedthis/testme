@@ -25,12 +25,12 @@
 
     /*
         Inherit configuration from parent directory's testme.json5
-        - inherit: true → inherit all keys from parent (compiler, debug, execution, output, patterns, services, env, profile)
-        - inherit: ['env', 'compiler'] → inherit only specified keys
+        - inherit: true → inherit all keys from parent (compiler, debug, execution, output, patterns, services, environment, profile)
+        - inherit: ['environment', 'compiler'] → inherit only specified keys
         - inherit: false or omitted → no inheritance (default)
 
         Inheritance is recursive - parent configs can also inherit from their parents.
-        Child settings always override parent settings (deep merge for objects like env and compiler).
+        Child settings always override parent settings (deep merge for objects like environment and compiler).
 
         Example use cases:
         - Project root has common compiler flags and env vars
@@ -38,7 +38,7 @@
         - Test directory inherits but overrides timeout for slow tests
      */
     // inherit: true,
-    // inherit: ['env', 'compiler', 'debug'],
+    // inherit: ['environment', 'compiler', 'debug'],
 
     /*
          Compiler configuration for different languages
@@ -200,14 +200,16 @@
 
     // Service management for test setup/teardown
     services: {
-        skip: '', // Script to check if tests should be skipped (0=run, non-zero=skip)
+        cleanup: '', // Script to run after all tests complete for cleanup
+        environment: '', // Script to emit environment variables (key=value lines)
         prep: '', // Script to run once before all tests begin (waits for completion)
         setup: '', // Script to start background service during test execution, runs before tests
-        cleanup: '', // Script to run after all tests complete for cleanup
-        skipTimeout: 30, // Skip script timeout in seconds
+        skip: '', // Script to check if tests should be skipped (0=run, non-zero=skip)
+        cleanupTimeout: 10, // Cleanup timeout in seconds
+        environmentTimeout: 30, // Environment script timeout in seconds
         prepTimeout: 30, // Prep timeout in seconds
         setupTimeout: 30, // Setup timeout in seconds
-        cleanupTimeout: 10, // Cleanup timeout in seconds
+        skipTimeout: 30, // Skip script timeout in seconds
         delay: 0, // Delay in seconds after setup before running tests
     },
 
@@ -215,6 +217,13 @@
         Environment variables to set for test execution
         Supports platform-specific overrides via windows, macosx, linux keys
         Platform-specific variables are merged with base variables
+
+        NOTE: You can also use services.environment to dynamically set environment variables
+        by running a script that emits key=value lines. This is useful for:
+        - Detecting build artifacts at runtime
+        - Reading configuration from external sources
+        - Computing values based on system state
+        Example: services.environment: './detect-build.sh' (emits BIN=/path/to/bin)
 
         Variable expansion:
         - ${VAR} expands to environment variable VAR (e.g., ${PATH}, ${HOME})
@@ -236,7 +245,7 @@
         - Windows automatically converts : to ; for PATH variable
         - Example: PATH: 'mydir:${PATH}' becomes 'mydir;C:\Windows;...' on Windows
      */
-    env: {
+    environment: {
         // Base environment variables (all platforms)
         TEST_MODE: 'integration',
         BIN: '${../build/${PLATFORM}-${PROFILE}/bin}',

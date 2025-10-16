@@ -1019,17 +1019,22 @@ type TestConfig = {
     }
     services?: {
         skip?: string // Script to check if tests should run (0=run, non-zero=skip)
+        environment?: string // Script to emit environment variables (key=value lines)
         prep?: string // Prep command
         setup?: string // Setup command
         cleanup?: string // Cleanup command
         skipTimeout?: number // Skip timeout (ms)
+        environmentTimeout?: number // Environment script timeout (ms)
         prepTimeout?: number // Prep timeout (ms)
         setupTimeout?: number // Setup timeout (ms)
         cleanupTimeout?: number // Cleanup timeout (ms)
         delay?: number // Delay after setup before running tests (ms)
     }
-    env?: {
-        [key: string]: string // Environment variables with ${...} expansion
+    environment?: {
+        [key: string]: string // Environment variables with ${...} expansion (replaces deprecated 'env')
+    }
+    env?: { // Deprecated: use 'environment' instead (supported for backward compatibility)
+        [key: string]: string
     }
 }
 ```
@@ -1066,6 +1071,77 @@ The `services.skip` field allows conditional test execution based on runtime che
 -   Check environment conditions (network connectivity, service availability)
 -   Platform-specific test gating
 -   License or feature flag checking
+
+### Environment Service Script
+
+The `services.environment` field runs a script that emits environment variables before prep:
+
+```json5
+{
+    services: {
+        environment: './detect-build.sh', // Script to emit environment variables
+        environmentTimeout: 30, // Timeout in seconds (default: 30)
+    },
+}
+```
+
+**Behavior:**
+
+-   **Output format**: Script emits key=value lines on stdout
+-   **Format**: `KEY=VALUE` or `KEY=value with spaces`
+-   **Comments**: Lines starting with `#` are ignored
+-   **Empty lines**: Ignored
+-   **Parsing**: Each line is split at first `=` character
+-   **Execution order**: Runs after skip check, before prep
+-   **Service lifecycle**: Skip → **Environment** → Prep → Setup → Tests → Cleanup
+-   **Merging**: Variables merge with static `environment` configuration
+-   **Availability**: Variables available to prep, setup, cleanup, and all tests
+-   **Default timeout**: 30 seconds (configurable via `environmentTimeout`)
+
+**Example Script:**
+
+```bash
+#!/bin/bash
+# detect-build.sh - Detect build artifacts
+
+# Find build directory
+BUILD_DIR=$(find ../build -name "bin" -type d | head -1)
+echo "BIN=${BUILD_DIR}"
+
+# Detect compiler version
+GCC_VERSION=$(gcc -dumpversion)
+echo "GCC_VERSION=${GCC_VERSION}"
+
+# Get CPU count for parallel builds
+CORES=$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
+echo "CORES=${CORES}"
+```
+
+**Use Cases:**
+
+-   **Dynamic path detection**: Find build artifacts that vary by configuration
+-   **External configuration**: Read API keys or secrets from secure storage
+-   **System state**: Detect available CPU cores, memory, or devices
+-   **Runtime computation**: Calculate values based on current environment
+-   **Platform detection**: Set platform-specific paths (e.g., Python location)
+
+**Advantages over Static Configuration:**
+
+-   **Flexibility**: Detect paths that change based on build configuration
+-   **Portability**: Scripts can adapt to different system configurations
+-   **Security**: Read secrets from external sources instead of committing them
+-   **Conditional logic**: Use complex shell logic to determine values
+-   **External tools**: Leverage system commands to query state
+
+**Implementation Details:**
+
+-   Script runs in config directory (same as other service scripts)
+-   Stdout is captured and parsed for key=value pairs
+-   Stderr inherits (visible in verbose mode) or piped (quiet mode)
+-   Timeout causes script termination and error
+-   Variables override static configuration for matching keys
+-   Empty output is valid (no variables added)
+-   Implementation: [src/services.ts](../../src/services.ts:146-239) `runEnvironment()` method
 
 ### Test Depth Requirements
 
@@ -1152,7 +1228,7 @@ The `services.delay` field provides time for setup services to initialize:
 -   **Default**: No delay (`delay: 0`)
 -   **Timing**: Delay applied after setup service starts successfully
 -   **Verbose output**: Shows "⏳ Waiting {delay}ms for setup service to initialize..."
--   **Service lifecycle**: Skip → Prep → Setup → Verify running → Delay → Tests → Cleanup
+-   **Service lifecycle**: Skip → Environment → Prep → Setup → Verify running → Delay → Tests → Cleanup
 
 **Use Cases:**
 

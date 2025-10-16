@@ -373,24 +373,28 @@ Set \fBenable: 'manual'\fR to require explicit test naming. Manual tests are exc
 Set \fBdepth: N\fR to require \fB\-\-depth N\fR or higher to run tests in this directory. This is useful for marking integration or resource-intensive tests that should only run when explicitly requested. Tests with higher depth requirements than the current \fB\-\-depth\fR value are skipped.
 
 .SS Service Settings
-Configure skip, prep, setup and cleanup commands:
+Configure skip, environment, prep, setup and cleanup commands:
 .nf
 {
     services: {
-        skip: "check-requirements",  // Check if tests should run (0=run, non-zero=skip)
+        skip: "check-requirements",       // Check if tests should run (0=run, non-zero=skip)
+        environment: "./detect-build.sh", // Emit environment variables (key=value lines)
         prep: "make build",
         setup: "docker-compose up -d",
         cleanup: "docker-compose down",
-        skipTimeout: 30,             // Timeout in seconds
-        prepTimeout: 30,             // Timeout in seconds
-        setupTimeout: 30,            // Timeout in seconds
-        cleanupTimeout: 10,          // Timeout in seconds
-        delay: 3                     // Wait 3 seconds after setup before tests
+        skipTimeout: 30,                  // Timeout in seconds
+        environmentTimeout: 30,           // Timeout in seconds
+        prepTimeout: 30,                  // Timeout in seconds
+        setupTimeout: 30,                 // Timeout in seconds
+        cleanupTimeout: 10,               // Timeout in seconds
+        delay: 3                          // Wait 3 seconds after setup before tests
     }
 }
 .fi
 
 The skip command runs first to determine if tests should be executed. Exit code 0 enables tests, non-zero skips them. The skip script can output a message (stdout or stderr) explaining why tests are skipped, displayed in verbose mode.
+
+The environment command runs after skip and emits environment variables as key=value lines on stdout. Each line should be in the format KEY=VALUE. These variables are merged with the environment configuration and made available to prep, setup, cleanup, and all tests. This is useful for dynamically detecting build artifacts, reading configuration from external sources, or computing values based on system state.
 
 The prep command runs once before all tests begin and waits for completion. The setup command starts a background service that runs during test execution. The \fBdelay\fR field specifies seconds to wait after the setup service starts before beginning test execution, allowing time for service initialization. The cleanup command runs after all tests complete to clean up resources.
 
@@ -398,7 +402,7 @@ The prep command runs once before all tests begin and waits for completion. The 
 Configure environment variables available to all tests during execution. Supports platform-specific overrides via \fBwindows\fR, \fBmacosx\fR, and \fBlinux\fR keys:
 .nf
 {
-    env: {
+    environment: {
         // Base environment variables (all platforms)
         TEST_MODE: "integration",
         BIN: "${../build/*/bin}",
@@ -459,7 +463,7 @@ Iteration count from \fB\-\-iterations\fR flag (defaults to 1). TestMe does NOT 
 These special variables are available in two ways:
 .RS
 .IP 1. 4
-As \fB${...}\fR patterns for expansion in configuration values (compiler flags, library paths, env values)
+As \fB${...}\fR patterns for expansion in configuration values (compiler flags, library paths, environment values)
 .IP 2. 4
 As actual environment variables (with TESTME_ prefix) accessible in all test and service scripts via standard environment access methods (e.g., \fB$TESTME_PLATFORM\fR in shell scripts, \fBgetenv("TESTME_PLATFORM")\fR in C, \fBprocess.env.TESTME_PLATFORM\fR in JavaScript/TypeScript)
 .RE
@@ -467,7 +471,7 @@ As actual environment variables (with TESTME_ prefix) accessible in all test and
 Example usage in compiler configuration:
 .nf
 {
-    profile: "dev",  // Can be overridden by --profile or env.PROFILE
+    profile: "dev",  // Can be overridden by --profile or environment.PROFILE
     compiler: {
         c: {
             clang: {

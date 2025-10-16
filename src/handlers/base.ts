@@ -223,7 +223,9 @@ Original error: ${error}`;
         }
 
         // Add environment variables from configuration with expansion
-        if (config.env) {
+        // Support both 'environment' (new) and 'env' (legacy) keys
+        const configEnv = config.environment || config.env;
+        if (configEnv) {
             // Use _envConfigDir if available (for inherited env vars), otherwise use configDir
             // This ensures inherited paths are resolved relative to where they were defined
             const baseDir = (config as any)._envConfigDir || config.configDir || process.cwd();
@@ -233,7 +235,7 @@ Original error: ${error}`;
                            PlatformDetector.isMacOS() ? 'macosx' : 'linux';
 
             // First, process base environment variables (exclude platform keys)
-            for (const [key, value] of Object.entries(config.env)) {
+            for (const [key, value] of Object.entries(configEnv)) {
                 // Skip platform-specific section keys (legacy format)
                 if (key === 'windows' || key === 'macosx' || key === 'linux' || key === 'default') {
                     continue;
@@ -283,7 +285,7 @@ Original error: ${error}`;
             }
 
             // Then, merge default environment variables (legacy format with env.default section)
-            const defaultEnv = config.env['default'];
+            const defaultEnv = configEnv['default'];
             if (defaultEnv && typeof defaultEnv === 'object') {
                 for (const [key, value] of Object.entries(defaultEnv)) {
                     if (typeof value === 'string') {
@@ -311,7 +313,7 @@ Original error: ${error}`;
 
             // Finally, merge platform-specific environment variables (legacy format)
             // These override both base and default values
-            const platformEnv = config.env[platform];
+            const platformEnv = configEnv[platform];
             if (platformEnv && typeof platformEnv === 'object') {
                 for (const [key, value] of Object.entries(platformEnv)) {
                     if (typeof value === 'string') {

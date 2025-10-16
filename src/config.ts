@@ -210,7 +210,9 @@ export class ConfigManager {
 
         // Normalize env paths in parent config before inheritance (but skip special variable expansion)
         // This converts relative paths like ../build to absolute paths based on parent's configDir
-        if (parentConfig.env && parentConfigDir) {
+        // Support both 'environment' (new) and 'env' (legacy) keys
+        const parentEnv = parentConfig.environment || parentConfig.env;
+        if (parentEnv && parentConfigDir) {
             // We can't fully normalize yet because special variables haven't been expanded
             // So we mark the config with its source directory for later resolution
             // Store the source configDir for env resolution
@@ -254,7 +256,7 @@ export class ConfigManager {
 
         // Determine which keys to inherit
         const keysToInherit: string[] = childConfig.inherit === true
-            ? ['compiler', 'debug', 'execution', 'output', 'patterns', 'services', 'env', 'profile']
+            ? ['compiler', 'debug', 'execution', 'output', 'patterns', 'services', 'environment', 'env', 'profile']
             : Array.isArray(childConfig.inherit)
             ? childConfig.inherit
             : [];
@@ -275,11 +277,29 @@ export class ConfigManager {
                 inherited.patterns = this.deepMerge(parentConfig.patterns, childConfig.patterns || {});
             } else if (key === 'services' && parentConfig.services) {
                 inherited.services = { ...parentConfig.services, ...childConfig.services };
-            } else if (key === 'env' && parentConfig.env) {
-                inherited.env = this.deepMerge(parentConfig.env, childConfig.env || {});
-                // Preserve the parent's configDir for env path resolution
-                if ((parentConfig as any)._envConfigDir) {
-                    (inherited as any)._envConfigDir = (parentConfig as any)._envConfigDir;
+            } else if (key === 'environment') {
+                // Prefer 'environment' over 'env' from parent
+                const parentEnv = parentConfig.environment || parentConfig.env;
+                const childEnv = childConfig.environment || childConfig.env;
+                if (parentEnv) {
+                    inherited.environment = this.deepMerge(parentEnv, childEnv || {});
+                    // Preserve the parent's configDir for env path resolution
+                    if ((parentConfig as any)._envConfigDir) {
+                        (inherited as any)._envConfigDir = (parentConfig as any)._envConfigDir;
+                    }
+                }
+            } else if (key === 'env') {
+                // Legacy support for 'env' - only used if 'environment' not already set
+                if (!inherited.environment) {
+                    const parentEnv = parentConfig.env || parentConfig.environment;
+                    const childEnv = childConfig.env || childConfig.environment;
+                    if (parentEnv) {
+                        inherited.environment = this.deepMerge(parentEnv, childEnv || {});
+                        // Preserve the parent's configDir for env path resolution
+                        if ((parentConfig as any)._envConfigDir) {
+                            (inherited as any)._envConfigDir = (parentConfig as any)._envConfigDir;
+                        }
+                    }
                 }
             } else if (key === 'profile' && parentConfig.profile && !childConfig.profile) {
                 inherited.profile = parentConfig.profile;
@@ -464,7 +484,9 @@ export class ConfigManager {
                 ...this.DEFAULT_CONFIG.services,
                 ...userConfig.services
             },
-            env: userConfig.env // Include environment variables from user config
+            // Prefer 'environment' over 'env' for consistency, but support both for backward compatibility
+            environment: userConfig.environment || userConfig.env,
+            env: undefined // Don't propagate deprecated 'env' key
         } : {
             ...this.DEFAULT_CONFIG,
             // Apply platform-specific pattern merging even when no user config exists

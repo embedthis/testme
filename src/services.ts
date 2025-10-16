@@ -14,10 +14,11 @@ import { PlatformDetector } from "./platform/detector.ts";
  * @remarks
  * Service Execution Order:
  * 1. Skip - Determines if tests should run (exit 0=run, non-zero=skip)
- * 2. Prep - Runs once in foreground before tests
- * 3. Setup - Starts as background service during tests
- * 4. Tests Execute
- * 5. Cleanup - Runs after tests complete, kills setup if still running
+ * 2. Environment - Emits environment variables (key=value lines)
+ * 3. Prep - Runs once in foreground before tests
+ * 4. Setup - Starts as background service during tests
+ * 5. Tests Execute
+ * 6. Cleanup - Runs after tests complete, kills setup if still running
  *
  * Process Management:
  * - Setup processes run in background and are automatically killed on exit
@@ -55,6 +56,8 @@ export class ServiceManager {
     private isSetupRunning = false;
     /** @internal */
     private invocationDir: string;
+    /** @internal */
+    private environmentVars: Record<string, string> = {};
 
     /**
      * Creates a new ServiceManager instance
@@ -140,6 +143,104 @@ export class ServiceManager {
             }
         } catch (error) {
             throw new Error(`Failed to run skip script: ${error}`);
+        }
+    }
+
+    /**
+     * Runs the environment script to get environment variables
+     *
+     * @param config - Test configuration containing service settings
+     * @returns Object with environment variables from the script
+     *
+     * @remarks
+     * Environment script runs before prep and emits key=value lines.
+     * Each line should be in the format: KEY=VALUE
+     * These variables are then added to the environment for all service scripts and tests.
+     */
+    async runEnvironment(config: TestConfig): Promise<Record<string, string>> {
+        const environmentCommand = config.services?.environment;
+        if (!environmentCommand) {
+            return {};
+        }
+
+        const timeout = (config.services?.environmentTimeout || 30) * 1000;
+
+        const displayPath = this.getDisplayPath(environmentCommand, config);
+        if (config.output?.verbose) {
+            console.log(`🌍 Running environment script: ${displayPath}`);
+        }
+
+        try {
+            // Parse command and arguments
+            const [command, ...args] = this.parseCommand(environmentCommand, config.configDir);
+
+            // Always pipe stdout to capture environment variables
+            // Pipe stderr in quiet mode, inherit in verbose mode
+            const stderrMode = config.output?.verbose ? "inherit" : "pipe";
+
+            // Run environment script in foreground
+            const envProcess = Bun.spawn([command, ...args], {
+                stdout: "pipe", // Always pipe stdout to capture output
+                stderr: stderrMode,
+                cwd: config.configDir, // Run in the directory containing testme.json5
+                env: { ...process.env } // Use base environment only
+            });
+
+            // Set up timeout
+            let timeoutId: Timer | undefined;
+            let timedOut = false;
+
+            if (timeout > 0) {
+                timeoutId = setTimeout(() => {
+                    timedOut = true;
+                    envProcess.kill();
+                }, timeout);
+            }
+
+            const result = await envProcess.exited;
+
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+            }
+
+            if (timedOut) {
+                throw new Error(`Environment script timed out after ${timeout}ms`);
+            } else if (result === 0) {
+                // Parse stdout for key=value pairs
+                const stdout = await new Response(envProcess.stdout).text();
+                const envVars: Record<string, string> = {};
+
+                // Parse each line for KEY=VALUE format
+                const lines = stdout.split('\n');
+                for (const line of lines) {
+                    const trimmed = line.trim();
+                    if (!trimmed || trimmed.startsWith('#')) {
+                        // Skip empty lines and comments
+                        continue;
+                    }
+
+                    const equalIndex = trimmed.indexOf('=');
+                    if (equalIndex > 0) {
+                        const key = trimmed.substring(0, equalIndex).trim();
+                        const value = trimmed.substring(equalIndex + 1).trim();
+                        envVars[key] = value;
+                    }
+                }
+
+                if (config.output?.verbose) {
+                    console.log(`✅ Environment script completed - loaded ${Object.keys(envVars).length} variable(s)`);
+                }
+
+                // Store environment variables for use by other scripts
+                this.environmentVars = envVars;
+
+                return envVars;
+            } else {
+                const stderr = await new Response(envProcess.stderr).text();
+                throw new Error(`Environment script failed with exit code ${result}: ${stderr}`);
+            }
+        } catch (error) {
+            throw new Error(`Failed to run environment script: ${error}`);
         }
     }
 
@@ -642,7 +743,8 @@ export class ServiceManager {
      @returns Environment object with expanded variables
      */
     private async getServiceEnvironment(config: TestConfig): Promise<Record<string, string>> {
-        const env = { ...process.env };
+        // Start with process environment, then add environment script variables
+        const env = { ...process.env, ...this.environmentVars };
 
         // On Windows, ensure System32 is first in PATH to prevent Unix commands from shadowing Windows commands
         if (PlatformDetector.isWindows()) {
@@ -683,9 +785,11 @@ export class ServiceManager {
         if (specialVars.CONFIGDIR !== undefined) env.TESTME_CONFIGDIR = specialVars.CONFIGDIR || '.';
 
         // Add environment variables from configuration with expansion
-        if (config.env) {
+        // Support both 'environment' (new) and 'env' (legacy) keys
+        const configEnv = config.environment || config.env;
+        if (configEnv) {
             // First, process default environment variables if present
-            const defaultEnv = config.env.default;
+            const defaultEnv = configEnv.default;
             if (defaultEnv && typeof defaultEnv === 'object') {
                 for (const [key, value] of Object.entries(defaultEnv)) {
                     if (typeof value !== 'string') {
@@ -698,7 +802,7 @@ export class ServiceManager {
             }
 
             // Then, process base environment variables (exclude platform and default keys)
-            for (const [key, value] of Object.entries(config.env)) {
+            for (const [key, value] of Object.entries(configEnv)) {
                 // Skip platform-specific keys, default key, and non-string values
                 if (key === 'windows' || key === 'macosx' || key === 'linux' || key === 'default' || typeof value !== 'string') {
                     continue;
@@ -709,7 +813,7 @@ export class ServiceManager {
             }
 
             // Finally, merge platform-specific environment variables (these override defaults)
-            const platformEnv = config.env[platform];
+            const platformEnv = configEnv[platform];
             if (platformEnv) {
                 for (const [key, value] of Object.entries(platformEnv)) {
                     // Skip non-string values

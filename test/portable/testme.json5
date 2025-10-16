@@ -7,7 +7,7 @@
     depth: 0,
 
     // Environment variables for tests
-    env: {
+    environment: {
         BIN: '${../../build/${PLATFORM}-${PROFILE}/bin}',
         HTTP: 'http://localhost:4100',
     },

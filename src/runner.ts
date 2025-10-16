@@ -452,6 +452,11 @@ export class TestRunner {
             ...(globalConfig.output?.verbose !== undefined && { verbose: globalConfig.output.verbose }),
             ...(globalConfig.output?.format && { format: globalConfig.output.format }),
             ...(globalConfig.output?.errorsOnly !== undefined && { errorsOnly: globalConfig.output.errorsOnly }),
+          },
+          // Preserve environment variables from global config (including those from environment script)
+          environment: {
+            ...testSpecificConfig.environment,
+            ...globalConfig.environment
           }
         };
       }

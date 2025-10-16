@@ -85,8 +85,9 @@ Each test type (Shell, PowerShell, Batch, C, JS, TS, Python, Go, ES) implements 
 
 #### Service Management System
 
--   `ServiceManager` handles skip, prep, setup, and cleanup scripts
+-   `ServiceManager` handles skip, environment, prep, setup, and cleanup scripts
 -   Skip scripts determine if tests should run (exit 0=run, non-zero=skip)
+-   Environment scripts emit key=value lines to set environment variables
 -   Prep runs once before tests (foreground)
 -   Setup starts background service for tests
 -   Cleanup runs after all tests complete
@@ -100,7 +101,7 @@ Each test type (Shell, PowerShell, Batch, C, JS, TS, Python, Go, ES) implements 
     -   Compilation (C flags, Ejscript modules)
     -   Execution (timeouts, parallelism, workers)
     -   Patterns (file discovery with platform-specific deep blending)
-    -   Services (skip, prep, setup, cleanup)
+    -   Services (skip, environment, prep, setup, cleanup)
     -   Environment variables with `${...}` expansion
     -   Output formatting
 
@@ -215,6 +216,7 @@ All core types are defined here as `type` aliases (not interfaces):
     -   Check if tests are enabled (`enable` flag)
     -   Verify depth requirements (`--depth` vs config `depth`)
     -   Run skip script if configured (exit 0=run, non-zero=skip)
+    -   Run environment script to get environment variables (key=value lines)
     -   Execute prep script (waits for completion)
     -   Start setup service (runs in background)
     -   Run tests with parallel or sequential execution
@@ -236,8 +238,8 @@ The configuration file uses this hierarchy:
 -   `execution` - Runtime behavior (timeout in seconds, parallel, workers)
 -   `output` - Display formatting (verbose, format, colors)
 -   `patterns` - File discovery (include/exclude glob patterns) with platform-specific blending
--   `services` - Service scripts (skip, prep, setup, cleanup)
--   `env` - Environment variables with `${...}` glob expansion
+-   `services` - Service scripts (skip, environment, prep, setup, cleanup)
+-   `environment` - Environment variables with `${...}` glob expansion (replaces deprecated `env`)
 
 ### Default Behavior
 
@@ -266,8 +268,9 @@ The configuration file uses this hierarchy:
 
 **Service Lifecycle:**
 
--   Skip → Prep → Setup → Tests → Cleanup
+-   Skip → Environment → Prep → Setup → Tests → Cleanup
 -   Skip: exit 0=run, non-zero=skip (can output message)
+-   Environment: emits key=value lines to set environment variables for services and tests
 -   Prep: runs once, waits for completion
 -   Setup: background service during tests
 -   Cleanup: runs after all tests (kills setup if running)
