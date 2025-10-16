@@ -656,7 +656,7 @@ All available options sorted alphabetically:
 | `-n, --no-services`    | Skip all service commands (skip, prep, setup, cleanup)                                                 |
 | `-p, --profile <NAME>` | Set build profile (overrides config and `PROFILE` environment variable)                                |
 | `-q, --quiet`          | Run silently with no output, only exit codes                                                           |
-| `-s, --show`           | Display C compile commands                                                                             |
+| `-s, --show`           | Display test configuration and environment variables                                                   |
 | `--step`               | Run tests one at a time with prompts (forces serial mode)                                              |
 | `-v, --verbose`        | Enable verbose mode with detailed output (sets `TESTME_VERBOSE=1`)                                     |
 | `-V, --version`        | Show version information                                                                               |
@@ -680,7 +680,7 @@ tm "**/api*"                    # Run tests with 'api' in path
 tm -v integration               # Verbose output for integration tests
 tm --depth 2                    # Run tests requiring depth ≤ 2
 tm --debug math.tst.c           # Debug specific C test
-tm -s "*.tst.c"                 # Show compilation commands
+tm -s "*.tst.c"                 # Show test configuration and environment
 tm --keep "*.tst.c"             # Keep build artifacts
 tm --no-services                # Skip service commands (run services externally)
 

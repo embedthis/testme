@@ -478,4 +478,97 @@ Original error: ${error}`;
             `Test execution error in ${file.path}: ${errorMessage}`
         );
     }
+
+    /*
+     Displays environment information when showCommands is enabled
+     @param config Test configuration to check for showCommands flag
+     @param file Test file being executed
+     @param testEnv Environment variables that will be passed to the test
+     */
+    protected async displayEnvironmentInfo(
+        config: TestConfig,
+        file: TestFile,
+        testEnv: Record<string, string>
+    ): Promise<void> {
+        if (!config.execution?.showCommands) {
+            return;
+        }
+
+        console.log(`📄 Config used for ${file.name}:`);
+        console.log(this.formatConfig(config));
+
+        // Show environment variables defined by TestMe
+        if (Object.keys(testEnv).length > 0) {
+            console.log(`\n🌍 TestMe environment variables:`);
+            for (const [key, value] of Object.entries(testEnv)) {
+                console.log(`   ${key}=${value}`);
+            }
+        }
+
+        // Show full environment if verbose mode is enabled
+        if (config.output?.verbose) {
+            console.log(`\n🌍 Full environment (${Object.keys(process.env).length} variables):`);
+            const sortedKeys = Object.keys(process.env).sort();
+            for (const key of sortedKeys) {
+                console.log(`   ${key}=${process.env[key]}`);
+            }
+        }
+    }
+
+    /*
+     Formats the configuration for display when --show is used
+     @param config Test configuration to format
+     @returns Formatted JSON string with relevant config sections
+     */
+    private formatConfig(config: TestConfig): string {
+        // Create a clean config object for display
+        const displayConfig = {
+            configDir: config.configDir || '(none - using test file directory)',
+            compiler: config.compiler,
+            execution: {
+                timeout: config.execution?.timeout,
+                parallel: config.execution?.parallel,
+                workers: config.execution?.workers,
+                keepArtifacts: config.execution?.keepArtifacts,
+                stepMode: config.execution?.stepMode,
+                depth: config.execution?.depth,
+                debugMode: config.execution?.debugMode,
+                showCommands: config.execution?.showCommands,
+                iterations: config.execution?.iterations,
+            },
+            output: config.output,
+            patterns: config.patterns,
+            services: config.services,
+            environment: config.environment || config.env,
+        };
+
+        // Remove undefined values for cleaner output
+        const cleanConfig = this.removeUndefined(displayConfig);
+
+        return JSON.stringify(cleanConfig, null, 2);
+    }
+
+    /*
+     Recursively removes undefined values from an object for cleaner JSON output
+     @param obj Object to clean
+     @returns Object with undefined values removed
+     */
+    private removeUndefined(obj: any): any {
+        if (obj === null || typeof obj !== 'object') {
+            return obj;
+        }
+
+        if (Array.isArray(obj)) {
+            return obj.map((item) => this.removeUndefined(item));
+        }
+
+        const result: any = {};
+        for (const [key, value] of Object.entries(obj)) {
+            if (value !== undefined) {
+                result[key] = this.removeUndefined(value);
+            }
+        }
+
+        return result;
+    }
 }

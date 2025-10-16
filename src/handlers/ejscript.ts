@@ -1,7 +1,6 @@
 import type { TestFile, TestResult, TestConfig } from '../types.ts';
 import { TestStatus, TestType } from '../types.ts';
 import { BaseTestHandler } from './base.ts';
-import { GlobExpansion } from '../utils/glob-expansion.ts';
 import os from 'os';
 
 /*
@@ -25,12 +24,18 @@ export class EjscriptTestHandler extends BaseTestHandler {
      @returns Promise resolving to test results
      */
     async execute(file: TestFile, config: TestConfig): Promise<TestResult> {
+        // Get test environment
+        const testEnv = await this.getTestEnvironment(config, file);
+
+        // Display environment info if showCommands is enabled
+        await this.displayEnvironmentInfo(config, file, testEnv);
+
         const { result, duration } = await this.measureExecution(async () => {
             const args = this.buildEjsArgs(file, config);
             return await this.runCommand('ejs', args, {
                 cwd: file.directory,
                 timeout: (config.execution?.timeout || 30) * 1000,
-                env: await this.getTestEnvironment(config)
+                env: testEnv
             });
         });
 

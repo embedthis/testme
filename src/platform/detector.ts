@@ -429,16 +429,6 @@ export class PlatformDetector {
     }
 
     /*
-     Finds MSVC compiler in Visual Studio installation directories
-     Uses vswhere.exe (official VS locator) if available, then falls back to manual search
-     @returns Promise resolving to cl.exe path if found, null otherwise
-     */
-    private static async findMSVCCompiler(): Promise<string | null> {
-        const info = await this.findMSVCCompilerWithEnv();
-        return info ? info.path : null;
-    }
-
-    /*
      Finds MSVC compiler with environment setup
      @returns Promise resolving to compiler path and environment, or null
      */

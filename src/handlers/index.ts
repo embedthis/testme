@@ -1,4 +1,4 @@
-import { TestHandler } from '../types.ts';
+import type { TestHandler } from '../types.ts';
 import { ShellTestHandler } from './shell.ts';
 import { CTestHandler } from './c.ts';
 import { JavaScriptTestHandler } from './javascript.ts';

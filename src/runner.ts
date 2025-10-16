@@ -3,7 +3,7 @@ import { TestStatus, TestType } from './types.ts';
 import { TestDiscovery } from './discovery.ts';
 import { ArtifactManager } from './artifacts.ts';
 import { TestReporter } from './reporter.ts';
-import { createHandlers, ShellTestHandler, CTestHandler, JavaScriptTestHandler, TypeScriptTestHandler, EjscriptTestHandler, PythonTestHandler, GoTestHandler } from './handlers/index.ts';
+import { ShellTestHandler, CTestHandler, JavaScriptTestHandler, TypeScriptTestHandler, EjscriptTestHandler, PythonTestHandler, GoTestHandler } from './handlers/index.ts';
 import { ConfigManager } from './config.ts';
 
 /*
@@ -29,39 +29,6 @@ import { ConfigManager } from './config.ts';
  3. Handlers perform: prepare() -> execute() -> cleanup()
  4. Results collected and reported via TestReporter
  */
-
-/*
- Simple semaphore implementation to limit concurrent operations
- Used to control the number of parallel test executions
- */
-class Semaphore {
-  private permits: number;
-  private waitQueue: Array<() => void> = [];
-
-  constructor(permits: number) {
-    this.permits = permits;
-  }
-
-  async acquire(): Promise<void> {
-    if (this.permits > 0) {
-      this.permits--;
-      return Promise.resolve();
-    }
-
-    return new Promise<void>((resolve) => {
-      this.waitQueue.push(resolve);
-    });
-  }
-
-  release(): void {
-    if (this.waitQueue.length > 0) {
-      const resolve = this.waitQueue.shift()!;
-      resolve();
-    } else {
-      this.permits++;
-    }
-  }
-}
 
 /*
  TestRunner class - Main test execution coordinator

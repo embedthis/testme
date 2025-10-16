@@ -1,13 +1,15 @@
-import {
+import type {
     TestFile,
     TestResult,
     TestConfig,
+} from "../types.ts";
+import {
     TestStatus,
     TestType,
 } from "../types.ts";
 import { BaseTestHandler } from "./base.ts";
 import { PermissionManager } from "../platform/permissions.ts";
-import { ShellDetector, ShellType } from "../platform/shell.ts";
+import { ShellDetector } from "../platform/shell.ts";
 
 /*
  Handler for executing shell script tests (.tst.sh files)
@@ -30,7 +32,7 @@ export class ShellTestHandler extends BaseTestHandler {
      @param file Shell script test file
      @throws Error if operation fails
      */
-    async prepare(file: TestFile): Promise<void> {
+    override async prepare(file: TestFile): Promise<void> {
         // Make shell script executable (no-op on Windows)
         try {
             await PermissionManager.makeExecutable(file.path);
@@ -46,6 +48,12 @@ export class ShellTestHandler extends BaseTestHandler {
         @returns Promise resolving to test results
      */
     async execute(file: TestFile, config: TestConfig): Promise<TestResult> {
+        // Get test environment
+        const testEnv = await this.getTestEnvironment(config, file);
+
+        // Display environment info if showCommands is enabled
+        await this.displayEnvironmentInfo(config, file, testEnv);
+
         const { result, duration } = await this.measureExecution(async () => {
             // Determine shell to use
             const shell = await ShellDetector.detectShell(file.path);
@@ -55,7 +63,7 @@ export class ShellTestHandler extends BaseTestHandler {
             return await this.runCommand(shell, args, {
                 cwd: file.directory,
                 timeout: (config.execution?.timeout || 30) * 1000,
-                env: await this.getTestEnvironment(config, file),
+                env: testEnv,
             });
         });
 

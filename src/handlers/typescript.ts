@@ -1,7 +1,9 @@
-import {
+import type {
     TestFile,
     TestResult,
     TestConfig,
+} from "../types.ts";
+import {
     TestStatus,
     TestType,
 } from "../types.ts";
@@ -34,19 +36,25 @@ export class TypeScriptTestHandler extends BaseTestHandler {
      */
     async execute(file: TestFile, config: TestConfig): Promise<TestResult> {
         // Ensure testme module is linked
-        await this.ensureTestmeLinked(file, config);
+        await this.ensureTestmeLinked(file);
 
         // Handle debug mode
         if (config.execution?.debugMode) {
             return await this.launchDebugger(file, config);
         }
 
+        // Get test environment
+        const testEnv = await this.getTestEnvironment(config, file);
+
+        // Display environment info if showCommands is enabled
+        await this.displayEnvironmentInfo(config, file, testEnv);
+
         const { result, duration } = await this.measureExecution(async () => {
             // Bun can execute TypeScript files directly
             return await this.runCommand("bun", [file.path], {
                 cwd: file.directory,
                 timeout: (config.execution?.timeout || 30) * 1000,
-                env: await this.getTestEnvironment(config, file),
+                env: testEnv,
             });
         });
 
@@ -71,7 +79,7 @@ export class TypeScriptTestHandler extends BaseTestHandler {
      @param file Test file being executed
      @param config Test configuration
      */
-    private async ensureTestmeLinked(file: TestFile, config: TestConfig): Promise<void> {
+    private async ensureTestmeLinked(file: TestFile): Promise<void> {
         // Search up from test file directory for testme.json5
         const linkDir = this.findLinkDirectory(file.directory);
 

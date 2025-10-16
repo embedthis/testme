@@ -8,10 +8,10 @@ const config = await ConfigManager.findConfig(import.meta.dir);
 
 console.log('Config:', JSON.stringify(config, null, 2));
 
-// Test that env vars are inherited and merged
-teq(config.env?.PARENT_VAR, 'from_parent', 'Should inherit PARENT_VAR from parent');
-teq(config.env?.CHILD_VAR, 'from_child', 'Should have CHILD_VAR from child');
-teq(config.env?.SHARED_VAR, 'child_value', 'Child should override parent SHARED_VAR');
+// Test that environment vars are inherited and merged
+teq(config.environment?.PARENT_VAR, 'from_parent', 'Should inherit PARENT_VAR from parent');
+teq(config.environment?.CHILD_VAR, 'from_child', 'Should have CHILD_VAR from child');
+teq(config.environment?.SHARED_VAR, 'child_value', 'Child should override parent SHARED_VAR');
 
 // Test that compiler flags are inherited and merged
 const cFlags = config.compiler?.c?.flags || [];

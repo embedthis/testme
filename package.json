@@ -46,10 +46,10 @@
     "scripts": {
         "start": "bun run src/index.ts",
         "prebuild": "node bin/update-version.mjs",
-        "build": "bun build ./testme.ts --compile --outfile dist/tm",
+        "build": "bun build ./testme.ts --compile --minify --outfile dist/tm",
         "postbuild": "cd src/modules/js && bun link && cd ../../../test && bun link testme",
-        "build:win": "bun build ./testme.ts --compile --outfile dist/tm.exe",
-        "build:unix": "bun build ./testme.ts --compile --outfile dist/tm",
+        "build:win": "bun build ./testme.ts --compile --minify --windows-title 'TestMe' --windows-publisher 'Embedthis Software' --windows-description 'Test runner for system projects' --outfile dist/tm.exe",
+        "build:unix": "bun build ./testme.ts --compile --minify --outfile dist/tm",
         "clean": "bun bin/clean.mjs",
         "install": "echo 'Installing...'",
         "postinstall": "bun bin/postinstall.mjs",

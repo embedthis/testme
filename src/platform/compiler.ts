@@ -457,36 +457,6 @@ export class CompilerManager {
     }
 
     /*
-     Finds vcvarsall.bat from cl.exe path
-     @param clPath Path to cl.exe
-     @returns Path to vcvarsall.bat if found, null otherwise
-     */
-    private static async findVCVarsAll(clPath: string): Promise<string | null> {
-        // Path format: C:\...\VC\Tools\MSVC\14.41.34120\bin\Hostx64\x64\cl.exe
-        // We need:     C:\...\VC\Auxiliary\Build\vcvarsall.bat
-
-        // Find the VC directory by going up from cl.exe
-        const parts = clPath.split('\\');
-        const vcIndex = parts.findIndex(p => p.toUpperCase() === 'VC');
-
-        if (vcIndex === -1) {
-            return null;
-        }
-
-        // Build path to vcvarsall.bat
-        const vcPath = parts.slice(0, vcIndex + 1).join('\\');
-        const vcvarsPath = `${vcPath}\\Auxiliary\\Build\\vcvarsall.bat`;
-
-        // Check if file exists
-        const file = Bun.file(vcvarsPath);
-        if (await file.exists()) {
-            return vcvarsPath;
-        }
-
-        return null;
-    }
-
-    /*
      Processes library names for linking
      @param libraries Array of library names
      @param compilerType Compiler type

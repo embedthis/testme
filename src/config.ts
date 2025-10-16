@@ -1,5 +1,5 @@
 import type { TestConfig } from './types.ts';
-import { join, dirname, resolve, isAbsolute } from 'path';
+import { join, dirname } from 'path';
 import { readdir, stat } from 'fs/promises';
 import JSON5 from 'json5';
 import { ErrorMessages } from './utils/error-messages.ts';
@@ -348,93 +348,6 @@ export class ConfigManager {
     }
 
     /**
-     * Normalizes relative paths in environment variables to absolute paths
-     *
-     * @param env - Environment configuration object
-     * @param configDir - Directory containing the config file (base for relative paths)
-     * @returns Environment configuration with relative paths resolved to absolute
-     *
-     * @internal
-     * @remarks
-     * This is crucial for config inheritance - when a child config inherits env vars
-     * from a parent, relative paths in the parent need to be resolved relative to the
-     * parent's directory, not the child's directory.
-     */
-    private static normalizeEnvPaths(env: any, configDir: string): any {
-        const normalized: any = {};
-        const sep = process.platform === 'win32' ? ';' : ':';
-
-        for (const [key, value] of Object.entries(env)) {
-            // Handle platform sections (windows, macosx, linux, default)
-            if (key === 'windows' || key === 'macosx' || key === 'linux' || key === 'default') {
-                if (typeof value === 'object' && value !== null) {
-                    normalized[key] = this.normalizeEnvPaths(value, configDir);
-                } else {
-                    normalized[key] = value;
-                }
-                continue;
-            }
-
-            // Handle per-variable default/platform pattern
-            if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-                const obj = value as any;
-                normalized[key] = {};
-                for (const [platform, pathValue] of Object.entries(obj)) {
-                    if (typeof pathValue === 'string') {
-                        normalized[key][platform] = this.normalizePathValue(pathValue, configDir, sep);
-                    } else {
-                        normalized[key][platform] = pathValue;
-                    }
-                }
-                continue;
-            }
-
-            // Handle simple string values
-            if (typeof value === 'string') {
-                normalized[key] = this.normalizePathValue(value, configDir, sep);
-            } else {
-                normalized[key] = value;
-            }
-        }
-
-        return normalized;
-    }
-
-    /**
-     * Normalizes a single path value (potentially PATH-like with multiple components)
-     *
-     * @param pathValue - Path value to normalize
-     * @param baseDir - Base directory for resolving relative paths
-     * @param sep - Path separator (: or ;)
-     * @returns Normalized path value with relative components resolved to absolute
-     *
-     * @internal
-     */
-    private static normalizePathValue(pathValue: string, baseDir: string, sep: string): string {
-        // Split by separator, resolve each component, rejoin
-        const components = pathValue.split(sep);
-        const resolved = components.map(component => {
-            // Skip empty components
-            if (!component) return component;
-
-            // Skip if already absolute
-            if (isAbsolute(component)) {
-                return component;
-            }
-
-            // Skip environment variable references
-            if (component.includes('$') || component.includes('%')) {
-                return component;
-            }
-
-            // Resolve relative path to absolute
-            return resolve(baseDir, component);
-        });
-
-        return resolved.join(sep);
-    }
-
-    /**
      * Merges user configuration with default values
      *
      * @param userConfig - User-provided configuration (can be null)
@@ -522,25 +435,6 @@ export class ConfigManager {
      */
     private static resolvePlatformCompiler(compilerConfig: string | { windows?: string; macosx?: string; linux?: string } | undefined): string | undefined {
         return this.resolvePlatformValue(compilerConfig);
-    }
-
-    /**
-     * Resolves platform-specific debugger selection
-     *
-     * @param debuggerConfig - Debugger configuration (string, object, or undefined)
-     * @returns Resolved debugger string or undefined for auto-detect
-     *
-     * @internal
-     * @remarks
-     * Handles three configuration modes:
-     * 1. Undefined or "default" → returns undefined (auto-detect)
-     * 2. String value → returns that debugger for all platforms
-     * 3. Platform map → returns platform-specific debugger or undefined if not specified
-     *
-     * Valid debugger values: xcode, lldb, gdb, vs, vscode
-     */
-    private static resolvePlatformDebugger(debuggerConfig: string | { windows?: string; macosx?: string; linux?: string } | undefined): string | undefined {
-        return this.resolvePlatformValue(debuggerConfig);
     }
 
     /**

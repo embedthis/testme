@@ -279,8 +279,8 @@ export class ArtifactManager implements IArtifactManager {
         const testDirectoryPath = testFile.directory;
 
         // Process flags to extract settings for Xcode
-        const { settings: xcodeSettings, librarySearchPaths } = this.processCompilerFlagsForXcode(expandedFlags, testFile);
-        const libraryFlags = this.processLibrariesForXcode(expandedLibraries, librarySearchPaths, testFile);
+        const { settings: xcodeSettings } = this.processCompilerFlagsForXcode(expandedFlags, testFile);
+        const libraryFlags = this.processLibrariesForXcode(expandedLibraries);
 
         let settingsBlock = `      PRODUCT_NAME: ${testBaseName}
       CONFIGURATION_BUILD_DIR: $(SRCROOT)
@@ -530,11 +530,9 @@ schemes:
     /*
      Processes library names to create Xcode linker settings
      @param libraries Array of library names
-     @param librarySearchPaths Array of library search paths extracted from flags (already made relative)
-     @param testFile TestFile object to determine relative paths from
      @returns Formatted Xcode linker settings string
      */
-    private processLibrariesForXcode(libraries: string[], librarySearchPaths: string[], testFile: TestFile): string {
+    private processLibrariesForXcode(libraries: string[]): string {
         if (libraries.length === 0) {
             return '';
         }

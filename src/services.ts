@@ -1,4 +1,4 @@
-import { TestConfig } from "./types.ts";
+import type { TestConfig } from "./types.ts";
 import { relative, delimiter, isAbsolute, join } from "path";
 import { GlobExpansion } from "./utils/glob-expansion.ts";
 import { ProcessManager } from "./platform/process.ts";
@@ -726,15 +726,6 @@ export class ServiceManager {
         }
 
         return command;
-    }
-
-    /*
-     Checks if quiet mode is enabled
-     @param config Configuration to check
-     @returns True if quiet mode is enabled
-     */
-    private isQuietMode(config: TestConfig): boolean {
-        return config.output?.quiet === true;
     }
 
     /*

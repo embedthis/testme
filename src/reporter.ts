@@ -45,8 +45,10 @@ export class TestReporter {
     // Track this test as running
     this.runningTests.add(testFile);
 
-    // Only show running status in interactive terminals (not in quiet mode)
-    if (!this.config.output?.quiet && isInteractiveTTY()) {
+    // Only show running status in interactive terminals (not in quiet mode or show mode)
+    // Disable TTY cursor control when showCommands is enabled to prevent clearing environment output
+    const shouldUseTTY = !this.config.output?.quiet && !this.config.execution?.showCommands && isInteractiveTTY();
+    if (shouldUseTTY) {
       // If we already have a running line displayed, don't show another one
       // (in parallel mode, we only show one "RUN" line at a time)
       if (!this.hasRunningLine) {
@@ -71,8 +73,9 @@ export class TestReporter {
     const relativePath = this.getRelativePath(result.file.path);
     const typeIcon = this.getTypeIcon(result.file.type);
 
-    // If we're in an interactive terminal
-    if (isInteractiveTTY()) {
+    // If we're in an interactive terminal and not in show mode
+    // Disable TTY cursor control when showCommands is enabled to prevent clearing environment output
+    if (isInteractiveTTY() && !this.config.execution?.showCommands) {
       // Clear the "running" line if one exists
       if (this.hasRunningLine) {
         clearCurrentLine();
@@ -95,7 +98,7 @@ export class TestReporter {
         this.hasRunningLine = true;
       }
     } else {
-      // Non-interactive mode: still show type icon but no animation
+      // Non-interactive mode or show mode: still show type icon but no animation
       console.log(`${status} ${typeIcon}  ${relativePath} (${duration})`);
     }
   }

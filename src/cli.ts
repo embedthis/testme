@@ -239,7 +239,7 @@ OPTIONS:
         --new <NAME>       Create new test file from template (e.g., --new math.c)
     -p, --profile <NAME>   Set build profile (overrides config and env.PROFILE)
     -q, --quiet            Run silently with no output, only exit codes
-    -s, --show             Display the C compile command used
+    -s, --show             Display test configuration and environment variables
         --step             Run tests one at a time with prompts (forces serial mode)
     -v, --verbose          Enable verbose mode with detailed output and TESTME_VERBOSE
     -V, --version          Show version information
@@ -265,7 +265,7 @@ EXAMPLES:
     tm --step                  # Run tests one at a time with prompts
     tm --depth 5               # Run tests with depth requirement <= 5
     tm --debug math            # Debug math.tst.c with GDB/Xcode
-    tm -s "*.tst.c"            # Display C compile commands used
+    tm -s "*.tst.c"            # Display test configuration and environment
     tm -w 8                    # Use 8 parallel workers (overrides config)
     tm --quiet                 # Run silently with no output, only exit codes
     tm -n                      # Run tests without any service commands (run services externally)

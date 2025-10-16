@@ -1,7 +1,9 @@
-import {
+import type {
     TestFile,
     TestResult,
     TestConfig,
+} from "../types.ts";
+import {
     TestStatus,
     TestType,
 } from "../types.ts";
@@ -39,6 +41,12 @@ export class PythonTestHandler extends BaseTestHandler {
             return await this.launchDebugger(file, config);
         }
 
+        // Get test environment
+        const testEnv = await this.getTestEnvironment(config, file);
+
+        // Display environment info if showCommands is enabled
+        await this.displayEnvironmentInfo(config, file, testEnv);
+
         const { result, duration } = await this.measureExecution(async () => {
             // Try python3 first, fall back to python
             const pythonCommand = await this.getPythonCommand();
@@ -46,7 +54,7 @@ export class PythonTestHandler extends BaseTestHandler {
             return await this.runCommand(pythonCommand, [file.path], {
                 cwd: file.directory,
                 timeout: (config.execution?.timeout || 30) * 1000,
-                env: await this.getTestEnvironment(config, file),
+                env: testEnv,
             });
         });
 
