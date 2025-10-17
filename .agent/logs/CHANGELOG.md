@@ -1,5 +1,57 @@
 # TestMe Changelog
 
+## 2025-10-17
+
+### Jest/Vitest-Compatible describe() and test() API
+
+-   **DEV**: Added `describe()` and `test()` functions for organizing JavaScript/TypeScript tests
+    -   **Test Organization**: `describe(name, fn)` groups related tests with hierarchical nesting
+        -   Prints group headers with proper indentation based on nesting level
+        -   Supports both sync and async describe blocks
+        -   Must be awaited at top level: `await describe('group', async () => {...})`
+        -   Nested describes must be awaited within async parent blocks
+        -   Context (hooks, nesting level) automatically saved and restored
+    -   **Test Execution**: `test(name, fn)` and `it(name, fn)` execute individual labeled tests
+        -   Always async to handle both sync and async test functions
+        -   Runs beforeEach/afterEach hooks automatically
+        -   Catches and displays errors with test names (✓ for pass, ✗ for fail)
+        -   Tracks pass/fail counts globally across file
+    -   **Lifecycle Hooks**: `beforeEach(fn)` and `afterEach(fn)` for test setup/teardown
+        -   Scoped to their describe block (not global)
+        -   Support both sync and async hook functions
+        -   Properly restored when describe blocks exit
+        -   Hooks saved/restored in context stack during nesting
+    -   **Error Handling**: Smart behavior based on context
+        -   Inside `test()`: `expect()` throws errors (caught by test runner, shows test name)
+        -   Outside `test()`: `expect()` exits immediately (backward compatible behavior)
+        -   Implementation uses `isInTestContext()` flag to detect execution context
+        -   Test context tracked with `testContext.inTest` boolean flag
+    -   **Synchronous Matchers**: Matchers are sync when not using promises
+        -   Removed `async` from all matcher methods
+        -   `handleAsync()` returns sync values for non-promise paths
+        -   Only `.resolves` and `.rejects` return promises
+        -   Prevents unhandled promise rejections in sync tests
+    -   **Implementation Files**:
+        -   [src/modules/js/index.js](../../src/modules/js/index.js) - Core describe/test/hooks implementation
+        -   [src/modules/js/expect.js](../../src/modules/js/expect.js) - Context-aware error handling
+        -   [src/modules/js/expect.d.ts](../../src/modules/js/expect.d.ts) - TypeScript type definitions
+    -   **Test Files**: Comprehensive test coverage
+        -   [test/api/describe-test.tst.js](../../test/api/describe-test.tst.js) - Full feature test (11 tests)
+        -   [test/api/describe-async.tst.js](../../test/api/describe-async.tst.js) - Async behavior test (7 tests)
+        -   [test/api/error-examples/describe-error.tst.js](../../test/api/error-examples/describe-error.tst.js) - Error handling demonstration (manual test, intentionally fails)
+    -   **Documentation**: Updated [CLAUDE.md](../../CLAUDE.md) with:
+        -   API overview and feature list
+        -   Complete usage example with async/nested describes
+        -   Important notes about awaiting and context behavior
+
+### Design Philosophy
+
+-   **Organizational Wrappers, Not a Test Runner**: Functions execute immediately, no registration phase
+-   **File-Based Execution Model**: File exit code (0=pass, non-zero=fail) determines test result
+-   **Familiar API**: Looks like Jest/Vitest but runs like TestMe (simple, direct execution)
+-   **Backward Compatible**: Existing `expect()` and traditional `t*()` functions still work
+-   **Mixed Usage**: Can use describe/test alongside standalone expect() calls in same file
+
 ## 2025-10-16
 
 ### Environment Service Script and Configuration Rename

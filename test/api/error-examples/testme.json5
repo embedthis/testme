@@ -1,0 +1,8 @@
+{
+    /*
+        Manual test examples - these tests are for demonstration only
+        They intentionally fail to show error handling behavior
+        Run explicitly: tm test/api/error-examples/describe-error.tst.js
+    */
+    enable: 'manual',
+}

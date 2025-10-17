@@ -81,6 +81,9 @@ export class ConfigManager {
             c: {
                 // No compiler specified - auto-detect based on platform
                 // No flags specified - use compiler defaults from CompilerManager
+            },
+            es: {
+                require: ['testme']
             }
         },
         execution: {

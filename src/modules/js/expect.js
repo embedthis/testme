@@ -3,7 +3,7 @@
     Provides a familiar testing API while using TestMe's infrastructure
 */
 
-import {getStack} from './index.js'
+import {getStack, isInTestContext} from './index.js'
 
 /**
     Deep equality comparison for objects, arrays, and primitives
@@ -255,9 +255,17 @@ class ExpectMatcher {
             const stack = getStack()
             const loc = `${stack.filename}:${stack.line}`
             const prefix = this.isNot ? 'not ' : ''
-            console.error(`✗ ${message} at ${loc}`)
-            console.error(`   Matcher: expect(...).${prefix}${name}`)
-            process.exit(1)
+            const errorMsg = `${message} at ${loc}\n   Matcher: expect(...).${prefix}${name}`
+
+            //  If we're inside a test() block, throw an error so test() can catch it
+            //  Otherwise, print and exit immediately (backward compatible behavior)
+            if (isInTestContext()) {
+                throw new Error(errorMsg)
+            } else {
+                console.error(`✗ ${message} at ${loc}`)
+                console.error(`   Matcher: expect(...).${prefix}${name}`)
+                process.exit(1)
+            }
         }
     }
 
@@ -293,22 +301,29 @@ class ExpectMatcher {
         @param {Function} matcher Matcher function to run
         @returns {Promise|void} Promise if async, void if sync
     */
-    async handleAsync(matcher) {
+    handleAsync(matcher) {
         if (this.promise === 'resolves') {
-            try {
-                const value = await this.received
-                return matcher(value)
-            } catch (error) {
-                this.createResult('resolves', false, `Expected promise to resolve but it rejected with: ${error.message}`)
-            }
+            //  Async: resolve promise then run matcher
+            return (async () => {
+                try {
+                    const value = await this.received
+                    return matcher(value)
+                } catch (error) {
+                    this.createResult('resolves', false, `Expected promise to resolve but it rejected with: ${error.message}`)
+                }
+            })()
         } else if (this.promise === 'rejects') {
-            try {
-                await this.received
-                this.createResult('rejects', false, 'Expected promise to reject but it resolved')
-            } catch (error) {
-                return matcher(error)
-            }
+            //  Async: reject promise then run matcher
+            return (async () => {
+                try {
+                    await this.received
+                    this.createResult('rejects', false, 'Expected promise to reject but it resolved')
+                } catch (error) {
+                    return matcher(error)
+                }
+            })()
         } else {
+            //  Sync: just run matcher directly
             return matcher(this.received)
         }
     }
@@ -319,7 +334,7 @@ class ExpectMatcher {
         toBe(expected) - Strict equality using Object.is()
         @param {*} expected Expected value
     */
-    async toBe(expected) {
+    toBe(expected) {
         return this.handleAsync((received) => {
             const pass = Object.is(received, expected)
             const message = pass

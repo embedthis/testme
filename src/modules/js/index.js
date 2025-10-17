@@ -11,6 +11,16 @@
 import {expect} from './expect.js'
 
 let exitCode = 0
+let testContext = {
+    nestLevel: 0,
+    currentDescribe: null,
+    totalTests: 0,
+    passedTests: 0,
+    failedTests: 0,
+    beforeEachHooks: [],
+    afterEachHooks: [],
+    inTest: false,
+}
 
 function tdepth() {
     return parseInt(tget('TESTME_DEPTH', '0'), 10)
@@ -45,6 +55,10 @@ export function getStack() {
         }
     }
     return {filename: 'unknown file', line: 'unknown line'}
+}
+
+export function isInTestContext() {
+    return testContext.inTest
 }
 
 function treport(success, stack, message, received, expected) {
@@ -231,6 +245,132 @@ function twrite(...args) {
     console.log(...args)
 }
 
+//  ==================== describe() and test() API ====================
+
+/**
+    Helper to get indentation string based on nesting level
+*/
+function getIndent() {
+    return '  '.repeat(testContext.nestLevel)
+}
+
+/**
+    describe() - Group related tests with a label
+    @param {string} name - Description of the test group
+    @param {Function} fn - Function containing tests
+*/
+async function describe(name, fn) {
+    const indent = getIndent()
+    console.log(`${indent}${name}`)
+
+    const previousDescribe = testContext.currentDescribe
+    const previousBeforeEach = [...testContext.beforeEachHooks]
+    const previousAfterEach = [...testContext.afterEachHooks]
+
+    testContext.currentDescribe = name
+    testContext.nestLevel++
+
+    try {
+        //  Execute the describe block (sync or async)
+        await fn()
+
+        //  Restore context
+        testContext.nestLevel--
+        testContext.currentDescribe = previousDescribe
+        testContext.beforeEachHooks = previousBeforeEach
+        testContext.afterEachHooks = previousAfterEach
+    } catch (error) {
+        //  Restore context on error
+        testContext.nestLevel--
+        testContext.currentDescribe = previousDescribe
+        testContext.beforeEachHooks = previousBeforeEach
+        testContext.afterEachHooks = previousAfterEach
+
+        console.error(`${indent}✗ Error in describe block: ${error.message}`)
+        process.exit(1)
+    }
+}
+
+/**
+    test() - Execute a single test with a label
+    @param {string} name - Description of the test
+    @param {Function} fn - Test function to execute
+*/
+async function test(name, fn) {
+    const indent = getIndent()
+    testContext.totalTests++
+
+    try {
+        //  Run beforeEach hooks
+        for (const hook of testContext.beforeEachHooks) {
+            if (hook.constructor.name === 'AsyncFunction') {
+                await hook()
+            } else {
+                hook()
+            }
+        }
+
+        //  Mark that we're in a test context
+        testContext.inTest = true
+
+        //  Run the test
+        if (fn.constructor.name === 'AsyncFunction') {
+            await fn()
+        } else {
+            fn()
+        }
+
+        //  Clear test context flag
+        testContext.inTest = false
+
+        //  Run afterEach hooks
+        for (const hook of testContext.afterEachHooks) {
+            if (hook.constructor.name === 'AsyncFunction') {
+                await hook()
+            } else {
+                hook()
+            }
+        }
+
+        testContext.passedTests++
+        console.log(`${indent}✓ ${name}`)
+    } catch (error) {
+        //  Clear test context flag on error
+        testContext.inTest = false
+
+        testContext.failedTests++
+        console.error(`${indent}✗ ${name}`)
+        console.error(`${indent}  ${error.message}`)
+        if (tverbose() && error.stack) {
+            console.error(error.stack)
+        }
+        exitCode = 1
+    }
+}
+
+/**
+    it() - Alias for test()
+    @param {string} name - Description of the test
+    @param {Function} fn - Test function to execute
+*/
+const it = test
+
+/**
+    beforeEach() - Register a hook to run before each test
+    @param {Function} fn - Hook function to run
+*/
+function beforeEach(fn) {
+    testContext.beforeEachHooks.push(fn)
+}
+
+/**
+    afterEach() - Register a hook to run after each test
+    @param {Function} fn - Hook function to run
+*/
+function afterEach(fn) {
+    testContext.afterEachHooks.push(fn)
+}
+
 // Process exit handler to return appropriate exit code
 process.on('exit', () => {
     process.exitCode = exitCode
@@ -255,6 +395,11 @@ process.on('unhandledRejection', (reason) => {
 export {
     //  Jest/Vitest-compatible API
     expect,
+    describe,
+    test,
+    it,
+    beforeEach,
+    afterEach,
     //  Traditional TestMe API
     tassert,
     tcontains,
@@ -304,6 +449,11 @@ export {
 export default {
     //  Jest/Vitest-compatible API
     expect,
+    describe,
+    test,
+    it,
+    beforeEach,
+    afterEach,
     //  Traditional TestMe API
     tassert,
     tcontains,

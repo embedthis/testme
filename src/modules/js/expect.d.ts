@@ -194,3 +194,36 @@ export class ExpectMatcher {
     readonly isNot: boolean
     readonly promise: string | null
 }
+
+/**
+    describe() - Group related tests with a label
+    @param name Description of the test group
+    @param fn Function containing tests (can be async)
+*/
+export function describe(name: string, fn: () => void | Promise<void>): Promise<void>
+
+/**
+    test() - Execute a single test with a label
+    @param name Description of the test
+    @param fn Test function to execute (can be async)
+*/
+export function test(name: string, fn: () => void | Promise<void>): Promise<void>
+
+/**
+    it() - Alias for test()
+    @param name Description of the test
+    @param fn Test function to execute (can be async)
+*/
+export function it(name: string, fn: () => void | Promise<void>): Promise<void>
+
+/**
+    beforeEach() - Register a hook to run before each test
+    @param fn Hook function to run (can be async)
+*/
+export function beforeEach(fn: () => void | Promise<void>): void
+
+/**
+    afterEach() - Register a hook to run after each test
+    @param fn Hook function to run (can be async)
+*/
+export function afterEach(fn: () => void | Promise<void>): void

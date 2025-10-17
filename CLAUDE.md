@@ -153,10 +153,50 @@ TestMe provides runtime helpers for different test languages:
     -   Importable via `import { ... } from 'testme'`
     -   Provides traditional test assertion helpers: `teq()`, `tneq()`, `ttrue()`, `tfalse()`, etc.
     -   Provides Jest/Vitest-compatible `expect()` API with 30+ matchers
+    -   Provides `describe()` and `test()` (alias: `it()`) for organizing tests
+    -   Provides `beforeEach()` and `afterEach()` lifecycle hooks
     -   Full TypeScript support with type definitions in `expect.d.ts`
     -   Supports `.not` negation, `.resolves` and `.rejects` for promises
     -   Deep equality algorithm for objects, arrays, Maps, Sets, Dates, RegExp
     -   See `src/modules/js/expect.js` for implementation details
+
+    **Using describe() and test():**
+
+    ```javascript
+    import {describe, test, expect, beforeEach, afterEach} from 'testme'
+
+    await describe('Math operations', async () => {
+        let value
+
+        beforeEach(() => {
+            value = 0
+        })
+
+        test('addition works', () => {
+            expect(2 + 2).toBe(4)
+        })
+
+        test('async test', async () => {
+            await new Promise((resolve) => setTimeout(resolve, 10))
+            expect(true).toBeTruthy()
+        })
+
+        await describe('nested group', () => {
+            test('nested test', () => {
+                expect(1).toBe(1)
+            })
+        })
+    })
+    ```
+
+    **Important notes:**
+    -   Top-level `describe()` blocks must be awaited
+    -   Nested `describe()` blocks must be awaited within async describe functions
+    -   `test()` functions are always async and execute sequentially
+    -   `beforeEach()` and `afterEach()` hooks run before/after each test in the current describe scope
+    -   Hooks are scoped to their describe block and restored when the block exits
+    -   When `expect()` is used inside `test()`, failures throw errors that are caught by the test runner
+    -   When `expect()` is used outside `test()`, failures exit immediately (backward compatible)
 
 -   **Ejscript Module** (`src/modules/es/`): Test helpers for Ejscript runtime
     -   Loadable via `--require` flag in configuration
