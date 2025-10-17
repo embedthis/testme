@@ -194,8 +194,9 @@ export class CompilerManager {
                 ];
             case CompilerType.GCC:
             case CompilerType.MinGW:
+                // Note: No -std flag by default to allow POSIX extensions (strdup, etc.)
+                // and modern features. Users can specify -std=c99, -std=c11, etc. in testme.json5
                 const gccFlags = [
-                    "-std=c99",         // C99 standard
                     "-Wall",            // Enable all warnings
                     "-Wextra",          // Enable extra warnings
                     "-Wno-unused-parameter", // Disable unused parameter warnings
@@ -213,8 +214,9 @@ export class CompilerManager {
                 }
                 return gccFlags;
             case CompilerType.Clang:
+                // Note: No -std flag by default to allow POSIX extensions (strdup, etc.)
+                // and modern features. Users can specify -std=c99, -std=c11, etc. in testme.json5
                 const clangFlags = [
-                    "-std=c99",         // C99 standard
                     "-Wall",            // Enable all warnings
                     "-Wextra",          // Enable extra warnings
                     "-Wno-unused-parameter", // Disable unused parameter warnings
@@ -231,7 +233,8 @@ export class CompilerManager {
                 }
                 return clangFlags;
             default:
-                return ["-std=c99", "-Wall"];
+                // Minimal flags for unknown compilers - no -std restriction
+                return ["-Wall"];
         }
     }
 

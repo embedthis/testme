@@ -243,7 +243,7 @@ The configuration file uses this hierarchy:
 
 ### Default Behavior
 
--   Uses `gcc` with `-std=c99 -Wall -Wextra` for C compilation
+-   Uses `gcc` with `-Wall -Wextra` for C compilation (no -std flag, uses compiler default)
 -   30-second timeout per test (configured in seconds, not milliseconds)
 -   Parallel execution with max 4 concurrent tests
 -   Simple colored output format

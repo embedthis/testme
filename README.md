@@ -816,8 +816,10 @@ TestMe automatically detects and configures the appropriate C compiler for your 
 
 **Default Flags (automatically applied):**
 
--   **GCC/Clang**: `-std=c99 -Wall -Wextra -Wno-unused-parameter -Wno-strict-prototypes -O0 -g -I. -I/usr/local/include -L/usr/local/lib -I/opt/homebrew/include -L/opt/homebrew/lib`
+-   **GCC/Clang**: `-Wall -Wextra -Wno-unused-parameter -Wno-strict-prototypes -O0 -g -I. -I~/.local/include -L~/.local/lib` (plus `-I/opt/homebrew/include -L/opt/homebrew/lib` on macOS)
 -   **MSVC**: `/std:c11 /W4 /Od /Zi /nologo`
+
+**Note**: No `-std=` flag is specified by default for GCC/Clang, allowing the compiler to use its default standard (typically `gnu17` or `gnu11`) which includes POSIX extensions like `strdup()`. This makes test code more permissive and easier to write. You can specify a specific standard in your `testme.json5` if needed (e.g., `-std=c99`, `-std=c11`).
 
 **Configuration Options:**
 
@@ -1455,7 +1457,7 @@ bun --hot src/index.ts
 | **`tm` not recognized**         | Add `%USERPROFILE%\.local\bin` to PATH<br>Or run from installation directory                                         |
 | **PowerShell execution policy** | TestMe uses `-ExecutionPolicy Bypass` automatically<br>Or set: `Set-ExecutionPolicy RemoteSigned -Scope CurrentUser` |
 | **Compiler not found**          | Run from "Developer Command Prompt for VS 2022"<br>Or add compiler to PATH manually                                  |
-| **MSVC vs GCC flags**           | Check `testme.json5` compiler config<br>MSVC: `/W4 /std:c11`<br>GCC/MinGW: `-std=c99 -Wall -Wextra`                  |
+| **MSVC vs GCC flags**           | Check `testme.json5` compiler config<br>MSVC: `/W4 /std:c11`<br>GCC/MinGW: `-Wall -Wextra` (no -std by default)      |
 | **Shell tests fail on Windows** | Install Git for Windows (includes bash)<br>Or convert to `.tst.ps1` or `.tst.bat`                                    |
 
 ---
