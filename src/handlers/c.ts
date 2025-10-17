@@ -797,8 +797,9 @@ To debug:
                 /*
                     The detached option actually works, but isn't defined yet in the
                     official Bun.spawn API.
+                    /UseEnv tells Visual Studio to use environment variables from the launching process
                  */
-                const proc = Bun.spawn([devenvPath, binaryPath], {
+                const proc = Bun.spawn([devenvPath, '/UseEnv', binaryPath], {
                     cwd: file.directory,
                     stdout: 'ignore',
                     stderr: 'ignore',

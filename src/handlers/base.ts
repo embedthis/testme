@@ -520,7 +520,7 @@ Original error: ${error}`;
      @param config Test configuration to format
      @returns Formatted JSON string with relevant config sections
      */
-    private formatConfig(config: TestConfig): string {
+    protected formatConfig(config: TestConfig): string {
         // Create a clean config object for display
         const displayConfig = {
             configDir: config.configDir || '(none - using test file directory)',
@@ -553,7 +553,7 @@ Original error: ${error}`;
      @param obj Object to clean
      @returns Object with undefined values removed
      */
-    private removeUndefined(obj: any): any {
+    protected removeUndefined(obj: any): any {
         if (obj === null || typeof obj !== 'object') {
             return obj;
         }
