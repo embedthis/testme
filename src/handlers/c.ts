@@ -613,62 +613,6 @@ To debug:
     }
 
     /*
-     Formats the configuration for display when --show is used
-     @param config Test configuration to format
-     @returns Formatted JSON string with relevant config sections
-     */
-    private formatConfig(config: TestConfig): string {
-        // Create a clean config object for display
-        const displayConfig = {
-            configDir: config.configDir || '(none - using test file directory)',
-            compiler: config.compiler,
-            execution: {
-                timeout: config.execution?.timeout,
-                parallel: config.execution?.parallel,
-                workers: config.execution?.workers,
-                keepArtifacts: config.execution?.keepArtifacts,
-                stepMode: config.execution?.stepMode,
-                depth: config.execution?.depth,
-                debugMode: config.execution?.debugMode,
-                showCommands: config.execution?.showCommands,
-            },
-            output: config.output,
-            patterns: config.patterns,
-            services: config.services,
-            env: config.env,
-        }
-
-        // Remove undefined values for cleaner output
-        const cleanConfig = this.removeUndefined(displayConfig)
-
-        return JSON.stringify(cleanConfig, null, 2)
-    }
-
-    /*
-     Recursively removes undefined values from an object for cleaner JSON output
-     @param obj Object to clean
-     @returns Object with undefined values removed
-     */
-    private removeUndefined(obj: any): any {
-        if (obj === null || typeof obj !== 'object') {
-            return obj
-        }
-
-        if (Array.isArray(obj)) {
-            return obj.map((item) => this.removeUndefined(item))
-        }
-
-        const result: any = {}
-        for (const [key, value] of Object.entries(obj)) {
-            if (value !== undefined) {
-                result[key] = this.removeUndefined(value)
-            }
-        }
-
-        return result
-    }
-
-    /*
      Launches LLDB debugger
      @param file C test file to debug
      @param config Test execution configuration
@@ -695,21 +639,37 @@ To debug:
             console.log('  (lldb) quit      - Exit debugger')
             console.log('')
 
-            // Launch LLDB in interactive mode
-            const lldb = await this.runCommand('lldb', [binaryPath], {
+            // Launch LLDB in interactive mode with stdin/stdout/stderr inheritance
+            const testEnv = await this.getTestEnvironment(config, file, compiler)
+            const spawnEnv: Record<string, string> = {};
+
+            // Copy all environment variables
+            for (const [key, value] of Object.entries(process.env)) {
+                if (value !== undefined) {
+                    spawnEnv[key] = value;
+                }
+            }
+
+            // Merge test environment
+            for (const [key, value] of Object.entries(testEnv)) {
+                spawnEnv[key] = value;
+            }
+
+            const proc = Bun.spawn(['lldb', binaryPath], {
                 cwd: file.directory,
-                timeout: 0, // No timeout for interactive debugging
-                env: await this.getTestEnvironment(config, file, compiler),
-            })
+                env: spawnEnv,
+                stdin: "inherit",  // Allow interactive input
+                stdout: "inherit", // Show output directly
+                stderr: "inherit", // Show errors directly
+            });
 
-            const output = `LLDB debugging session completed.
-Exit code: ${lldb.exitCode}
-${lldb.stdout}`
+            // Wait for debugger to finish
+            const exitCode = await proc.exited;
 
-            const status = lldb.exitCode === 0 ? TestStatus.Passed : TestStatus.Failed
-            const error = lldb.exitCode !== 0 ? lldb.stderr : undefined
+            const output = `LLDB debugging session completed.`
+            const status = exitCode === 0 ? TestStatus.Passed : TestStatus.Failed
 
-            return this.createTestResult(file, status, compileDuration, output, error, lldb.exitCode)
+            return this.createTestResult(file, status, compileDuration, output, undefined, exitCode)
         } catch (error) {
             throw new Error(`LLDB debugger setup failed: ${error}`)
         }
@@ -742,21 +702,37 @@ ${lldb.stdout}`
             console.log('  (gdb) quit      - Exit debugger')
             console.log('')
 
-            // Launch GDB in interactive mode
-            const gdb = await this.runCommand('gdb', [binaryPath], {
-                cwd: file.directory, // Always run with CWD set to test directory
-                timeout: 0, // No timeout for interactive debugging
-                env: await this.getTestEnvironment(config, file, compiler),
-            })
+            // Launch GDB in interactive mode with stdin/stdout/stderr inheritance
+            const testEnv = await this.getTestEnvironment(config, file, compiler)
+            const spawnEnv: Record<string, string> = {};
 
-            const output = `GDB debugging session completed.
-Exit code: ${gdb.exitCode}
-${gdb.stdout}`
+            // Copy all environment variables
+            for (const [key, value] of Object.entries(process.env)) {
+                if (value !== undefined) {
+                    spawnEnv[key] = value;
+                }
+            }
 
-            const status = gdb.exitCode === 0 ? TestStatus.Passed : TestStatus.Failed
-            const error = gdb.exitCode !== 0 ? gdb.stderr : undefined
+            // Merge test environment
+            for (const [key, value] of Object.entries(testEnv)) {
+                spawnEnv[key] = value;
+            }
 
-            return this.createTestResult(file, status, compileDuration, output, error, gdb.exitCode)
+            const proc = Bun.spawn(['gdb', binaryPath], {
+                cwd: file.directory,
+                env: spawnEnv,
+                stdin: "inherit",  // Allow interactive input
+                stdout: "inherit", // Show output directly
+                stderr: "inherit", // Show errors directly
+            });
+
+            // Wait for debugger to finish
+            const exitCode = await proc.exited;
+
+            const output = `GDB debugging session completed.`
+            const status = exitCode === 0 ? TestStatus.Passed : TestStatus.Failed
+
+            return this.createTestResult(file, status, compileDuration, output, undefined, exitCode)
         } catch (error) {
             throw new Error(`GDB debugger setup failed: ${error}`)
         }
