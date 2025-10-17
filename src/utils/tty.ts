@@ -25,6 +25,39 @@ export function isInteractiveTTY(): boolean {
 }
 
 /*
+ Checks if ANSI escape codes are supported
+ On Windows, older terminals (cmd.exe, some PowerShell versions) may not support ANSI
+ @returns true if ANSI codes should work
+ */
+export function supportsANSI(): boolean {
+    // Not a TTY? No ANSI support
+    if (!isInteractiveTTY()) {
+        return false;
+    }
+
+    // Windows detection - check for Windows Terminal, VS Code, or modern PowerShell
+    if (process.platform === 'win32') {
+        // Windows Terminal, VS Code terminal, and modern shells set WT_SESSION or TERM_PROGRAM
+        if (process.env.WT_SESSION || process.env.TERM_PROGRAM) {
+            return true;
+        }
+        // ConEmu sets this
+        if (process.env.ConEmuANSI === 'ON') {
+            return true;
+        }
+        // If TERM is set on Windows, assume ANSI support (e.g., Git Bash, WSL)
+        if (process.env.TERM && process.env.TERM !== 'dumb') {
+            return true;
+        }
+        // Default to no ANSI on Windows (older cmd.exe/PowerShell)
+        return false;
+    }
+
+    // Unix-like systems generally support ANSI
+    return true;
+}
+
+/*
  ANSI escape codes for terminal control
  */
 export const ANSI = {
@@ -50,17 +83,25 @@ export const ANSI = {
  @param text Text to write
  */
 export function writeOverwritable(text: string): void {
-    if (isInteractiveTTY()) {
+    if (isInteractiveTTY() && supportsANSI()) {
         Bun.write(Bun.stdout, ANSI.clearLineAndReset + text);
+    } else if (isInteractiveTTY()) {
+        // Fallback for terminals without ANSI: just write normally with newline
+        console.log(text);
     }
 }
 
 /*
  Clears the current line and moves cursor to start
+ Windows terminals sometimes don't process ANSI codes correctly,
+ so we check for ANSI support first
  */
 export function clearCurrentLine(): void {
-    if (isInteractiveTTY()) {
+    if (isInteractiveTTY() && supportsANSI()) {
         Bun.write(Bun.stdout, ANSI.clearLineAndReset);
+    } else if (isInteractiveTTY()) {
+        // Fallback for non-ANSI terminals: just move to new line
+        process.stdout.write('\n');
     }
 }
 

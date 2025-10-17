@@ -82,7 +82,7 @@ export class TestReporter {
         this.hasRunningLine = false;
       }
 
-      // Print the completed test result on a new line
+      // Print the completed test result
       console.log(`${status} ${typeIcon}  ${relativePath} (${duration})`);
 
       // If there are still tests running, show the next one
