@@ -35,9 +35,8 @@ export class TestReporter {
     console.log(`\nDiscovered ${results.length} test(s):`);
 
     for (const result of results) {
-      const typeIcon = this.getTypeIcon(result.file.type);
       const relativePath = this.getRelativePath(result.file.path);
-      console.log(`  ${typeIcon}  ${relativePath}`);
+      console.log(`  ${relativePath}`);
     }
   }
 
@@ -53,12 +52,11 @@ export class TestReporter {
       // (in parallel mode, we only show one "RUN" line at a time)
       if (!this.hasRunningLine) {
         const relativePath = this.getRelativePath(testFile.path);
-        const typeIcon = this.getTypeIcon(testFile.type);
         const runningStatus = this.config.output?.colors
           ? this.blue('⟳ RUN ')
           : 'RUNNING';
 
-        writeOverwritable(`${runningStatus} ${typeIcon}  ${relativePath}`);
+        writeOverwritable(`${runningStatus} ${relativePath}`);
         this.hasRunningLine = true;
       }
     }
@@ -71,7 +69,6 @@ export class TestReporter {
     const status = this.formatStatus(result.status);
     const duration = this.formatDuration(result.duration);
     const relativePath = this.getRelativePath(result.file.path);
-    const typeIcon = this.getTypeIcon(result.file.type);
 
     // If we're in an interactive terminal and not in show mode
     // Disable TTY cursor control when showCommands is enabled to prevent clearing environment output
@@ -83,23 +80,22 @@ export class TestReporter {
       }
 
       // Print the completed test result
-      console.log(`${status} ${typeIcon}  ${relativePath} (${duration})`);
+      console.log(`${status} ${relativePath} (${duration})`);
 
       // If there are still tests running, show the next one
       if (this.runningTests.size > 0) {
         const nextRunning = Array.from(this.runningTests)[0];
         const nextPath = this.getRelativePath(nextRunning.path);
-        const nextIcon = this.getTypeIcon(nextRunning.type);
         const runningStatus = this.config.output?.colors
           ? this.blue('⟳ RUN ')
           : 'RUNNING';
 
-        writeOverwritable(`${runningStatus} ${nextIcon}  ${nextPath}`);
+        writeOverwritable(`${runningStatus} ${nextPath}`);
         this.hasRunningLine = true;
       }
     } else {
-      // Non-interactive mode or show mode: still show type icon but no animation
-      console.log(`${status} ${typeIcon}  ${relativePath} (${duration})`);
+      // Non-interactive mode or show mode: no animation
+      console.log(`${status} ${relativePath} (${duration})`);
     }
   }
 
@@ -193,12 +189,11 @@ export class TestReporter {
   }
 
   private reportDetailedTest(result: TestResult): void {
-    const typeIcon = this.getTypeIcon(result.file.type);
     const status = this.formatStatus(result.status);
     const duration = this.formatDuration(result.duration);
     const relativePath = this.getRelativePath(result.file.path);
 
-    console.log(`\n${typeIcon}  ${relativePath}`);
+    console.log(`\n${relativePath}`);
     console.log(`   Path:     ${relativePath}`);
     console.log(`   Status:   ${status}`);
     console.log(`   Duration: ${duration}`);
@@ -263,23 +258,6 @@ export class TestReporter {
       return `${Math.round(duration)}ms`;
     } else {
       return `${(duration / 1000).toFixed(2)}s`;
-    }
-  }
-
-  private getTypeIcon(type: string): string {
-    switch (type) {
-      case 'shell':
-        return '🐚';
-      case 'c':
-        return '⚙️';
-      case 'javascript':
-        return '🟨';
-      case 'typescript':
-        return '🔷';
-      case 'ejscript':
-        return '⚡';
-      default:
-        return '📄';
     }
   }
 
