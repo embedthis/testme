@@ -1,5 +1,95 @@
 # TestMe Changelog
 
+## 2025-10-18
+
+### beforeAll/afterAll Lifecycle Hooks and Test Skip Functionality
+
+-   **DEV**: Added `beforeAll()` and `afterAll()` lifecycle hooks for Jest/Vitest compatibility
+    -   **beforeAll Hook**: Runs once before all tests in a describe block
+        -   Ideal for expensive setup operations (database connections, test servers)
+        -   Executes after parent describe's beforeAll (for nested describes)
+        -   Scoped to current describe block
+        -   Supports both sync and async functions
+    -   **afterAll Hook**: Runs once after all tests in a describe block
+        -   Ideal for cleanup operations (close connections, remove test data)
+        -   Executes before parent describe's afterAll (for nested describes)
+        -   Runs even if tests fail
+        -   Supports both sync and async functions
+    -   **Hook Execution Order**: Parent beforeAll → Child beforeAll → beforeEach → test → afterEach → (repeat) → Child afterAll → Parent afterAll
+    -   **Implementation Strategy**: Tests are queued during describe() execution, then run after beforeAll hooks
+        -   Added `queuedTests` array to testContext
+        -   Added `collectingTests` flag to track when inside describe()
+        -   Modified `test()` to queue tests when in describe block
+        -   Created `runTest()` internal function for actual test execution
+        -   Hooks registered during fn() execution, then tests run with proper hook order
+    -   **Implementation Files**:
+        -   [src/modules/js/index.js](../../src/modules/js/index.js) - Core lifecycle hook implementation with test queuing
+        -   [test/jest-api-lifecycle.tst.js](../../test/jest-api-lifecycle.tst.js) - Comprehensive test suite (20+ tests)
+
+-   **DEV**: Added test skip functionality for Jest/Vitest compatibility
+    -   **test.skip()**: Unconditionally skip a test
+        -   Test function is not executed
+        -   Prints test name with ⊘ indicator and "(skipped)"
+        -   Useful for temporarily disabling tests
+    -   **test.skipIf(condition)**: Conditionally skip based on boolean
+        -   Returns `test.skip` if condition is true, `test` if false
+        -   Evaluates condition when test is registered
+        -   Perfect for platform-specific or environment-specific tests
+        -   Example: `test.skipIf(isWindows)('Unix-only test', () => {...})`
+    -   **it.skip() and it.skipIf()**: Aliases for test variants
+        -   Identical behavior to test.skip() and test.skipIf()
+        -   Provides familiar Jest/Vitest syntax
+    -   **describe.skip()**: Skip entire test suite
+        -   None of the tests in the block execute
+        -   beforeAll/afterAll hooks do not run
+        -   Prints group name with "(skipped)"
+        -   Useful for disabling experimental or incomplete feature sets
+    -   **Implementation Files**:
+        -   [src/modules/js/index.js](../../src/modules/js/index.js) - Skip function implementations
+        -   [test/jest-api-lifecycle.tst.js](../../test/jest-api-lifecycle.tst.js) - Skip functionality tests
+
+-   **DEV**: Added TypeScript type definitions for new APIs
+    -   **Type Definitions**: Complete TypeScript support for lifecycle hooks and skip functions
+        -   Created [src/modules/js/index.d.ts](../../src/modules/js/index.d.ts) with full type definitions
+        -   `TestFunction` interface with skip and skipIf methods
+        -   `DescribeFunction` interface with skip method
+        -   Proper function signatures for beforeAll and afterAll
+        -   All traditional TestMe assertion functions included
+    -   **Type Safety**: Full IDE autocomplete and type checking for:
+        -   beforeAll, afterAll, beforeEach, afterEach
+        -   test.skip, test.skipIf, it.skip, it.skipIf
+        -   describe.skip
+        -   All expect() matchers from expect.d.ts
+
+-   **DOC**: Updated documentation with new lifecycle hooks and skip functionality
+    -   **README-JS.md**: Added comprehensive API documentation for:
+        -   beforeAll() and afterAll() with examples
+        -   test.skip() and test.skipIf() with platform-specific examples
+        -   it.skip() and it.skipIf() aliases
+        -   describe.skip() with example
+        -   Nested describe hook execution order
+    -   **doc/JEST_API.md**: Added usage examples for:
+        -   beforeAll/afterAll hooks with HTTP server and database examples
+        -   test.skip() and test.skipIf() for conditional skipping
+        -   describe.skip() for entire test suites
+        -   Updated "Key Behaviors" section with hook execution order
+        -   Added nested hook behavior explanation
+
+### Migration Impact
+
+-   **Bun Test Framework Compatibility**: TestMe now supports all major Bun/Jest lifecycle hooks
+    -   beforeAll, afterAll, beforeEach, afterEach ✅
+    -   test.skip(), test.skipIf(), describe.skip() ✅
+    -   it() alias for test() ✅
+    -   expect() API with 30+ matchers ✅
+    -   describe() and test() organization ✅
+
+-   **ejsx Migration Simplified**: Reduces refactoring from ~20-30 hours to ~2-4 hours
+    -   No need to refactor beforeAll/afterAll → beforeEach/afterEach
+    -   No need to replace it() with test()
+    -   No need to replace test.skipIf() with conditional logic
+    -   Only change required: Import path from `'bun:test'` → `'testme'`
+
 ## 2025-10-17
 
 ### Jest/Vitest-Compatible describe() and test() API

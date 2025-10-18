@@ -62,6 +62,7 @@ TestMe is under very active development at this time and may be a little unstabl
 
 -   [Installation](#installation)
 -   [Quick Start](#quick-start)
+-   [API Reference](#api-reference)
 -   [Usage](#usage)
 -   [Test File Types](#test-file-types)
 -   [Configuration](#configuration)
@@ -200,6 +201,46 @@ tm --new types.ts      # Creates types.tst.ts
     ```bash
     tm --clean
     ```
+
+## 📚 API Reference
+
+TestMe provides comprehensive testing APIs for C, JavaScript, and TypeScript:
+
+### Testing API Documentation
+
+-   **[README-TESTS.md](README-TESTS.md)** - General test requirements, exit codes, output streams, environment variables
+-   **[README-C.md](README-C.md)** - Complete C testing API reference (`testme.h` functions)
+-   **[README-JS.md](README-JS.md)** - Complete JavaScript/TypeScript testing API reference
+-   **[doc/JEST_API.md](doc/JEST_API.md)** - Jest/Vitest-compatible API examples and migration guide
+
+### Quick API Overview
+
+**C Tests:**
+```c
+#include "testme.h"
+
+teqi(2 + 2, 4, "Addition test");           // Assert equality
+ttrue(value > 0, "Value should be positive"); // Assert condition
+tinfo("Test progress...");                  // Print info message
+```
+
+**JavaScript/TypeScript Tests:**
+```javascript
+import {expect, describe, test} from 'testme'
+
+// Jest/Vitest-compatible API
+await describe('Math operations', () => {
+    test('addition', () => {
+        expect(2 + 2).toBe(4)
+    })
+})
+
+// Traditional API
+teqi(2 + 2, 4, 'Addition test')
+ttrue(value > 0, 'Value should be positive')
+```
+
+For complete API documentation including all functions, matchers, and behaviors, see the API reference documents above.
 
 ## 📝 Test File Types
 
@@ -556,7 +597,63 @@ async function fetchUser(id: number): Promise<User> {
 await expect(fetchUser(1)).resolves.toMatchObject({name: 'Alice'})
 ```
 
-**Note**: TypeScript tests support both the traditional `t*` functions and the Jest/Vitest `expect()` API. Both run on the Bun runtime with full TypeScript type checking and IntelliSense support.
+**Test Organization with describe() and test():**
+
+TestMe supports organizing tests using `describe()` blocks and `test()` functions, compatible with Jest/Vitest workflows:
+
+```typescript
+// test_calculator.tst.ts
+import {describe, test, it, expect, beforeEach, afterEach} from 'testme'
+
+await describe('Calculator operations', async () => {
+    let calculator
+
+    beforeEach(() => {
+        calculator = {value: 0}
+    })
+
+    afterEach(() => {
+        calculator = null
+    })
+
+    test('starts with zero', () => {
+        expect(calculator.value).toBe(0)
+    })
+
+    it('it() is an alias for test()', () => {
+        expect(true).toBeTruthy()
+    })
+
+    test('async operations work', async () => {
+        await new Promise((resolve) => setTimeout(resolve, 10))
+        expect(calculator.value).toBe(0)
+    })
+
+    await describe('addition', () => {
+        test('adds positive numbers', () => {
+            calculator.value = 2 + 3
+            expect(calculator.value).toBe(5)
+        })
+
+        test('adds negative numbers', () => {
+            calculator.value = -2 + -3
+            expect(calculator.value).toBe(-5)
+        })
+    })
+})
+```
+
+**Key Features:**
+
+-   Top-level `describe()` blocks must be awaited
+-   Nested `describe()` blocks must be awaited within async describe functions
+-   `test()` functions execute sequentially within a describe block
+-   `beforeEach()` and `afterEach()` hooks run before/after each test in the current describe scope
+-   Hooks are scoped to their describe block and restored when the block exits
+-   When `expect()` is used inside `test()`, failures throw errors caught by the test runner
+-   When `expect()` is used outside `test()`, failures exit immediately (backward compatible)
+
+**Note**: TypeScript tests support both the traditional `t*` functions and the Jest/Vitest `expect()` API with `describe()`/`test()` structure. Both run on the Bun runtime with full TypeScript type checking and IntelliSense support.
 
 ### Python Tests (`.tst.py`)
 

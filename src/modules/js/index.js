@@ -19,7 +19,11 @@ let testContext = {
     failedTests: 0,
     beforeEachHooks: [],
     afterEachHooks: [],
+    beforeAllHooks: [],
+    afterAllHooks: [],
+    queuedTests: [],
     inTest: false,
+    collectingTests: false,
 }
 
 function tdepth() {
@@ -266,29 +270,98 @@ async function describe(name, fn) {
     const previousDescribe = testContext.currentDescribe
     const previousBeforeEach = [...testContext.beforeEachHooks]
     const previousAfterEach = [...testContext.afterEachHooks]
+    const previousBeforeAll = [...testContext.beforeAllHooks]
+    const previousAfterAll = [...testContext.afterAllHooks]
+    const previousCollecting = testContext.collectingTests
+    const previousQueuedTests = [...testContext.queuedTests]
 
     testContext.currentDescribe = name
     testContext.nestLevel++
+    testContext.collectingTests = true
+    testContext.queuedTests = []
+
+    //  Run parent beforeAll hooks first (from outer describes)
+    const inheritedBeforeAllHooks = [...testContext.beforeAllHooks]
+    for (const hook of inheritedBeforeAllHooks) {
+        if (hook.constructor.name === 'AsyncFunction') {
+            await hook()
+        } else {
+            hook()
+        }
+    }
+
+    //  Save current beforeAll/afterAll hooks (these are hooks for THIS level)
+    const currentLevelBeforeAllHooks = []
+    const currentLevelAfterAllHooks = []
+
+    //  Temporarily replace hooks arrays so new hooks register at this level
+    testContext.beforeAllHooks = currentLevelBeforeAllHooks
+    testContext.afterAllHooks = currentLevelAfterAllHooks
 
     try {
-        //  Execute the describe block (sync or async)
+        //  Execute the describe block to register hooks and tests
         await fn()
+
+        //  Now run beforeAll hooks for this level
+        for (const hook of currentLevelBeforeAllHooks) {
+            if (hook.constructor.name === 'AsyncFunction') {
+                await hook()
+            } else {
+                hook()
+            }
+        }
+
+        //  Restore original hooks for parent context
+        testContext.beforeAllHooks = inheritedBeforeAllHooks
+        testContext.afterAllHooks = previousAfterAll
+
+        //  Run all queued tests
+        for (const queuedTest of testContext.queuedTests) {
+            await queuedTest()
+        }
+
+        //  Run afterAll hooks for this level
+        for (const hook of currentLevelAfterAllHooks) {
+            if (hook.constructor.name === 'AsyncFunction') {
+                await hook()
+            } else {
+                hook()
+            }
+        }
 
         //  Restore context
         testContext.nestLevel--
         testContext.currentDescribe = previousDescribe
         testContext.beforeEachHooks = previousBeforeEach
         testContext.afterEachHooks = previousAfterEach
+        testContext.beforeAllHooks = previousBeforeAll
+        testContext.afterAllHooks = previousAfterAll
+        testContext.collectingTests = previousCollecting
+        testContext.queuedTests = previousQueuedTests
     } catch (error) {
         //  Restore context on error
         testContext.nestLevel--
         testContext.currentDescribe = previousDescribe
         testContext.beforeEachHooks = previousBeforeEach
         testContext.afterEachHooks = previousAfterEach
+        testContext.beforeAllHooks = previousBeforeAll
+        testContext.afterAllHooks = previousAfterAll
+        testContext.collectingTests = previousCollecting
+        testContext.queuedTests = previousQueuedTests
 
         console.error(`${indent}✗ Error in describe block: ${error.message}`)
         process.exit(1)
     }
+}
+
+/**
+    describe.skip() - Skip an entire describe block
+    @param {string} name - Description of the test group
+    @param {Function} fn - Function containing tests (not executed)
+*/
+describe.skip = async function(name, fn) {
+    const indent = getIndent()
+    console.log(`${indent}${name} (skipped)`)
 }
 
 /**
@@ -298,6 +371,22 @@ async function describe(name, fn) {
 */
 async function test(name, fn) {
     const indent = getIndent()
+
+    //  If we're collecting tests (inside a describe), queue this test
+    if (testContext.collectingTests) {
+        testContext.queuedTests.push(async () => {
+            await runTest(name, fn, indent)
+        })
+    } else {
+        //  Run immediately if not in a describe block
+        await runTest(name, fn, indent)
+    }
+}
+
+/**
+    Internal function to actually run a test
+*/
+async function runTest(name, fn, indent) {
     testContext.totalTests++
 
     try {
@@ -349,11 +438,42 @@ async function test(name, fn) {
 }
 
 /**
+    test.skip() - Skip a test
+    @param {string} name - Description of the test
+    @param {Function} fn - Test function (not executed)
+*/
+test.skip = function(name, fn) {
+    const indent = getIndent()
+    console.log(`${indent}⊘ ${name} (skipped)`)
+}
+
+/**
+    test.skipIf() - Conditionally skip a test
+    @param {boolean} condition - If true, skip the test
+*/
+test.skipIf = function(condition) {
+    if (condition) {
+        return test.skip
+    }
+    return test
+}
+
+/**
     it() - Alias for test()
     @param {string} name - Description of the test
     @param {Function} fn - Test function to execute
 */
 const it = test
+
+/**
+    it.skip() - Alias for test.skip()
+*/
+it.skip = test.skip
+
+/**
+    it.skipIf() - Alias for test.skipIf()
+*/
+it.skipIf = test.skipIf
 
 /**
     beforeEach() - Register a hook to run before each test
@@ -369,6 +489,22 @@ function beforeEach(fn) {
 */
 function afterEach(fn) {
     testContext.afterEachHooks.push(fn)
+}
+
+/**
+    beforeAll() - Register a hook to run once before all tests in current describe block
+    @param {Function} fn - Hook function to run
+*/
+function beforeAll(fn) {
+    testContext.beforeAllHooks.push(fn)
+}
+
+/**
+    afterAll() - Register a hook to run once after all tests in current describe block
+    @param {Function} fn - Hook function to run
+*/
+function afterAll(fn) {
+    testContext.afterAllHooks.push(fn)
 }
 
 // Process exit handler to return appropriate exit code
@@ -400,6 +536,8 @@ export {
     it,
     beforeEach,
     afterEach,
+    beforeAll,
+    afterAll,
     //  Traditional TestMe API
     tassert,
     tcontains,
@@ -454,6 +592,8 @@ export default {
     it,
     beforeEach,
     afterEach,
+    beforeAll,
+    afterAll,
     //  Traditional TestMe API
     tassert,
     tcontains,

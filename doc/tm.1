@@ -195,12 +195,13 @@ Print informational messages.
 Alias for ttrue() function.
 
 .SS Jest/Vitest-Compatible API
-TestMe also supports a Jest/Vitest-compatible \fBexpect()\fR API. Import \fBexpect\fR from \fBtestme\fR:
+TestMe also supports a Jest/Vitest-compatible \fBexpect()\fR API and \fBdescribe()\fR/\fBtest()\fR structure. Import from \fBtestme\fR:
 
 .nf
 .RS
-import { expect } from 'testme'
+import { expect, describe, test, beforeEach, afterEach } from 'testme'
 
+// Basic assertions with expect()
 expect(1 + 1).toBe(2)
 expect({ a: 1 }).toEqual({ a: 1 })
 expect('hello').toContain('ell')
@@ -211,6 +212,24 @@ expect(5).not.toBe(10)
 
 // Async/Promises
 await expect(Promise.resolve(42)).resolves.toBe(42)
+
+// Organized test structure with describe() and test()
+await describe('Math operations', async () => {
+    let value
+
+    beforeEach(() => {
+        value = 0
+    })
+
+    test('addition works', () => {
+        expect(2 + 2).toBe(4)
+    })
+
+    test('async test', async () => {
+        await new Promise(resolve => setTimeout(resolve, 10))
+        expect(true).toBeTruthy()
+    })
+})
 .RE
 .fi
 
@@ -243,6 +262,69 @@ toThrow(), toThrowError()
 .RE
 
 Both APIs are fully supported and can be mixed in the same project. All testing functions automatically handle test failure by printing descriptive error messages with file locations and exiting with non-zero status codes.
+
+.SS Test Organization with describe() and test()
+TestMe supports organizing tests using \fBdescribe()\fR blocks and \fBtest()\fR functions, compatible with Jest/Vitest workflows:
+
+.TP
+.B describe(name, fn)
+Groups related tests together. Top-level \fBdescribe()\fR blocks must be awaited. Nested \fBdescribe()\fR blocks within async functions must also be awaited. Supports nesting for hierarchical test organization.
+
+.TP
+.B test(name, fn)
+Defines an individual test. Tests within \fBdescribe()\fR blocks run sequentially. Test functions can be sync or async. Alias: \fBit(name, fn)\fR
+
+.TP
+.B beforeEach(fn)
+Runs before each test in the current \fBdescribe()\fR scope. Useful for setting up test state.
+
+.TP
+.B afterEach(fn)
+Runs after each test in the current \fBdescribe()\fR scope. Useful for cleanup.
+
+.B Key Features:
+.RS
+.IP \(bu 4
+Top-level \fBdescribe()\fR blocks must be awaited
+.IP \(bu 4
+Nested \fBdescribe()\fR blocks must be awaited within async describe functions
+.IP \(bu 4
+\fBtest()\fR functions execute sequentially within a \fBdescribe()\fR block
+.IP \(bu 4
+\fBbeforeEach()\fR and \fBafterEach()\fR hooks are scoped to their \fBdescribe()\fR block
+.IP \(bu 4
+Hooks restore to parent scope when the \fBdescribe()\fR block exits
+.IP \(bu 4
+When \fBexpect()\fR is used inside \fBtest()\fR, failures throw errors caught by the runner
+.IP \(bu 4
+When \fBexpect()\fR is used outside \fBtest()\fR, failures exit immediately (backward compatible)
+.RE
+
+.B Example Usage:
+.nf
+.RS
+import { describe, test, expect, beforeEach } from 'testme'
+
+await describe('Calculator', async () => {
+    let calc
+
+    beforeEach(() => {
+        calc = { value: 0 }
+    })
+
+    test('starts at zero', () => {
+        expect(calc.value).toBe(0)
+    })
+
+    await describe('addition', () => {
+        test('adds numbers', () => {
+            calc.value = 2 + 2
+            expect(calc.value).toBe(4)
+        })
+    })
+})
+.RE
+.fi
 
 For complete Jest API documentation, see \fBdoc/JEST_API.md\fR in the TestMe repository.
 

@@ -74,7 +74,15 @@
 - **GitHub Repository**: (to be added)
 - **NPM Package**: https://www.npmjs.com/package/@embedthis/testme
 - **Issue Tracker**: (to be added)
+- **Main Documentation**: [README.md](../../README.md) - Complete usage guide
 - **Configuration Reference**: [doc/testme.json5](../../doc/testme.json5) - Comprehensive example of all configuration options
+
+### TestMe API Documentation
+
+- **[README-TESTS.md](../../README-TESTS.md)** - General test requirements, exit codes, output streams, working directory behavior
+- **[README-C.md](../../README-C.md)** - Complete C testing API reference (testme.h functions)
+- **[README-JS.md](../../README-JS.md)** - Complete JavaScript/TypeScript testing API reference
+- **[doc/JEST_API.md](../../doc/JEST_API.md)** - Jest/Vitest-compatible expect() API with examples
 
 ### Embedthis
 
