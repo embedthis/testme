@@ -7,6 +7,7 @@ import { ServiceManager } from "./services.ts";
 import { TestDiscovery } from "./discovery.ts";
 import { VERSION } from "./version.ts";
 import type { TestConfig, TestFile } from "./types.ts";
+import { TestStatus } from "./types.ts";
 import { resolve, relative, join } from "path";
 import { writeFile } from "fs/promises";
 import { existsSync } from "fs";
@@ -446,6 +447,14 @@ class TestMeApp {
                     if (mergedConfig.output?.verbose) {
                         console.log(`\n⏭️  Skipping tests in: ${relative(rootDir, configDir) || '.'} - ${skipResult.message || 'Skip script returned non-zero'}`);
                     }
+                    // Add skipped results for these tests
+                    const skippedResults = filteredTests.map(test => ({
+                        file: test,
+                        status: TestStatus.Skipped,
+                        duration: 0,
+                        output: skipResult.message || 'Skip script returned non-zero'
+                    }));
+                    allResults.push(...skippedResults);
                     continue;
                 }
             }
