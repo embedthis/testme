@@ -162,6 +162,28 @@ function installSupportFiles() {
         }
     }
 
+    // Link vendored ejscript module via bun link
+    try {
+        const ejscriptModuleDir = path.join(__dirname, '..', 'vendor', 'ejscript')
+        if (fs.existsSync(ejscriptModuleDir)) {
+            log('Linking vendored ejscript module via bun link...')
+            execSync('bun link', {
+                cwd: ejscriptModuleDir,
+                stdio: 'pipe',
+            })
+            log('Vendored ejscript module linked successfully')
+        } else {
+            log('Vendored ejscript module not found - skipping link')
+        }
+    } catch (err) {
+        error('Could not link vendored ejscript module. Ejscript tests may not work.')
+        if (err.stderr) {
+            error(`  Error: ${err.stderr.toString().trim()}`)
+        } else if (err.message) {
+            error(`  Error: ${err.message}`)
+        }
+    }
+
     // Install legacy Ejscript testme.mod if ejsc is available
     if (checkEjsc()) {
         try {

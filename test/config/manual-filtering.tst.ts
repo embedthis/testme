@@ -29,44 +29,56 @@ async function runTm(args: string[]): Promise<{ exitCode: number; stdout: string
     };
 }
 
+function extractTotalTests(output: string): number | null {
+    // Match "Total:" followed by any amount of whitespace and then digits
+    const match = output.match(/Total:\s+(\d+)/);
+    return match ? parseInt(match[1], 10) : null;
+}
+
 async function test() {
     console.log('Testing manual test filtering...');
 
     // Test 1: Running tm without patterns should NOT run manual tests
     console.log('\n1. Running tm without patterns (should skip manual tests)...');
     const result1 = await runTm([]);
-    // Should have no tests to run (all skipped) - check for Total: 0
-    if (!result1.stdout.includes('Total:   0')) {
+    // Should have no tests to run (all skipped)
+    const total1 = extractTotalTests(result1.stdout);
+    if (total1 !== 0) {
         console.log('STDOUT:', result1.stdout);
-        throw new Error('Manual tests should not run without explicit naming - expected "Total: 0"');
+        throw new Error(`Manual tests should not run without explicit naming - expected Total: 0, got: ${total1}`);
     }
     console.log('✓ Manual tests correctly skipped');
 
     // Test 2: Running tm with wildcard pattern should NOT run manual tests
     console.log('\n2. Running tm with wildcard pattern *.tst.js (should skip manual tests)...');
     const result2 = await runTm(['*.tst.js']);
-    if (!result2.stdout.includes('No tests discovered') && !result2.stdout.includes('Total:   0')) {
+    const total2 = extractTotalTests(result2.stdout);
+    if (!result2.stdout.includes('No tests discovered') && total2 !== 0) {
         console.log('STDOUT:', result2.stdout);
-        throw new Error('Manual tests should not run with wildcard patterns - expected "No tests discovered" or "Total: 0"');
+        throw new Error(`Manual tests should not run with wildcard patterns - expected Total: 0 or "No tests discovered", got Total: ${total2}`);
     }
     console.log('✓ Manual tests correctly skipped with wildcard');
 
     // Test 3: Running tm with explicit base name should run the test
     console.log('\n3. Running tm with explicit base name "manual" (should run manual test)...');
     const result3 = await runTm(['manual']);
-    if (!result3.stdout.includes('PASSED') || result3.exitCode !== 0) {
+    const total3 = extractTotalTests(result3.stdout);
+    if (!result3.stdout.includes('PASSED') || result3.exitCode !== 0 || total3 !== 1) {
         console.log('STDOUT:', result3.stdout);
         console.log('STDERR:', result3.stderr);
         console.log('EXIT CODE:', result3.exitCode);
-        throw new Error('Manual test should run and pass when explicitly named by base name');
+        throw new Error(`Manual test should run and pass when explicitly named by base name - got Total: ${total3}, exit: ${result3.exitCode}`);
     }
     console.log('✓ Manual test correctly ran with explicit base name');
 
     // Test 4: Running tm with explicit full name should run the test
     console.log('\n4. Running tm with explicit full name "manual.tst.js" (should run manual test)...');
     const result4 = await runTm(['manual.tst.js']);
-    if (!result4.stdout.includes('PASSED') || result4.exitCode !== 0) {
-        throw new Error('Manual test should run and pass when explicitly named by full name');
+    const total4 = extractTotalTests(result4.stdout);
+    if (!result4.stdout.includes('PASSED') || result4.exitCode !== 0 || total4 !== 1) {
+        console.log('STDOUT:', result4.stdout);
+        console.log('STDERR:', result4.stderr);
+        throw new Error(`Manual test should run and pass when explicitly named by full name - got Total: ${total4}, exit: ${result4.exitCode}`);
     }
     console.log('✓ Manual test correctly ran with explicit full name');
 

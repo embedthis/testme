@@ -1,5 +1,20 @@
 # TestMe Changelog
 
+## 2025-10-19
+
+### Documentation Cleanup and Organization
+
+-   **DOC**: Archived outdated design and plan documents
+    -   Moved MACRO_IMPROVEMENTS.md from designs/ to archive/designs/
+    -   Moved EJSX_MIGRATION_DOCS.md from plans/ to archive/plans/
+    -   Moved JEST_API.md from doc/ to .agent/designs/ (proper location for design documents)
+    -   Cleaned up documentation structure to reflect current project state
+-   **DOC**: Updated DESIGN.md to reflect latest architecture
+    -   Removed references to archived macro improvements document
+    -   Documentation now accurately reflects current codebase
+-   **DOC**: Updated Makefile with current doc target
+    -   Makefile doc generation now works correctly
+
 ## 2025-10-18
 
 ### beforeAll/afterAll Lifecycle Hooks and Test Skip Functionality

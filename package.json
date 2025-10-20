@@ -38,6 +38,7 @@
         "!src/modules/js/node_modules",
         "src/modules/c/testme.h",
         "src/modules/es/testme.mod",
+        "vendor/ejscript/**/*",
         "doc/tm.1",
         "testme.ts",
         "README.md",

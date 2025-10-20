@@ -38,6 +38,11 @@ This directory contains structured documentation to assist AI agents (like Claud
     - Platform abstraction layer
     - Configuration system
     - Error handling strategy
+    - **[JEST_API.md](designs/JEST_API.md)** - Jest/Vitest-compatible API design
+        - expect() API with 30+ matchers
+        - describe() and test() organization
+        - Lifecycle hooks (beforeAll, afterAll, beforeEach, afterEach)
+        - Test skip functionality
 
 - **[PLAN.md](plans/PLAN.md)** - Development roadmap and project status
     - Current status and version
@@ -115,6 +120,6 @@ The `archive/` directory contains historical versions of documentation. When mak
 
 ---
 
-**Last Updated**: 2025-10-16
+**Last Updated**: 2025-10-19
 **Project**: TestMe - Multi-language Test Runner
 **Version**: 0.8.19

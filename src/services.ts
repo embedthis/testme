@@ -89,7 +89,7 @@ export class ServiceManager {
 
         const displayPath = this.getDisplayPath(skipCommand, config);
         if (config.output?.verbose) {
-            console.log(`🔍 Running skip script: ${displayPath}`);
+            console.log(`Running skip script: ${displayPath}`);
         }
 
         try {
@@ -131,7 +131,7 @@ export class ServiceManager {
             } else if (result === 0) {
                 // Exit code 0 means don't skip (run tests)
                 if (config.output?.verbose) {
-                    console.log("✅ Skip script returned 0 - tests will run");
+                    console.log("✓ Skip script returned 0 - tests will run");
                 }
                 return { shouldSkip: false };
             } else {
@@ -167,7 +167,7 @@ export class ServiceManager {
 
         const displayPath = this.getDisplayPath(environmentCommand, config);
         if (config.output?.verbose) {
-            console.log(`🌍 Running environment script: ${displayPath}`);
+            console.log(`Running environment script: ${displayPath}`);
         }
 
         try {
@@ -228,7 +228,7 @@ export class ServiceManager {
                 }
 
                 if (config.output?.verbose) {
-                    console.log(`✅ Environment script completed - loaded ${Object.keys(envVars).length} variable(s)`);
+                    console.log(`✓ Environment script completed - loaded ${Object.keys(envVars).length} variable(s)`);
                 }
 
                 // Store environment variables for use by other scripts
@@ -263,9 +263,7 @@ export class ServiceManager {
         const timeout = (config.services?.prepTimeout || 30) * 1000;
 
         const displayPath = this.getDisplayPath(prepCommand, config);
-        if (config.output?.verbose) {
-            console.log(`🔧 Running prep script: ${displayPath}`);
-        }
+        console.log(`Running prep script: ${displayPath}`);
 
         try {
             // Parse command and arguments
@@ -304,9 +302,7 @@ export class ServiceManager {
             if (timedOut) {
                 throw new Error(`Prep script timed out after ${timeout}ms`);
             } else if (result === 0) {
-                if (config.output?.verbose) {
-                    console.log("✅ Prep script completed successfully");
-                }
+                console.log("✓ Prep script completed successfully");
             } else {
                 const stderr = await new Response(prepProcess.stderr).text();
                 throw new Error(`Prep script failed with exit code ${result}: ${stderr}`);
@@ -336,9 +332,7 @@ export class ServiceManager {
         const timeout = (config.services?.setupTimeout || 30) * 1000;
 
         const displayPath = this.getDisplayPath(setupCommand, config);
-        if (config.output?.verbose) {
-            console.log(`🚀 Starting setup service: ${displayPath}`);
-        }
+        console.log(`Starting setup service: ${displayPath}`);
 
         try {
             // Parse command and arguments
@@ -368,7 +362,7 @@ export class ServiceManager {
                 timeoutId = setTimeout(() => {
                     timedOut = true;
                     console.log(
-                        `⏰ Setup command timed out after ${timeout}ms`
+                        `✗ Setup command timed out after ${timeout}ms`
                     );
                     this.killSetup();
                 }, timeout);
@@ -389,9 +383,7 @@ export class ServiceManager {
                 }
 
                 if (!timedOut) {
-                    if (config.output?.verbose) {
-                        console.log("✅ Setup service started successfully");
-                    }
+                    console.log("✓ Setup service started successfully");
 
                     // Note: Setup service output is not displayed in real-time to avoid cluttering test output.
                     // Output will be shown if the service fails or exits unexpectedly.
@@ -400,12 +392,12 @@ export class ServiceManager {
                     const delay = (config.services?.delay || 0) * 1000;
                     if (delay > 0) {
                         if (config.output?.verbose) {
-                            console.log(`⏳ Waiting ${delay / 1000}s for setup service to initialize...`);
+                            console.log(`Waiting ${delay / 1000}s for setup service to initialize...`);
                         }
                         await new Promise((resolve) => setTimeout(resolve, delay));
 
                         if (config.output?.verbose) {
-                            console.log("✅ Setup initialization delay completed");
+                            console.log("✓ Setup initialization delay completed");
                         }
                     }
 
@@ -497,9 +489,7 @@ export class ServiceManager {
         const timeout = (config.services?.cleanupTimeout || 10) * 1000;
 
         const displayPath = this.getDisplayPath(cleanupCommand, config);
-        if (config.output?.verbose) {
-            console.log(`🧹 Running cleanup: ${displayPath}`);
-        }
+        console.log(`Running cleanup: ${displayPath}`);
 
         try {
             // Parse command and arguments
@@ -545,19 +535,17 @@ export class ServiceManager {
             }
 
             if (timedOut) {
-                console.log(`⏰ Cleanup command timed out after ${timeout}ms`);
+                console.log(`✗ Cleanup command timed out after ${timeout}ms`);
             } else if (result === 0) {
-                if (config.output?.verbose) {
-                    console.log("✅ Cleanup completed successfully");
-                }
+                console.log("✓ Cleanup completed successfully");
             } else {
                 const stderr = await new Response(cleanupProcess.stderr).text();
                 console.warn(
-                    `⚠️ Cleanup completed with exit code ${result}: ${stderr}`
+                    `✗ Cleanup completed with exit code ${result}: ${stderr}`
                 );
             }
         } catch (error) {
-            console.error(`❌ Cleanup failed: ${error}`);
+            console.error(`✗ Cleanup failed: ${error}`);
         }
     }
 
@@ -585,7 +573,7 @@ export class ServiceManager {
             this.isSetupRunning = false;
             this.setupProcess = null;
         } catch (error) {
-            console.warn(`⚠️  Error stopping setup service: ${error}`);
+            console.warn(`✗ Error stopping setup service: ${error}`);
             this.isSetupRunning = false;
             this.setupProcess = null;
         }
@@ -669,8 +657,10 @@ export class ServiceManager {
                 return [bunExecutable, resolvedCommand, ...parts.slice(1)];
             }
 
-            // Shell scripts on Windows need to be executed via bash (from Git for Windows)
-            if (PlatformDetector.isWindows() && ext === '.sh') {
+            // Shell scripts need to be executed via bash
+            // On Windows: bash from Git for Windows
+            // On Unix: bash to handle scripts without shebang or without execute permissions
+            if (ext === '.sh') {
                 return ['bash', resolvedCommand, ...parts.slice(1)];
             }
 
@@ -708,11 +698,11 @@ export class ServiceManager {
      Gets the display path for a service script, showing relative path when possible
      @param command The command/script path
      @param config Configuration to get the working directory from
-     @returns Relative path if reasonable, otherwise just the command
+     @returns Relative path from invocation directory to provide context
      */
     private getDisplayPath(command: string, config: TestConfig): string {
-        // If it's just a command name or already relative, return as-is
-        if (!command.includes('/') || !command.startsWith('./')) {
+        // If it's just a command name without path separators, return as-is
+        if (!command.includes('/') && !command.includes('\\')) {
             return command;
         }
 
@@ -720,8 +710,10 @@ export class ServiceManager {
         const fullPath = config.configDir ? `${config.configDir}/${command}` : command;
         const relativePath = relative(this.invocationDir, fullPath);
 
-        // If the relative path is reasonable, use it, otherwise use the original command
-        if (relativePath.length <= command.length && !relativePath.startsWith('../../..')) {
+        // Always prefer showing the relative path from invocation directory for context
+        // This makes it clear which directory's service script is running
+        // Only fall back to command if the relative path is absurdly long
+        if (!relativePath.startsWith('../../../..')) {
             return relativePath;
         }
 
@@ -783,23 +775,27 @@ export class ServiceManager {
             const defaultEnv = configEnv.default;
             if (defaultEnv && typeof defaultEnv === 'object') {
                 for (const [key, value] of Object.entries(defaultEnv)) {
-                    if (typeof value !== 'string') {
+                    if (value === null || value === undefined) {
                         continue;
                     }
+                    // Convert to string if not already (handles numbers, booleans, etc.)
+                    const stringValue = typeof value === 'string' ? value : String(value);
                     // Expand ${...} references in environment variable values
-                    const expandedValue = await GlobExpansion.expandSingle(value, baseDir, specialVars);
+                    const expandedValue = await GlobExpansion.expandSingle(stringValue, baseDir, specialVars);
                     env[key] = expandedValue;
                 }
             }
 
             // Then, process base environment variables (exclude platform and default keys)
             for (const [key, value] of Object.entries(configEnv)) {
-                // Skip platform-specific keys, default key, and non-string values
-                if (key === 'windows' || key === 'macosx' || key === 'linux' || key === 'default' || typeof value !== 'string') {
+                // Skip platform-specific keys, default key, and null/undefined values
+                if (key === 'windows' || key === 'macosx' || key === 'linux' || key === 'default' || value === null || value === undefined) {
                     continue;
                 }
+                // Convert to string if not already (handles numbers, booleans, etc.)
+                const stringValue = typeof value === 'string' ? value : String(value);
                 // Expand ${...} references in environment variable values
-                const expandedValue = await GlobExpansion.expandSingle(value, baseDir, specialVars);
+                const expandedValue = await GlobExpansion.expandSingle(stringValue, baseDir, specialVars);
                 env[key] = expandedValue;
             }
 
@@ -807,12 +803,13 @@ export class ServiceManager {
             const platformEnv = configEnv[platform];
             if (platformEnv) {
                 for (const [key, value] of Object.entries(platformEnv)) {
-                    // Skip non-string values
-                    if (typeof value !== 'string') {
+                    if (value === null || value === undefined) {
                         continue;
                     }
+                    // Convert to string if not already (handles numbers, booleans, etc.)
+                    const stringValue = typeof value === 'string' ? value : String(value);
                     // Expand ${...} references in environment variable values
-                    const expandedValue = await GlobExpansion.expandSingle(value, baseDir, specialVars);
+                    const expandedValue = await GlobExpansion.expandSingle(stringValue, baseDir, specialVars);
                     env[key] = expandedValue;
                 }
             }

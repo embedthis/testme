@@ -111,9 +111,9 @@ export class TestReporter {
     console.log('='.repeat(60));
 
     if (this.config.output?.colors) {
-      console.log(`${this.green('✓ Passed:')} ${stats.passed}`);
-      console.log(`${this.red('✗ Failed:')} ${stats.failed}`);
-      console.log(`${this.yellow('! Errors:')} ${stats.errors}`);
+      console.log(`${this.green('✓ Passed:')}  ${stats.passed}`);
+      console.log(`${this.red('✗ Failed:')}  ${stats.failed}`);
+      console.log(`${this.yellow('! Errors:')}  ${stats.errors}`);
       console.log(`${this.blue('- Skipped:')} ${stats.skipped}`);
     } else {
       console.log(`Passed:  ${stats.passed}`);
@@ -122,7 +122,7 @@ export class TestReporter {
       console.log(`Skipped: ${stats.skipped}`);
     }
 
-    console.log(`Total:   ${stats.total}`);
+    console.log(`Total:    ${stats.total}`);
     console.log(`Duration: ${this.formatDuration(stats.totalDuration)}`);
     if (elapsedTime !== undefined) {
       console.log(`Elapsed:  ${this.formatDuration(elapsedTime)}`);

@@ -49,15 +49,40 @@ function tverbose() {
 export function getStack() {
     const error = new Error()
     const stack = error.stack?.split('\n') || []
-    // Skip this function and the calling test function to get the actual test line
-    const caller = stack[3] || stack[2] || stack[1] || 'unknown'
-    const match = caller.match(/at (?:.*\s+\()?([^:w]+):(\d+)\)?/)
-    if (match) {
+
+    // Find the first line that is the actual test code (not internal test framework functions)
+    // This is more robust than using a fixed index, as it handles console.log overrides and other stack variations
+    for (let i = 1; i < stack.length; i++) {
+        const line = stack[i]
+
+        // Skip native calls
+        if (line.includes('(native:')) continue
+
+        // Skip testme module internals
+        if (line.includes('/testme/src/modules/')) continue
+
+        // Extract the file path from the stack line
+        const match = line.match(/at (?:.*\s+\()?([^:]+):(\d+)/)
+        if (!match) continue
+
+        // Skip if it's the getStack function itself
+        if (line.includes('getStack')) continue
+
+        // Skip if it's a known test helper function
+        const funcMatch = line.match(/at\s+(\w+)\s/)
+        if (funcMatch) {
+            const funcName = funcMatch[1]
+            const testFunctions = ['ttrue', 'tfalse', 'teq', 'tneq', 'expect', 'treport', 'describe', 'test', 'it', 'beforeEach', 'afterEach']
+            if (testFunctions.includes(funcName)) continue
+        }
+
+        // This should be the actual test file location
         return {
             filename: match[1],
             line: match[2],
         }
     }
+
     return {filename: 'unknown file', line: 'unknown line'}
 }
 

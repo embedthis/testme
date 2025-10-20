@@ -249,12 +249,12 @@ Original error: ${error}`;
                     const platformObj = value as { default?: string; windows?: string; macosx?: string; linux?: string };
                     // Try platform-specific value first, fall back to default
                     resolvedValue = platformObj[platform as 'windows' | 'macosx' | 'linux'] || platformObj.default;
-                } else if (typeof value === 'string') {
-                    // Simple string value
-                    resolvedValue = value;
-                } else {
-                    // Skip non-string, non-object values
+                } else if (value === null || value === undefined) {
+                    // Skip null/undefined values
                     continue;
+                } else {
+                    // Convert non-string values (numbers, booleans) to strings
+                    resolvedValue = typeof value === 'string' ? value : String(value);
                 }
 
                 // Skip if no value resolved
@@ -288,26 +288,29 @@ Original error: ${error}`;
             const defaultEnv = configEnv['default'];
             if (defaultEnv && typeof defaultEnv === 'object') {
                 for (const [key, value] of Object.entries(defaultEnv)) {
-                    if (typeof value === 'string') {
-                        let expandedValue = await GlobExpansion.expandSingle(
-                            value,
-                            baseDir,
-                            specialVars
-                        );
-                        // Normalize PATH variable on Windows (Path, path -> PATH)
-                        let envKey = key;
-                        if (PlatformDetector.isWindows() && key.toUpperCase() === 'PATH') {
-                            envKey = 'PATH';
-                            expandedValue = this.convertPathSeparators(expandedValue);
-                        }
-
-                        // Convert relative paths in PATH to absolute paths (based on config directory)
-                        if (key.toUpperCase() === 'PATH' || key === 'LD_LIBRARY_PATH' || key === 'DYLD_LIBRARY_PATH') {
-                            expandedValue = this.resolvePathComponents(expandedValue, baseDir);
-                        }
-
-                        env[envKey] = expandedValue;
+                    if (value === null || value === undefined) {
+                        continue;
                     }
+                    // Convert non-string values to strings
+                    const stringValue = typeof value === 'string' ? value : String(value);
+                    let expandedValue = await GlobExpansion.expandSingle(
+                        stringValue,
+                        baseDir,
+                        specialVars
+                    );
+                    // Normalize PATH variable on Windows (Path, path -> PATH)
+                    let envKey = key;
+                    if (PlatformDetector.isWindows() && key.toUpperCase() === 'PATH') {
+                        envKey = 'PATH';
+                        expandedValue = this.convertPathSeparators(expandedValue);
+                    }
+
+                    // Convert relative paths in PATH to absolute paths (based on config directory)
+                    if (key.toUpperCase() === 'PATH' || key === 'LD_LIBRARY_PATH' || key === 'DYLD_LIBRARY_PATH') {
+                        expandedValue = this.resolvePathComponents(expandedValue, baseDir);
+                    }
+
+                    env[envKey] = expandedValue;
                 }
             }
 
@@ -316,26 +319,29 @@ Original error: ${error}`;
             const platformEnv = configEnv[platform];
             if (platformEnv && typeof platformEnv === 'object') {
                 for (const [key, value] of Object.entries(platformEnv)) {
-                    if (typeof value === 'string') {
-                        let expandedValue = await GlobExpansion.expandSingle(
-                            value,
-                            baseDir,
-                            specialVars
-                        );
-                        // Normalize PATH variable on Windows (Path, path -> PATH)
-                        let envKey = key;
-                        if (PlatformDetector.isWindows() && key.toUpperCase() === 'PATH') {
-                            envKey = 'PATH';
-                            expandedValue = this.convertPathSeparators(expandedValue);
-                        }
-
-                        // Convert relative paths in PATH to absolute paths (based on config directory)
-                        if (key.toUpperCase() === 'PATH' || key === 'LD_LIBRARY_PATH' || key === 'DYLD_LIBRARY_PATH') {
-                            expandedValue = this.resolvePathComponents(expandedValue, baseDir);
-                        }
-
-                        env[envKey] = expandedValue;
+                    if (value === null || value === undefined) {
+                        continue;
                     }
+                    // Convert non-string values to strings
+                    const stringValue = typeof value === 'string' ? value : String(value);
+                    let expandedValue = await GlobExpansion.expandSingle(
+                        stringValue,
+                        baseDir,
+                        specialVars
+                    );
+                    // Normalize PATH variable on Windows (Path, path -> PATH)
+                    let envKey = key;
+                    if (PlatformDetector.isWindows() && key.toUpperCase() === 'PATH') {
+                        envKey = 'PATH';
+                        expandedValue = this.convertPathSeparators(expandedValue);
+                    }
+
+                    // Convert relative paths in PATH to absolute paths (based on config directory)
+                    if (key.toUpperCase() === 'PATH' || key === 'LD_LIBRARY_PATH' || key === 'DYLD_LIBRARY_PATH') {
+                        expandedValue = this.resolvePathComponents(expandedValue, baseDir);
+                    }
+
+                    env[envKey] = expandedValue;
                 }
             }
         }

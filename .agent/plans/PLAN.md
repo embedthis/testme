@@ -4,11 +4,23 @@
 
 TestMe is a production-ready, cross-platform multi-language test runner with native support for Windows, macOS, and Linux. Core features are complete and well-documented.
 
-**Version**: 0.8.15
-**Last Updated**: 2025-10-15
+**Version**: 0.8.19
+**Last Updated**: 2025-10-19
 
 ## Recently Completed
 
+-   ✅ Jest/Vitest API compatibility (2025-10-18)
+    -   Complete describe/test/it API for organizing tests
+    -   beforeAll/afterAll lifecycle hooks
+    -   beforeEach/afterEach hooks with proper scoping
+    -   test.skip() and test.skipIf() for conditional test skipping
+    -   describe.skip() for skipping entire test suites
+    -   Full TypeScript type definitions
+    -   Comprehensive test coverage (20+ tests)
+-   ✅ Documentation structure maintained and updated (2025-10-19)
+    -   Archived outdated design documents (MACRO_IMPROVEMENTS.md, EJSX_MIGRATION_DOCS.md)
+    -   Reorganized JEST_API.md to proper location (.agent/designs/)
+    -   Updated DESIGN.md to reflect current architecture
 -   ✅ Documentation structure maintained and updated (2025-10-15)
     -   Verified all `.agent` documentation is current
     -   DESIGN.md reflects latest architecture (environment variable exports, pattern-based discovery)

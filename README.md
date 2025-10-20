@@ -10,7 +10,9 @@
   <a href="https://github.com/embedthis/testme/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License"></a>
 </p>
 
-TestMe is a specialized test runner designed for **embedded systems**, **C/C++/Rust**, and **core infrastructure projects** that use Make or CMake build systems. It discovers, compiles, and executes tests across multiple programming languages with configurable patterns and parallel execution -- ideal for low-level and performance-critical codebases.
+TestMe is a specialized test runner designed for **core infrastructure projects** such as those written in C/C++ and those that require compilation before execution. TestMe discovers, compiles, and executes tests with configurable patterns and parallel execution -- ideal for low-level and performance-critical codebases.
+
+Test files can be written in C, C++, shell scripts, Python, Go or Javascript/Typescript.
 
 ## 🎯 Ideal Use Cases
 
@@ -216,6 +218,7 @@ TestMe provides comprehensive testing APIs for C, JavaScript, and TypeScript:
 ### Quick API Overview
 
 **C Tests:**
+
 ```c
 #include "testme.h"
 
@@ -225,6 +228,7 @@ tinfo("Test progress...");                  // Print info message
 ```
 
 **JavaScript/TypeScript Tests:**
+
 ```javascript
 import {expect, describe, test} from 'testme'
 
@@ -736,28 +740,28 @@ Filter tests using various pattern types:
 
 All available options sorted alphabetically:
 
-| Option                 | Description                                                                                            |
-| ---------------------- | ------------------------------------------------------------------------------------------------------ |
-| `--chdir <DIR>`        | Change to directory before running tests                                                               |
-| `--clean`              | Remove all `.testme` artifact directories                                                              |
-| `-c, --config <FILE>`  | Use specific configuration file                                                                        |
-| `--continue`           | Continue running tests even if some fail, always exit with code 0                                      |
-| `-d, --debug`          | Launch debugger (GDB on Linux, Xcode/LLDB on macOS, VS on Windows)                                     |
-| `--depth <N>`          | Run tests with depth requirement ≤ N (default: 0)                                                      |
-| `-h, --help`           | Show help message                                                                                      |
-| `--init`               | Create `testme.json5` configuration file in current directory                                          |
-| `-i, --iterations <N>` | Set iteration count (exports `TESTME_ITERATIONS` for tests to use internally, does not repeat tests)  |
-| `-k, --keep`           | Keep `.testme` artifacts after running tests                                                           |
-| `-l, --list`           | List discovered tests without running them                                                             |
-| `--new <NAME>`         | Create new test file from template (e.g., `--new math.c` creates `math.tst.c`)                        |
-| `-n, --no-services`    | Skip all service commands (skip, prep, setup, cleanup)                                                 |
-| `-p, --profile <NAME>` | Set build profile (overrides config and `PROFILE` environment variable)                                |
-| `-q, --quiet`          | Run silently with no output, only exit codes                                                           |
-| `-s, --show`           | Display test configuration and environment variables                                                   |
-| `--step`               | Run tests one at a time with prompts (forces serial mode)                                              |
-| `-v, --verbose`        | Enable verbose mode with detailed output (sets `TESTME_VERBOSE=1`)                                     |
-| `-V, --version`        | Show version information                                                                               |
-| `-w, --workers <N>`    | Number of parallel workers (overrides config)                                                          |
+| Option                 | Description                                                                                          |
+| ---------------------- | ---------------------------------------------------------------------------------------------------- |
+| `--chdir <DIR>`        | Change to directory before running tests                                                             |
+| `--clean`              | Remove all `.testme` artifact directories                                                            |
+| `-c, --config <FILE>`  | Use specific configuration file                                                                      |
+| `--continue`           | Continue running tests even if some fail, always exit with code 0                                    |
+| `-d, --debug`          | Launch debugger (GDB on Linux, Xcode/LLDB on macOS, VS on Windows)                                   |
+| `--depth <N>`          | Run tests with depth requirement ≤ N (default: 0)                                                    |
+| `-h, --help`           | Show help message                                                                                    |
+| `--init`               | Create `testme.json5` configuration file in current directory                                        |
+| `-i, --iterations <N>` | Set iteration count (exports `TESTME_ITERATIONS` for tests to use internally, does not repeat tests) |
+| `-k, --keep`           | Keep `.testme` artifacts after running tests                                                         |
+| `-l, --list`           | List discovered tests without running them                                                           |
+| `--new <NAME>`         | Create new test file from template (e.g., `--new math.c` creates `math.tst.c`)                       |
+| `-n, --no-services`    | Skip all service commands (skip, prep, setup, cleanup)                                               |
+| `-p, --profile <NAME>` | Set build profile (overrides config and `PROFILE` environment variable)                              |
+| `-q, --quiet`          | Run silently with no output, only exit codes                                                         |
+| `-s, --show`           | Display test configuration and environment variables                                                 |
+| `--step`               | Run tests one at a time with prompts (forces serial mode)                                            |
+| `-v, --verbose`        | Enable verbose mode with detailed output (sets `TESTME_VERBOSE=1`)                                   |
+| `-V, --version`        | Show version information                                                                             |
+| `-w, --workers <N>`    | Number of parallel workers (overrides config)                                                        |
 
 ### Usage Examples
 

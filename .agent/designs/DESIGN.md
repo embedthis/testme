@@ -2,15 +2,15 @@
 
 ## Contents
 
-- [Overview](#overview)
-- [Architecture](#architecture)
-- [Design Patterns](#design-patterns)
-- [Implementation Details](#implementation-details)
-  - [Test Discovery Process](#test-discovery-process)
-  - [C Test Compilation Pipeline](#c-test-compilation-pipeline)
-  - [Integrated Debugging Support](#integrated-debugging-support)
-  - [Platform Abstraction Layer](#platform-abstraction-layer)
-- [Test Macro System](MACRO_IMPROVEMENTS.md) - Type-specific assertion macros for C and JavaScript
+-   [Overview](#overview)
+-   [Architecture](#architecture)
+-   [Design Patterns](#design-patterns)
+-   [Implementation Details](#implementation-details)
+    -   [Test Discovery Process](#test-discovery-process)
+    -   [C Test Compilation Pipeline](#c-test-compilation-pipeline)
+    -   [Integrated Debugging Support](#integrated-debugging-support)
+    -   [Platform Abstraction Layer](#platform-abstraction-layer)
+-   [Jest/Vitest API](JEST_API.md) - Jest/Vitest-compatible API for JavaScript/TypeScript tests
 
 ## Overview
 
@@ -336,17 +336,20 @@ Patterns support platform-specific additions that are deep blended with base pat
 TestMe maintains a clear architectural distinction between test discovery and test execution:
 
 **Discovery Phase** (`--list` and initial test finding):
+
 -   Filters tests by **file extension compatibility** with the current platform
 -   Shows all tests that the platform can **technically compile and execute**
 -   Extension patterns (`.tst.c`, `.tst.sh`, `.tst.ps1`) determine capability
 
 **Execution Phase** (actual test running):
+
 -   Applies **skip scripts** for runtime policy decisions
 -   Determines if tests **should run** based on dynamic conditions
 
 **Key Architectural Decision:**
 
 A test file like `test/windows/wmath.tst.c` will appear in discovery output on macOS because:
+
 1. `.tst.c` is a cross-platform extension that macOS can compile and execute
 2. The file extension indicates capability, not policy
 3. The skip script in `test/windows/testme.json5` enforces the policy at runtime
@@ -364,6 +367,7 @@ $ tm test/windows
 ```
 
 **Rationale:**
+
 -   **Capability vs Policy**: Extension patterns answer "can this platform run it?", skip scripts answer "should we run it?"
 -   **Complete Visibility**: Users can see the full test suite across all platforms
 -   **Dynamic Decisions**: Skip scripts can check environment variables, dependencies, hardware availability
@@ -454,101 +458,110 @@ TestMe provides integrated debugging support for all test languages using the `-
 C tests can be debugged with multiple debuggers based on platform:
 
 **Platform Defaults:**
-- **Windows**: Visual Studio (vs) for MSVC, VS Code (vscode) for GCC/MinGW
-- **macOS**: Xcode (xcode) or LLDB (lldb)
-- **Linux**: GDB (gdb)
+
+-   **Windows**: Visual Studio (vs) for MSVC, VS Code (vscode) for GCC/MinGW
+-   **macOS**: Xcode (xcode) or LLDB (lldb)
+-   **Linux**: GDB (gdb)
 
 **Debugger Configuration:**
 
 Configure debugger in testme.json5:
+
 ```json5
 {
     debug: {
-        c: 'vs',           // Use Visual Studio
+        c: 'vs', // Use Visual Studio
         // or: 'vscode'    // Use VS Code
         // or: 'gdb'       // Use GDB
         // or: 'lldb'      // Use LLDB
         // or: 'xcode'     // Use Xcode (macOS)
-    }
+    },
 }
 ```
 
 **Environment and Working Directory:**
 
 All debuggers receive:
+
 1. **Processed environment** from testme.json5 via `getTestEnvironment()`:
-   - Expanded `${PLATFORM}`, `${PROFILE}`, and other special variables
-   - Resolved relative paths (e.g., `../build/...` → absolute paths)
-   - Merged with system environment
-   - Proper PATH for finding DLLs/shared libraries
+
+    - Expanded `${PLATFORM}`, `${PROFILE}`, and other special variables
+    - Resolved relative paths (e.g., `../build/...` → absolute paths)
+    - Merged with system environment
+    - Proper PATH for finding DLLs/shared libraries
 
 2. **Correct working directory**:
-   - Set to test file directory (`file.directory`)
-   - NOT the artifact directory (`.testme/test/`)
-   - Allows tests to access relative files from test location
+    - Set to test file directory (`file.directory`)
+    - NOT the artifact directory (`.testme/test/`)
+    - Allows tests to access relative files from test location
 
 **Visual Studio Debugger (Windows):**
 
 ```typescript
 // Implementation: src/handlers/c.ts - launchVisualStudioDebugger()
-const testEnv = await this.getTestEnvironment(config, file, 'msvc');
-Bun.spawn(["cmd", "/c", "start", "Visual Studio Debugger", devenvPath, binaryPath], {
-    cwd: file.directory,        // Test file directory, not .testme/
-    env: { ...process.env, ...testEnv },  // Merged environment
-});
+const testEnv = await this.getTestEnvironment(config, file, 'msvc')
+Bun.spawn(['cmd', '/c', 'start', 'Visual Studio Debugger', devenvPath, binaryPath], {
+    cwd: file.directory, // Test file directory, not .testme/
+    env: {...process.env, ...testEnv}, // Merged environment
+})
 ```
 
 **VS Code Debugger (Cross-platform):**
 
 Creates `.vscode/launch.json` with:
-- Program path to compiled executable
-- Working directory set to test file directory
-- Environment variables from testme.json5
-- Platform-specific debugger type (cppvsdbg for MSVC, cppdbg for GCC/Clang)
+
+-   Program path to compiled executable
+-   Working directory set to test file directory
+-   Environment variables from testme.json5
+-   Platform-specific debugger type (cppvsdbg for MSVC, cppdbg for GCC/Clang)
 
 **Interactive Debuggers (GDB, LLDB):**
 
 Launch in terminal with full environment:
+
 ```typescript
-await this.runCommand("gdb", [binaryPath], {
+await this.runCommand('gdb', [binaryPath], {
     cwd: file.directory,
     env: await this.getTestEnvironment(config, file, compiler),
-});
+})
 ```
 
 #### JavaScript/TypeScript Debugging
 
 Uses Bun's built-in debugger or VS Code with proper environment:
+
 ```json5
 {
     debug: {
-        js: 'vscode',  // VS Code debugger
-        ts: 'vscode'   // VS Code debugger
-    }
+        js: 'vscode', // VS Code debugger
+        ts: 'vscode', // VS Code debugger
+    },
 }
 ```
 
 #### Python Debugging
 
 Supports pdb (interactive) or VS Code:
+
 ```json5
 {
     debug: {
-        py: 'pdb'      // Python debugger
+        py: 'pdb', // Python debugger
         // or: 'vscode' // VS Code debugger
-    }
+    },
 }
 ```
 
 #### Go Debugging
 
 Supports Delve or VS Code:
+
 ```json5
 {
     debug: {
-        go: 'delve'    // Delve debugger
+        go: 'delve', // Delve debugger
         // or: 'vscode' // VS Code debugger
-    }
+    },
 }
 ```
 
@@ -565,6 +578,7 @@ The `getTestEnvironment()` method in BaseTestHandler:
 **Common Issue - ${CONFIGDIR} in Environment Variables:**
 
 Do NOT use `${CONFIGDIR}` in environment PATH:
+
 ```json5
 // WRONG - ${CONFIGDIR} is a relative path from executable
 env: {
@@ -801,6 +815,7 @@ TestMe supports explicit inheritance from parent configurations using the `inher
 -   **`inherit: false` or omitted** - No inheritance (default behavior, uses only nearest config)
 
 Inheritance features:
+
 -   **Recursive**: Parent configs can also inherit from their parents, creating a chain
 -   **Deep merge for objects**: Environment variables and compiler settings are combined (child + parent)
 -   **Array concatenation**: Flags and libraries lists append parent items first, then child items
@@ -837,106 +852,115 @@ All levels are **merged** (not replaced), allowing fine-grained control:
 
 ```json5
 {
-  compiler: {
-    c: {
-      flags: ['-I../include'],           // Always included for all compilers
-      libraries: ['m'],                  // Always included
-      gcc: {
-        flags: ['-I../gcc-headers'],    // Added only when using GCC
-        libraries: ['pthread'],          // Added only when using GCC
-        linux: {
-          flags: ['-D_GNU_SOURCE'],     // Added only for GCC on Linux
-          libraries: ['rt']              // Added only for GCC on Linux
-        }
-      }
-    }
-  }
+    compiler: {
+        c: {
+            flags: ['-I../include'], // Always included for all compilers
+            libraries: ['m'], // Always included
+            gcc: {
+                flags: ['-I../gcc-headers'], // Added only when using GCC
+                libraries: ['pthread'], // Added only when using GCC
+                linux: {
+                    flags: ['-D_GNU_SOURCE'], // Added only for GCC on Linux
+                    libraries: ['rt'], // Added only for GCC on Linux
+                },
+            },
+        },
+    },
 }
 ```
 
 **Result on Linux with GCC:**
-- Defaults: `-std=c99 -Wall -Wextra -O0 -g -I. -I~/.local/include -L~/.local/lib`
-- + Generic: `-I../include`
-- + GCC-specific: `-I../gcc-headers`
-- + Platform-specific: `-D_GNU_SOURCE`
-- Libraries: `-lm -lpthread -lrt`
+
+-   Defaults: `-std=c99 -Wall -Wextra -O0 -g -I. -I~/.local/include -L~/.local/lib`
+-   -   Generic: `-I../include`
+-   -   GCC-specific: `-I../gcc-headers`
+-   -   Platform-specific: `-D_GNU_SOURCE`
+-   Libraries: `-lm -lpthread -lrt`
 
 **Variable Expansion System:**
 
 TestMe supports `${...}` patterns in configuration values with multiple expansion modes:
 
 1. **Special Variables** (highest priority):
-   - `${TESTDIR}` - Relative path from executable to test directory (use in rpath/runtime paths)
-   - `${CONFIGDIR}` - Relative path from executable to config directory (use in rpath/runtime paths)
-   - `${OS}` - Operating system (macosx, linux, windows)
-   - `${ARCH}` - CPU architecture (arm64, x64, x86)
-   - `${PLATFORM}` - Combined OS-ARCH (e.g., macosx-arm64)
-   - `${CC}` - Compiler name (gcc, clang, msvc)
-   - `${PROFILE}` - Build profile (priority: CLI --profile > config > env.PROFILE > 'dev')
 
-   **IMPORTANT - ${CONFIGDIR} and ${TESTDIR} Usage:**
-   - These expand to **relative paths** from the compiled executable location to the directory
-   - Example: executable at `.testme/test/test.exe`, config at `./testme.json5` → `${CONFIGDIR}` = `../..`
-   - **Correct usage**: Runtime paths (rpath) in compiled executables
-     ```json5
-     gcc: {
-       flags: ['-Wl,-rpath,$ORIGIN/${CONFIGDIR}/../build/${PLATFORM}-${PROFILE}/bin']
-     }
-     ```
-   - **INCORRECT usage**: Environment variables like PATH
-     ```json5
-     // WRONG - results in incorrect path calculation
-     env: {
-       PATH: '${CONFIGDIR}/../build/${PLATFORM}-${PROFILE}/bin;${PATH}'
-     }
-     // CORRECT - relative paths in env are already resolved from config directory
-     env: {
-       PATH: '../build/${PLATFORM}-${PROFILE}/bin;${PATH}'
-     }
-     ```
-   - Environment variable paths are **automatically resolved relative to config directory**
-   - No need to use `${CONFIGDIR}` in environment variables
+    - `${TESTDIR}` - Relative path from executable to test directory (use in rpath/runtime paths)
+    - `${CONFIGDIR}` - Relative path from executable to config directory (use in rpath/runtime paths)
+    - `${OS}` - Operating system (macosx, linux, windows)
+    - `${ARCH}` - CPU architecture (arm64, x64, x86)
+    - `${PLATFORM}` - Combined OS-ARCH (e.g., macosx-arm64)
+    - `${CC}` - Compiler name (gcc, clang, msvc)
+    - `${PROFILE}` - Build profile (priority: CLI --profile > config > env.PROFILE > 'dev')
+
+    **IMPORTANT - ${CONFIGDIR} and ${TESTDIR} Usage:**
+
+    - These expand to **relative paths** from the compiled executable location to the directory
+    - Example: executable at `.testme/test/test.exe`, config at `./testme.json5` → `${CONFIGDIR}` = `../..`
+    - **Correct usage**: Runtime paths (rpath) in compiled executables
+        ```json5
+        gcc: {
+          flags: ['-Wl,-rpath,$ORIGIN/${CONFIGDIR}/../build/${PLATFORM}-${PROFILE}/bin']
+        }
+        ```
+    - **INCORRECT usage**: Environment variables like PATH
+        ```json5
+        // WRONG - results in incorrect path calculation
+        env: {
+          PATH: '${CONFIGDIR}/../build/${PLATFORM}-${PROFILE}/bin;${PATH}'
+        }
+        // CORRECT - relative paths in env are already resolved from config directory
+        env: {
+          PATH: '../build/${PLATFORM}-${PROFILE}/bin;${PATH}'
+        }
+        ```
+    - Environment variable paths are **automatically resolved relative to config directory**
+    - No need to use `${CONFIGDIR}` in environment variables
 
 2. **Environment Variables** (middle priority):
-   - `${PATH}` - Current system PATH
-   - `${HOME}` - User home directory
-   - `${USER}` - Current username
-   - Any other environment variable via `${VAR_NAME}`
+
+    - `${PATH}` - Current system PATH
+    - `${HOME}` - User home directory
+    - `${USER}` - Current username
+    - Any other environment variable via `${VAR_NAME}`
 
 3. **Glob Patterns** (lowest priority):
-   - `${../build/*/bin}` - Glob expansion to matching paths
+    - `${../build/*/bin}` - Glob expansion to matching paths
 
 **Expansion Priority**: Special variables → Environment variables → Glob patterns
 
 **Expansion Capabilities and Limitations:**
-- **Multiple variables**: `PATH: '${HOME}/bin:${PATH}'` - both expand independently
-- **Sequential expansion**: Variables can reference other variables defined earlier
-- **NOT supported**: Nested expansion like `${${VAR}}` - only single-level expansion
-- **Single-pass**: Each variable is expanded once, not recursively re-evaluated
+
+-   **Multiple variables**: `PATH: '${HOME}/bin:${PATH}'` - both expand independently
+-   **Sequential expansion**: Variables can reference other variables defined earlier
+-   **NOT supported**: Nested expansion like `${${VAR}}` - only single-level expansion
+-   **Single-pass**: Each variable is expanded once, not recursively re-evaluated
 
 **Undefined Variable Behavior:**
 
 Variables that cannot be resolved are handled differently based on type:
 
 1. **Special Variables** (${PLATFORM}, ${OS}, ${CC}, etc.):
-   - If undefined (e.g., no file context): Pattern remains as-is: `${PLATFORM}` → `${PLATFORM}`
-   - Example: When called without file context, special vars are not expanded
+
+    - If undefined (e.g., no file context): Pattern remains as-is: `${PLATFORM}` → `${PLATFORM}`
+    - Example: When called without file context, special vars are not expanded
 
 2. **Environment Variables** (${PATH}, ${HOME}, custom ${VAR}):
-   - If not found in process.env: Pattern remains as-is: `${UNDEFINED}` → `${UNDEFINED}`
-   - Kept as literal string (may be processed as glob pattern later)
-   - **Note**: This can result in literal `${UNDEFINED}` in final output
 
-3. **Glob Patterns** (${../build/*/bin}):
-   - If no files match: Wrapper removed but pattern kept: `${../build/*/bin}` → `../build/*/bin`
-   - "Graceful degradation" - path might still be valid even without matches
+    - If not found in process.env: Pattern remains as-is: `${UNDEFINED}` → `${UNDEFINED}`
+    - Kept as literal string (may be processed as glob pattern later)
+    - **Note**: This can result in literal `${UNDEFINED}` in final output
+
+3. **Glob Patterns** (${../build/\*/bin}):
+    - If no files match: Wrapper removed but pattern kept: `${../build/*/bin}` → `../build/*/bin`
+    - "Graceful degradation" - path might still be valid even without matches
 
 **Example with undefined variables:**
+
 ```json5
 env: {
     PATH: '${HOME}/bin:${UNDEFINED}:${../missing/*/path}:${PATH}'
 }
 ```
+
 Results in: `C:\Users\mob/bin:${UNDEFINED}:../missing/*/path;C:\Windows\System32;...`
 
 **Future Enhancement**: Consider making undefined variable handling more consistent (warn, remove, or error on undefined variables). See PLAN.md for details.
@@ -944,10 +968,11 @@ Results in: `C:\Users\mob/bin:${UNDEFINED}:../missing/*/path;C:\Windows\System32
 **Cross-Platform PATH Handling:**
 
 TestMe automatically converts path separators for the PATH environment variable on Windows:
-- Configuration uses Unix-style `:` separators on all platforms
-- Windows automatically converts `:` to `;` for PATH variable only
-- Preserves drive letters (C:\, D:\) during conversion
-- Example: `PATH: 'mydir:${PATH}'` becomes `mydir;C:\Windows\System32` on Windows
+
+-   Configuration uses Unix-style `:` separators on all platforms
+-   Windows automatically converts `:` to `;` for PATH variable only
+-   Preserves drive letters (C:\, D:\) during conversion
+-   Example: `PATH: 'mydir:${PATH}'` becomes `mydir;C:\Windows\System32` on Windows
 
 This enables cross-platform configuration files without platform-specific PATH syntax.
 
@@ -965,23 +990,23 @@ type TestConfig = {
                 // GCC-specific configuration
                 flags?: string[] // Added to generic flags when using GCC
                 libraries?: string[] // Added to generic libraries when using GCC
-                windows?: { flags?: string[], libraries?: string[] } // Platform-specific additions
-                macosx?: { flags?: string[], libraries?: string[] }
-                linux?: { flags?: string[], libraries?: string[] }
+                windows?: {flags?: string[]; libraries?: string[]} // Platform-specific additions
+                macosx?: {flags?: string[]; libraries?: string[]}
+                linux?: {flags?: string[]; libraries?: string[]}
             }
             clang?: {
                 // Clang-specific configuration (same structure as gcc)
                 flags?: string[]
                 libraries?: string[]
-                windows?: { flags?: string[], libraries?: string[] }
-                macosx?: { flags?: string[], libraries?: string[] }
-                linux?: { flags?: string[], libraries?: string[] }
+                windows?: {flags?: string[]; libraries?: string[]}
+                macosx?: {flags?: string[]; libraries?: string[]}
+                linux?: {flags?: string[]; libraries?: string[]}
             }
             msvc?: {
                 // MSVC-specific configuration (Windows)
                 flags?: string[] // Added to generic flags when using MSVC
                 libraries?: string[]
-                windows?: { flags?: string[], libraries?: string[] }
+                windows?: {flags?: string[]; libraries?: string[]}
             }
         }
         es?: {
@@ -1033,7 +1058,8 @@ type TestConfig = {
     environment?: {
         [key: string]: string // Environment variables with ${...} expansion (replaces deprecated 'env')
     }
-    env?: { // Deprecated: use 'environment' instead (supported for backward compatibility)
+    env?: {
+        // Deprecated: use 'environment' instead (supported for backward compatibility)
         [key: string]: string
     }
 }
@@ -1173,9 +1199,9 @@ The `enable` field controls test execution with three modes:
 
 ```json5
 {
-    enable: true,      // Run tests normally (default)
-    enable: false,     // Disable all tests in this directory
-    enable: 'manual',  // Only run when explicitly named
+    enable: true, // Run tests normally (default)
+    enable: false, // Disable all tests in this directory
+    enable: 'manual', // Only run when explicitly named
 }
 ```
 
@@ -1265,11 +1291,10 @@ When TestMe runs from a compiled binary (`tm` or `tm.exe`), JavaScript/TypeScrip
 ```typescript
 // Simplified example from services.ts
 if (ext === '.js' || ext === '.ts') {
-    const isBunCompiled = process.execPath.includes('/tm') ||
-                          process.execPath.includes('\\tm.exe') ||
-                          process.execPath.includes('\\tm');
-    const bunExecutable = isBunCompiled ? 'bun' : process.execPath;
-    return [bunExecutable, resolvedCommand, ...parts.slice(1)];
+    const isBunCompiled =
+        process.execPath.includes('/tm') || process.execPath.includes('\\tm.exe') || process.execPath.includes('\\tm')
+    const bunExecutable = isBunCompiled ? 'bun' : process.execPath
+    return [bunExecutable, resolvedCommand, ...parts.slice(1)]
 }
 ```
 
@@ -1300,26 +1325,27 @@ The `--no-services` command line option provides fine-grained control over servi
 ```typescript
 // Example from index.ts
 if (!options.noServices && mergedConfig.services?.skip) {
-    const skipResult = await this.getServiceManager(rootDir).runSkip(mergedConfig);
+    const skipResult = await this.getServiceManager(rootDir).runSkip(mergedConfig)
     // ... handle skip result
 }
 
 if (!options.noServices && mergedConfig.services?.prep) {
-    await this.getServiceManager(rootDir).runPrep(mergedConfig);
+    await this.getServiceManager(rootDir).runPrep(mergedConfig)
 }
 
 if (!options.noServices && mergedConfig.services?.setup) {
-    await this.getServiceManager(rootDir).runSetup(mergedConfig);
+    await this.getServiceManager(rootDir).runSetup(mergedConfig)
 }
 
 // Tests execute here
 
 if (!options.noServices && mergedConfig.services?.cleanup) {
-    await this.getServiceManager(rootDir).runCleanup(mergedConfig);
+    await this.getServiceManager(rootDir).runCleanup(mergedConfig)
 }
 ```
 
 **Usage Example**:
+
 ```bash
 # Normal execution with full service lifecycle
 tm test/portable/delay_test

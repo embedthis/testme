@@ -23,6 +23,7 @@ build:
 
 test: build
 	tm test
+	@make tidy
 
 install: build
 	@echo Installing
@@ -39,6 +40,20 @@ dev-install: build
 	@make -C src/modules/js install $(MFLAGS)
 	@make -C src/modules/es install $(MFLAGS)
 
+update: vendor
+
+#
+#  Update vendored ejscript from local ejscript build
+#
+vendor:
+	@echo "Updating vendored ejscript..."
+	@rm -rf vendor/ejscript
+	@mkdir -p vendor/ejscript
+	@cp -r ../ejs/dist vendor/ejscript/
+	@cp ../ejs/package.json vendor/ejscript/
+	@cp ../ejs/README.md vendor/ejscript/ 2>/dev/null || true
+	@echo "Vendored ejscript updated successfully"
+
 clean: tidy
 	rm -f dist/tm
 	rm -fr test/.testme
@@ -50,7 +65,7 @@ clean: tidy
 tidy:
 	@rm -f .*.bun-build
 
-.PHONY: prep run build test install tidy clean
+.PHONY: prep run build test install tidy clean vendor vendor-ejscript
 
 LOCAL_MAKEFILE := $(strip $(wildcard ./.local.mk))
 
