@@ -97,6 +97,11 @@ export abstract class BaseTestHandler implements TestHandler {
             stdin: PlatformDetector.isWindows() ? "pipe" : "ignore",
         });
 
+        // On Windows, close stdin pipe immediately to prevent process from waiting for input
+        if (PlatformDetector.isWindows() && proc.stdin) {
+            proc.stdin.end();
+        }
+
         let timeoutId: Timer | undefined;
         let timedOut = false;
 

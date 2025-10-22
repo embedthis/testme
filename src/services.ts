@@ -453,11 +453,13 @@ export class ServiceManager {
             }
 
             // Wait for service to be ready using health check or delay
-            if (config.services?.healthCheck) {
+            // Support healthCheck (camelCase), healthcheck (lowercase), and health (short form) for backward compatibility
+            const healthCheckConfig = (config.services as any)?.healthCheck || (config.services as any)?.healthcheck || (config.services as any)?.health;
+            if (healthCheckConfig) {
                 // Use health check to verify service is ready
                 const healthCheckManager = new HealthCheckManager();
                 try {
-                    await healthCheckManager.waitForHealthy(config.services.healthCheck, config.output?.verbose);
+                    await healthCheckManager.waitForHealthy(healthCheckConfig, config.output?.verbose);
                 } catch (error) {
                     // Health check failed - kill the setup process
                     await this.killSetup(config);
