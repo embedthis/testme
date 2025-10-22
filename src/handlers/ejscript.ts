@@ -1,7 +1,7 @@
-import type { TestFile, TestResult, TestConfig } from '../types.ts';
-import { TestStatus, TestType } from '../types.ts';
-import { BaseTestHandler } from './base.ts';
-import os from 'os';
+import type {TestFile, TestResult, TestConfig} from '../types.ts'
+import {TestStatus, TestType} from '../types.ts'
+import {BaseTestHandler} from './base.ts'
+import os from 'os'
 
 /*
  Handler for executing Ejscript tests (.tst.es files)
@@ -14,7 +14,7 @@ export class EjscriptTestHandler extends BaseTestHandler {
      @returns true if file is an Ejscript test
      */
     canHandle(file: TestFile): boolean {
-        return file.type === TestType.Ejscript;
+        return file.type === TestType.Ejscript
     }
 
     /*
@@ -25,25 +25,25 @@ export class EjscriptTestHandler extends BaseTestHandler {
      */
     async execute(file: TestFile, config: TestConfig): Promise<TestResult> {
         // Get test environment
-        const testEnv = await this.getTestEnvironment(config, file);
+        const testEnv = await this.getTestEnvironment(config, file)
 
         // Display environment info if showCommands is enabled
-        await this.displayEnvironmentInfo(config, file, testEnv);
+        await this.displayEnvironmentInfo(config, file, testEnv)
 
-        const { result, duration } = await this.measureExecution(async () => {
-            const args = this.buildEjsArgs(file, config);
+        const {result, duration} = await this.measureExecution(async () => {
+            const args = this.buildEjsArgs(file, config)
             return await this.runCommand('ejs', args, {
                 cwd: file.directory,
                 timeout: (config.execution?.timeout || 30) * 1000,
-                env: testEnv
-            });
-        });
+                env: testEnv,
+            })
+        })
 
-        const status = result.exitCode === 0 ? TestStatus.Passed : TestStatus.Failed;
-        const output = this.combineOutput(result.stdout, result.stderr);
-        const error = result.exitCode !== 0 ? result.stderr : undefined;
+        const status = result.exitCode === 0 ? TestStatus.Passed : TestStatus.Failed
+        const output = this.combineOutput(result.stdout, result.stderr)
+        const error = result.exitCode !== 0 ? result.stderr : undefined
 
-        return this.createTestResult(file, status, duration, output, error, result.exitCode);
+        return this.createTestResult(file, status, duration, output, error, result.exitCode)
     }
 
     /*
@@ -53,17 +53,17 @@ export class EjscriptTestHandler extends BaseTestHandler {
      @returns Array of command-line arguments
      */
     private buildEjsArgs(file: TestFile, config: TestConfig): string[] {
-        const args: string[] = [];
+        const args: string[] = []
 
-        const require = config.compiler?.es?.require;
+        const require = config.compiler?.es?.require
         if (require) {
-            const modules = Array.isArray(require) ? require.join(' ') : require;
-            const expandedModules = this.expandPath(modules);
-            args.push('--require', expandedModules);
+            const modules = Array.isArray(require) ? require.join(' ') : require
+            const expandedModules = this.expandPath(modules)
+            args.push('--require', expandedModules)
         }
 
-        args.push(file.path);
-        return args;
+        args.push(file.path)
+        return args
     }
 
     /*
@@ -73,17 +73,17 @@ export class EjscriptTestHandler extends BaseTestHandler {
      */
     private expandPath(path: string): string {
         // Expand tilde to home directory
-        let expanded = path;
+        let expanded = path
         if (expanded.startsWith('~/')) {
-            expanded = expanded.replace('~', os.homedir());
+            expanded = expanded.replace('~', os.homedir())
         }
 
         // Handle ${~/ pattern from glob expansion
         if (expanded.includes('${~/')) {
-            expanded = expanded.replace(/\$\{~\//g, os.homedir() + '/');
-            expanded = expanded.replace(/\}/g, '');
+            expanded = expanded.replace(/\$\{~\//g, os.homedir() + '/')
+            expanded = expanded.replace(/\}/g, '')
         }
 
-        return expanded;
+        return expanded
     }
 }

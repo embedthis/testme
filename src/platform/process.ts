@@ -1,4 +1,4 @@
-import { PlatformDetector } from "./detector.ts";
+import {PlatformDetector} from './detector.ts'
 
 /*
  Cross-platform process management abstraction
@@ -14,9 +14,9 @@ export class ProcessManager {
      */
     static async killProcess(pid: number, graceful: boolean = true, shutdownTimeout: number = 0): Promise<void> {
         if (PlatformDetector.isWindows()) {
-            return this.killProcessWindows(pid, graceful, shutdownTimeout);
+            return this.killProcessWindows(pid, graceful, shutdownTimeout)
         } else {
-            return this.killProcessUnix(pid, graceful, shutdownTimeout);
+            return this.killProcessUnix(pid, graceful, shutdownTimeout)
         }
     }
 
@@ -27,32 +27,36 @@ export class ProcessManager {
      @param shutdownTimeout Time to wait for graceful shutdown in milliseconds (default: 0)
      @returns Promise that resolves when process is killed
      */
-    private static async killProcessWindows(pid: number, graceful: boolean, shutdownTimeout: number = 0): Promise<void> {
+    private static async killProcessWindows(
+        pid: number,
+        graceful: boolean,
+        shutdownTimeout: number = 0
+    ): Promise<void> {
         try {
             if (graceful) {
                 // Always try graceful termination first
-                const gracefulKill = Bun.spawn(["taskkill", "/PID", pid.toString(), "/T"], {
-                    stdout: "pipe",
-                    stderr: "pipe"
-                });
+                const gracefulKill = Bun.spawn(['taskkill', '/PID', pid.toString(), '/T'], {
+                    stdout: 'pipe',
+                    stderr: 'pipe',
+                })
 
-                await gracefulKill.exited;
+                await gracefulKill.exited
 
                 // Poll for process exit with configurable timeout
                 // Even with shutdownTimeout=0, do at least one check to give signal handlers a chance
-                const pollInterval = 100; // ms
-                const maxPolls = shutdownTimeout > 0 ? Math.ceil(shutdownTimeout / pollInterval) : 1;
+                const pollInterval = 100 // ms
+                const maxPolls = shutdownTimeout > 0 ? Math.ceil(shutdownTimeout / pollInterval) : 1
 
                 for (let i = 0; i < maxPolls; i++) {
                     // Check if process is still running
-                    const stillRunning = await this.isProcessRunning(pid);
+                    const stillRunning = await this.isProcessRunning(pid)
                     if (!stillRunning) {
                         // Process exited gracefully - no need to force kill
-                        return;
+                        return
                     }
 
                     // Wait before next poll (or before force kill)
-                    await new Promise(resolve => setTimeout(resolve, pollInterval));
+                    await new Promise((resolve) => setTimeout(resolve, pollInterval))
                 }
 
                 // If we get here, process didn't exit within timeout
@@ -60,12 +64,12 @@ export class ProcessManager {
             }
 
             // Force kill if still needed
-            const forceKill = Bun.spawn(["taskkill", "/PID", pid.toString(), "/T", "/F"], {
-                stdout: "pipe",
-                stderr: "pipe"
-            });
+            const forceKill = Bun.spawn(['taskkill', '/PID', pid.toString(), '/T', '/F'], {
+                stdout: 'pipe',
+                stderr: 'pipe',
+            })
 
-            await forceKill.exited;
+            await forceKill.exited
         } catch (error) {
             // Process may already be dead, ignore errors
         }
@@ -81,28 +85,28 @@ export class ProcessManager {
         try {
             if (graceful) {
                 // Always try SIGTERM first for graceful shutdown
-                const termKill = Bun.spawn(["kill", "-TERM", pid.toString()], {
-                    stdout: "pipe",
-                    stderr: "pipe"
-                });
+                const termKill = Bun.spawn(['kill', '-TERM', pid.toString()], {
+                    stdout: 'pipe',
+                    stderr: 'pipe',
+                })
 
-                await termKill.exited;
+                await termKill.exited
 
                 // Poll for process exit with configurable timeout
                 // Even with shutdownTimeout=0, do at least one check to give signal handlers a chance
-                const pollInterval = 100; // ms
-                const maxPolls = shutdownTimeout > 0 ? Math.ceil(shutdownTimeout / pollInterval) : 1;
+                const pollInterval = 100 // ms
+                const maxPolls = shutdownTimeout > 0 ? Math.ceil(shutdownTimeout / pollInterval) : 1
 
                 for (let i = 0; i < maxPolls; i++) {
                     // Check if process is still running
-                    const stillRunning = await this.isProcessRunning(pid);
+                    const stillRunning = await this.isProcessRunning(pid)
                     if (!stillRunning) {
                         // Process exited gracefully - no need to SIGKILL
-                        return;
+                        return
                     }
 
                     // Wait before next poll (or before SIGKILL)
-                    await new Promise(resolve => setTimeout(resolve, pollInterval));
+                    await new Promise((resolve) => setTimeout(resolve, pollInterval))
                 }
 
                 // If we get here, process didn't exit within timeout
@@ -110,12 +114,12 @@ export class ProcessManager {
             }
 
             // Force kill with SIGKILL (only if process still running)
-            const forceKill = Bun.spawn(["kill", "-KILL", pid.toString()], {
-                stdout: "pipe",
-                stderr: "pipe"
-            });
+            const forceKill = Bun.spawn(['kill', '-KILL', pid.toString()], {
+                stdout: 'pipe',
+                stderr: 'pipe',
+            })
 
-            await forceKill.exited;
+            await forceKill.exited
         } catch (error) {
             // Process may already be dead, ignore errors
         }
@@ -129,29 +133,29 @@ export class ProcessManager {
     static async isProcessRunning(pid: number): Promise<boolean> {
         try {
             if (PlatformDetector.isWindows()) {
-                const proc = Bun.spawn(["tasklist", "/FI", `PID eq ${pid}`, "/NH"], {
-                    stdout: "pipe",
-                    stderr: "pipe"
-                });
+                const proc = Bun.spawn(['tasklist', '/FI', `PID eq ${pid}`, '/NH'], {
+                    stdout: 'pipe',
+                    stderr: 'pipe',
+                })
 
-                const result = await proc.exited;
+                const result = await proc.exited
                 if (result === 0) {
-                    const stdout = await new Response(proc.stdout).text();
-                    return stdout.includes(pid.toString());
+                    const stdout = await new Response(proc.stdout).text()
+                    return stdout.includes(pid.toString())
                 }
-                return false;
+                return false
             } else {
                 // On Unix, kill -0 checks if process exists without killing it
-                const proc = Bun.spawn(["kill", "-0", pid.toString()], {
-                    stdout: "pipe",
-                    stderr: "pipe"
-                });
+                const proc = Bun.spawn(['kill', '-0', pid.toString()], {
+                    stdout: 'pipe',
+                    stderr: 'pipe',
+                })
 
-                const result = await proc.exited;
-                return result === 0;
+                const result = await proc.exited
+                return result === 0
             }
         } catch {
-            return false;
+            return false
         }
     }
 
@@ -161,9 +165,9 @@ export class ProcessManager {
      */
     static getSystemShell(): string {
         if (PlatformDetector.isWindows()) {
-            return "cmd.exe";
+            return 'cmd.exe'
         } else {
-            return process.env.SHELL || "sh";
+            return process.env.SHELL || 'sh'
         }
     }
 
@@ -173,9 +177,9 @@ export class ProcessManager {
      */
     static getShellFlag(): string {
         if (PlatformDetector.isWindows()) {
-            return "/c";
+            return '/c'
         } else {
-            return "-c";
+            return '-c'
         }
     }
 
@@ -190,31 +194,31 @@ export class ProcessManager {
         command: string,
         args: string[],
         options?: {
-            cwd?: string;
-            env?: Record<string, string>;
-            stdout?: "pipe" | "inherit" | "ignore";
-            stderr?: "pipe" | "inherit" | "ignore";
-            stdin?: "pipe" | "inherit" | "ignore";
+            cwd?: string
+            env?: Record<string, string>
+            stdout?: 'pipe' | 'inherit' | 'ignore'
+            stderr?: 'pipe' | 'inherit' | 'ignore'
+            stdin?: 'pipe' | 'inherit' | 'ignore'
         }
     ): Bun.Subprocess {
         const env = {
             ...process.env,
-            ...options?.env
-        };
+            ...options?.env,
+        }
 
         // On Windows, ensure PATH includes current directory for local scripts
         if (PlatformDetector.isWindows()) {
-            env.PATH = `.;${env.PATH || process.env.PATH || ''}`;
+            env.PATH = `.;${env.PATH || process.env.PATH || ''}`
         } else {
-            env.PATH = `.:${env.PATH || process.env.PATH || ''}`;
+            env.PATH = `.:${env.PATH || process.env.PATH || ''}`
         }
 
         return Bun.spawn([command, ...args], {
             cwd: options?.cwd,
             env,
-            stdout: options?.stdout || "pipe",
-            stderr: options?.stderr || "pipe",
-            stdin: options?.stdin || "ignore"
-        });
+            stdout: options?.stdout || 'pipe',
+            stderr: options?.stderr || 'pipe',
+            stdin: options?.stdin || 'ignore',
+        })
     }
 }

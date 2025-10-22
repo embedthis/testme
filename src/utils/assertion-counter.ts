@@ -7,9 +7,9 @@
 */
 
 export type AssertionCounts = {
-    passed: number;
-    failed: number;
-};
+    passed: number
+    failed: number
+}
 
 /**
  * Count test assertions from output by looking for ✓ and ✗ symbols
@@ -19,21 +19,21 @@ export type AssertionCounts = {
  */
 export function countAssertions(output: string): AssertionCounts | null {
     if (!output) {
-        return null;
+        return null
     }
 
     // Count ✓ symbols (pass)
-    const passedMatches = output.match(/✓/g);
-    const passed = passedMatches ? passedMatches.length : 0;
+    const passedMatches = output.match(/✓/g)
+    const passed = passedMatches ? passedMatches.length : 0
 
     // Count ✗ symbols (fail)
-    const failedMatches = output.match(/✗/g);
-    const failed = failedMatches ? failedMatches.length : 0;
+    const failedMatches = output.match(/✗/g)
+    const failed = failedMatches ? failedMatches.length : 0
 
     // Only return counts if we found at least one assertion marker
     if (passed === 0 && failed === 0) {
-        return null;
+        return null
     }
 
-    return { passed, failed };
+    return {passed, failed}
 }

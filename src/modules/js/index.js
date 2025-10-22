@@ -72,7 +72,19 @@ export function getStack() {
         const funcMatch = line.match(/at\s+(\w+)\s/)
         if (funcMatch) {
             const funcName = funcMatch[1]
-            const testFunctions = ['ttrue', 'tfalse', 'teq', 'tneq', 'expect', 'treport', 'describe', 'test', 'it', 'beforeEach', 'afterEach']
+            const testFunctions = [
+                'ttrue',
+                'tfalse',
+                'teq',
+                'tneq',
+                'expect',
+                'treport',
+                'describe',
+                'test',
+                'it',
+                'beforeEach',
+                'afterEach',
+            ]
             if (testFunctions.includes(funcName)) continue
         }
 
@@ -384,7 +396,7 @@ async function describe(name, fn) {
     @param {string} name - Description of the test group
     @param {Function} fn - Function containing tests (not executed)
 */
-describe.skip = async function(name, fn) {
+describe.skip = async function (name, fn) {
     const indent = getIndent()
     console.log(`${indent}${name} (skipped)`)
 }
@@ -467,7 +479,7 @@ async function runTest(name, fn, indent) {
     @param {string} name - Description of the test
     @param {Function} fn - Test function (not executed)
 */
-test.skip = function(name, fn) {
+test.skip = function (name, fn) {
     const indent = getIndent()
     console.log(`${indent}⊘ ${name} (skipped)`)
 }
@@ -476,7 +488,7 @@ test.skip = function(name, fn) {
     test.skipIf() - Conditionally skip a test
     @param {boolean} condition - If true, skip the test
 */
-test.skipIf = function(condition) {
+test.skipIf = function (condition) {
     if (condition) {
         return test.skip
     }

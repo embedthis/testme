@@ -1,9 +1,9 @@
-import type { TestFile, ArtifactManager as IArtifactManager, TestConfig } from "./types.ts";
-import { join, basename, relative } from "path";
-import * as path from "path";
-import { mkdir, rmdir, readdir, unlink, stat } from "node:fs/promises";
-import { existsSync } from "node:fs";
-import { GlobExpansion } from "./utils/glob-expansion.ts";
+import type {TestFile, ArtifactManager as IArtifactManager, TestConfig} from './types.ts'
+import {join, basename, relative} from 'path'
+import * as path from 'path'
+import {mkdir, rmdir, readdir, unlink, stat} from 'node:fs/promises'
+import {existsSync} from 'node:fs'
+import {GlobExpansion} from './utils/glob-expansion.ts'
 
 /**
  * Manages build artifacts and temporary files for test execution
@@ -52,15 +52,13 @@ export class ArtifactManager implements IArtifactManager {
      @throws Error if directory creation fails
      */
     async createArtifactDir(testFile: TestFile): Promise<string> {
-        const artifactDir = testFile.artifactDir;
+        const artifactDir = testFile.artifactDir
 
         try {
-            await mkdir(artifactDir, { recursive: true });
-            return artifactDir;
+            await mkdir(artifactDir, {recursive: true})
+            return artifactDir
         } catch (error) {
-            throw new Error(
-                `Failed to create artifact directory ${artifactDir}: ${error}`
-            );
+            throw new Error(`Failed to create artifact directory ${artifactDir}: ${error}`)
         }
     }
 
@@ -70,18 +68,16 @@ export class ArtifactManager implements IArtifactManager {
      @throws Error if directory removal fails
      */
     async cleanArtifactDir(testFile: TestFile): Promise<void> {
-        const artifactDir = testFile.artifactDir;
+        const artifactDir = testFile.artifactDir
 
         if (!existsSync(artifactDir)) {
-            return;
+            return
         }
 
         try {
-            await this.removeDirectory(artifactDir);
+            await this.removeDirectory(artifactDir)
         } catch (error) {
-            throw new Error(
-                `Failed to clean artifact directory ${artifactDir}: ${error}`
-            );
+            throw new Error(`Failed to clean artifact directory ${artifactDir}: ${error}`)
         }
     }
 
@@ -92,11 +88,9 @@ export class ArtifactManager implements IArtifactManager {
      */
     async cleanAllArtifacts(rootDir: string): Promise<void> {
         try {
-            await this.findAndRemoveArtifactDirs(rootDir);
+            await this.findAndRemoveArtifactDirs(rootDir)
         } catch (error) {
-            throw new Error(
-                `Failed to clean all artifacts in ${rootDir}: ${error}`
-            );
+            throw new Error(`Failed to clean all artifacts in ${rootDir}: ${error}`)
         }
     }
 
@@ -107,7 +101,7 @@ export class ArtifactManager implements IArtifactManager {
      @returns Full path to the artifact file
      */
     getArtifactPath(testFile: TestFile, filename: string): string {
-        return join(testFile.artifactDir, filename);
+        return join(testFile.artifactDir, filename)
     }
 
     /*
@@ -116,7 +110,7 @@ export class ArtifactManager implements IArtifactManager {
      */
     async ensureArtifactDirExists(testFile: TestFile): Promise<void> {
         if (!existsSync(testFile.artifactDir)) {
-            await this.createArtifactDir(testFile);
+            await this.createArtifactDir(testFile)
         }
     }
 
@@ -127,18 +121,14 @@ export class ArtifactManager implements IArtifactManager {
      @param content Content to write
      @throws Error if write fails
      */
-    async writeArtifact(
-        testFile: TestFile,
-        filename: string,
-        content: string
-    ): Promise<void> {
-        await this.ensureArtifactDirExists(testFile);
-        const filePath = this.getArtifactPath(testFile, filename);
+    async writeArtifact(testFile: TestFile, filename: string, content: string): Promise<void> {
+        await this.ensureArtifactDirExists(testFile)
+        const filePath = this.getArtifactPath(testFile, filename)
 
         try {
-            await Bun.write(filePath, content);
+            await Bun.write(filePath, content)
         } catch (error) {
-            throw new Error(`Failed to write artifact ${filePath}: ${error}`);
+            throw new Error(`Failed to write artifact ${filePath}: ${error}`)
         }
     }
 
@@ -150,13 +140,13 @@ export class ArtifactManager implements IArtifactManager {
      @throws Error if read fails
      */
     async readArtifact(testFile: TestFile, filename: string): Promise<string> {
-        const filePath = this.getArtifactPath(testFile, filename);
+        const filePath = this.getArtifactPath(testFile, filename)
 
         try {
-            const file = Bun.file(filePath);
-            return await file.text();
+            const file = Bun.file(filePath)
+            return await file.text()
         } catch (error) {
-            throw new Error(`Failed to read artifact ${filePath}: ${error}`);
+            throw new Error(`Failed to read artifact ${filePath}: ${error}`)
         }
     }
 
@@ -166,17 +156,14 @@ export class ArtifactManager implements IArtifactManager {
      @param filename Name of the artifact file
      @returns true if artifact exists, false otherwise
      */
-    async artifactExists(
-        testFile: TestFile,
-        filename: string
-    ): Promise<boolean> {
-        const filePath = this.getArtifactPath(testFile, filename);
+    async artifactExists(testFile: TestFile, filename: string): Promise<boolean> {
+        const filePath = this.getArtifactPath(testFile, filename)
 
         try {
-            const file = Bun.file(filePath);
-            return await file.exists();
+            const file = Bun.file(filePath)
+            return await file.exists()
         } catch {
-            return false;
+            return false
         }
     }
 
@@ -186,26 +173,26 @@ export class ArtifactManager implements IArtifactManager {
      */
     private async removeDirectory(dirPath: string): Promise<void> {
         try {
-            const entries = await readdir(dirPath);
+            const entries = await readdir(dirPath)
 
             // Remove all files and subdirectories
             for (const entry of entries) {
-                const fullPath = join(dirPath, entry);
-                const stats = await stat(fullPath);
+                const fullPath = join(dirPath, entry)
+                const stats = await stat(fullPath)
 
                 if (stats.isDirectory()) {
-                    await this.removeDirectory(fullPath);
+                    await this.removeDirectory(fullPath)
                 } else {
-                    await unlink(fullPath);
+                    await unlink(fullPath)
                 }
             }
 
             // Remove the directory itself
-            await rmdir(dirPath);
+            await rmdir(dirPath)
         } catch (error) {
             // If directory doesn't exist, that's OK
-            if ((error as any).code !== "ENOENT") {
-                throw error;
+            if ((error as any).code !== 'ENOENT') {
+                throw error
             }
         }
     }
@@ -216,27 +203,25 @@ export class ArtifactManager implements IArtifactManager {
      */
     private async findAndRemoveArtifactDirs(dirPath: string): Promise<void> {
         try {
-            const entries = await readdir(dirPath);
+            const entries = await readdir(dirPath)
 
             for (const entry of entries) {
-                const fullPath = join(dirPath, entry);
-                const stats = await stat(fullPath);
+                const fullPath = join(dirPath, entry)
+                const stats = await stat(fullPath)
 
                 if (stats.isDirectory()) {
-                    if (entry === ".testme") {
+                    if (entry === '.testme') {
                         // Found an artifact directory, remove it
-                        await this.removeDirectory(fullPath);
+                        await this.removeDirectory(fullPath)
                     } else if (!this.shouldSkipDirectory(entry)) {
                         // Recursively search subdirectories
-                        await this.findAndRemoveArtifactDirs(fullPath);
+                        await this.findAndRemoveArtifactDirs(fullPath)
                     }
                 }
             }
         } catch (error) {
             // Log warning but continue
-            console.warn(
-                `Warning: Could not clean artifacts in ${dirPath}: ${error}`
-            );
+            console.warn(`Warning: Could not clean artifacts in ${dirPath}: ${error}`)
         }
     }
 
@@ -247,21 +232,18 @@ export class ArtifactManager implements IArtifactManager {
      */
     private shouldSkipDirectory(dirName: string): boolean {
         const skipDirs = [
-            "node_modules",
-            ".git",
-            ".svn",
-            ".hg",
-            "__pycache__",
-            ".pytest_cache",
-            "coverage",
-            "dist",
-            "build",
-        ];
+            'node_modules',
+            '.git',
+            '.svn',
+            '.hg',
+            '__pycache__',
+            '.pytest_cache',
+            'coverage',
+            'dist',
+            'build',
+        ]
 
-        return (
-            skipDirs.includes(dirName) ||
-            (dirName.startsWith(".") && dirName !== ".testme")
-        );
+        return skipDirs.includes(dirName) || (dirName.startsWith('.') && dirName !== '.testme')
     }
 
     /*
@@ -272,77 +254,82 @@ export class ArtifactManager implements IArtifactManager {
      @param config Test configuration containing environment variables
      @returns Content of the project.yml file for xcodegen
      */
-    async generateXcodeProjectConfig(testFile: TestFile, expandedFlags: string[], expandedLibraries: string[], config: TestConfig): Promise<string> {
-        const testBaseName = basename(testFile.name, '.tst.c');
-        const relativePath = relative(testFile.artifactDir, testFile.path);
+    async generateXcodeProjectConfig(
+        testFile: TestFile,
+        expandedFlags: string[],
+        expandedLibraries: string[],
+        config: TestConfig
+    ): Promise<string> {
+        const testBaseName = basename(testFile.name, '.tst.c')
+        const relativePath = relative(testFile.artifactDir, testFile.path)
         // Use absolute path for working directory - Xcode needs this to exist
-        const testDirectoryPath = testFile.directory;
+        const testDirectoryPath = testFile.directory
 
         // Process flags to extract settings for Xcode
-        const { settings: xcodeSettings } = this.processCompilerFlagsForXcode(expandedFlags, testFile);
-        const libraryFlags = this.processLibrariesForXcode(expandedLibraries);
+        const {settings: xcodeSettings} = this.processCompilerFlagsForXcode(expandedFlags, testFile)
+        const libraryFlags = this.processLibrariesForXcode(expandedLibraries)
 
         let settingsBlock = `      PRODUCT_NAME: ${testBaseName}
       CONFIGURATION_BUILD_DIR: $(SRCROOT)
       GCC_OPTIMIZATION_LEVEL: 0
       GCC_GENERATE_DEBUGGING_SYMBOLS: YES
       DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
-      ENABLE_TESTABILITY: YES`;
+      ENABLE_TESTABILITY: YES`
 
         if (xcodeSettings) {
-            settingsBlock += '\n' + xcodeSettings;
+            settingsBlock += '\n' + xcodeSettings
         }
 
         if (libraryFlags) {
-            settingsBlock += '\n' + libraryFlags;
+            settingsBlock += '\n' + libraryFlags
         }
 
         // Generate environment variables for the scheme
         // Note: We can't use getTestEnvironment() here as it's in BaseTestHandler
         // So we replicate the logic for platform-specific env var merging
-        let environmentVariables = '';
+        let environmentVariables = ''
         if (config.env) {
-            const baseDir = config.configDir || testFile.directory;
-            const envVars: string[] = [];
+            const baseDir = config.configDir || testFile.directory
+            const envVars: string[] = []
 
             // Determine current platform
-            const platform = process.platform === 'darwin' ? 'macosx' :
-                           process.platform === 'win32' ? 'windows' : 'linux';
+            const platform =
+                process.platform === 'darwin' ? 'macosx' : process.platform === 'win32' ? 'windows' : 'linux'
 
             // Collect all environment variables (base + platform-specific)
-            const allEnvVars: Record<string, string> = {};
+            const allEnvVars: Record<string, string> = {}
 
             // First, add base environment variables
             for (const [key, value] of Object.entries(config.env)) {
                 // Skip platform-specific keys and non-string values
                 if (key === 'windows' || key === 'macosx' || key === 'linux' || typeof value !== 'string') {
-                    continue;
+                    continue
                 }
-                allEnvVars[key] = value;
+                allEnvVars[key] = value
             }
 
             // Then, merge platform-specific environment variables
-            const platformEnv = config.env[platform];
+            const platformEnv = config.env[platform]
             if (platformEnv) {
                 for (const [key, value] of Object.entries(platformEnv)) {
                     // Skip non-string values
                     if (typeof value !== 'string') {
-                        continue;
+                        continue
                     }
-                    allEnvVars[key] = value;
+                    allEnvVars[key] = value
                 }
             }
 
             // Expand ${...} references in environment variable values
             for (const [key, value] of Object.entries(allEnvVars)) {
-                const expandedValue = await GlobExpansion.expandSingle(value, baseDir);
-                envVars.push(`        ${key}: "${expandedValue}"`);
+                const expandedValue = await GlobExpansion.expandSingle(value, baseDir)
+                envVars.push(`        ${key}: "${expandedValue}"`)
             }
 
             if (envVars.length > 0) {
                 environmentVariables = `
       environmentVariables:
-${envVars.join('\n')}`;
+${envVars.join('\n')}`
             }
         }
 
@@ -363,7 +350,7 @@ schemes:
     run:
       config: Debug
       customWorkingDirectory: ${testDirectoryPath}${environmentVariables}
-`;
+`
     }
 
     /*
@@ -374,18 +361,28 @@ schemes:
      @param config Test configuration containing environment variables
      @throws Error if project creation fails
      */
-    async createXcodeProject(testFile: TestFile, expandedFlags: string[], expandedLibraries: string[], config: TestConfig): Promise<void> {
+    async createXcodeProject(
+        testFile: TestFile,
+        expandedFlags: string[],
+        expandedLibraries: string[],
+        config: TestConfig
+    ): Promise<void> {
         try {
-            const testBaseName = basename(testFile.name, '.tst.c');
-            const projectConfigContent = await this.generateXcodeProjectConfig(testFile, expandedFlags, expandedLibraries, config);
-            const configFileName = `${testBaseName}.yml`;
+            const testBaseName = basename(testFile.name, '.tst.c')
+            const projectConfigContent = await this.generateXcodeProjectConfig(
+                testFile,
+                expandedFlags,
+                expandedLibraries,
+                config
+            )
+            const configFileName = `${testBaseName}.yml`
 
             // Write the project configuration file
-            await this.writeArtifact(testFile, configFileName, projectConfigContent);
+            await this.writeArtifact(testFile, configFileName, projectConfigContent)
 
-            console.log(`📝 Created Xcode project configuration: ${configFileName}`);
+            console.log(`📝 Created Xcode project configuration: ${configFileName}`)
         } catch (error) {
-            throw new Error(`Failed to create Xcode project: ${error}`);
+            throw new Error(`Failed to create Xcode project: ${error}`)
         }
     }
 
@@ -398,21 +395,21 @@ schemes:
     private makePathRelativeIfLocal(absolutePath: string, fromDirectory: string): string {
         // If it's already relative, return as-is
         if (!path.isAbsolute(absolutePath)) {
-            return absolutePath;
+            return absolutePath
         }
 
         // Check if the path is within a reasonable project structure
         // (contains common project patterns like /build/, /lib/, /include/, etc.)
-        const projectPatterns = ['/build/', '/lib/', '/include/', '/src/', '/test/', '../'];
-        const isProjectPath = projectPatterns.some(pattern => absolutePath.includes(pattern));
+        const projectPatterns = ['/build/', '/lib/', '/include/', '/src/', '/test/', '../']
+        const isProjectPath = projectPatterns.some((pattern) => absolutePath.includes(pattern))
 
         if (isProjectPath) {
             try {
-                const relativePath = relative(fromDirectory, absolutePath);
+                const relativePath = relative(fromDirectory, absolutePath)
                 // Prefer relative paths that don't go up too many levels (max 3)
-                const upLevels = (relativePath.match(/\.\.\//g) || []).length;
+                const upLevels = (relativePath.match(/\.\.\//g) || []).length
                 if (upLevels <= 3) {
-                    return relativePath;
+                    return relativePath
                 }
             } catch {
                 // If relative() fails, fall back to absolute
@@ -420,7 +417,7 @@ schemes:
         }
 
         // Return absolute path for system libraries and deep nested paths
-        return absolutePath;
+        return absolutePath
     }
 
     /*
@@ -429,102 +426,107 @@ schemes:
      @param testFile TestFile object to determine relative paths from
      @returns Object with formatted Xcode settings string and library search paths
      */
-    private processCompilerFlagsForXcode(flags: string[], testFile: TestFile): { settings: string; librarySearchPaths: string[] } {
-        const settings: string[] = [];
-        const headerSearchPaths: string[] = [];
-        const librarySearchPaths: string[] = [];
-        const runpathSearchPaths: string[] = [];
-        const otherCFlags: string[] = [];
+    private processCompilerFlagsForXcode(
+        flags: string[],
+        testFile: TestFile
+    ): {settings: string; librarySearchPaths: string[]} {
+        const settings: string[] = []
+        const headerSearchPaths: string[] = []
+        const librarySearchPaths: string[] = []
+        const runpathSearchPaths: string[] = []
+        const otherCFlags: string[] = []
 
         for (const flag of flags) {
             if (flag.startsWith('-I')) {
-                const path = flag.substring(2);
+                const path = flag.substring(2)
                 if (path && path !== '.') {
                     // Build-time paths need to be relative to artifact directory (where Xcode builds)
-                    const relativePath = this.makePathRelativeIfLocal(path, testFile.artifactDir);
-                    headerSearchPaths.push(`"${relativePath}"`);
+                    const relativePath = this.makePathRelativeIfLocal(path, testFile.artifactDir)
+                    headerSearchPaths.push(`"${relativePath}"`)
                 }
             } else if (flag.startsWith('-L')) {
-                const path = flag.substring(2);
+                const path = flag.substring(2)
                 if (path) {
                     // Build-time paths need to be relative to artifact directory (where Xcode builds)
-                    const relativePath = this.makePathRelativeIfLocal(path, testFile.artifactDir);
-                    librarySearchPaths.push(`"${relativePath}"`);
+                    const relativePath = this.makePathRelativeIfLocal(path, testFile.artifactDir)
+                    librarySearchPaths.push(`"${relativePath}"`)
                 }
             } else if (flag.startsWith('-Wl,-rpath,')) {
                 // Handle rpath flags: -Wl,-rpath,/path/to/libs
-                const rpathValue = flag.substring(11); // Remove '-Wl,-rpath,'
+                const rpathValue = flag.substring(11) // Remove '-Wl,-rpath,'
                 if (rpathValue) {
                     // Handle @executable_path and @loader_path relative paths
-                    let processedPath = rpathValue;
+                    let processedPath = rpathValue
                     if (rpathValue.startsWith('@executable_path/') || rpathValue.startsWith('@loader_path/')) {
                         // Extract the relative part after @executable_path/ or @loader_path/
-                        const pathPrefix = rpathValue.startsWith('@executable_path/') ? '@executable_path/' : '@loader_path/';
-                        const relativePart = rpathValue.substring(pathPrefix.length);
+                        const pathPrefix = rpathValue.startsWith('@executable_path/')
+                            ? '@executable_path/'
+                            : '@loader_path/'
+                        const relativePart = rpathValue.substring(pathPrefix.length)
 
                         // The relative part (e.g., "../../build/*/bin") is from executable location to target
                         // Executable is in test/.testme/socket/, target is at some path
                         // We need to convert this to be relative from test directory instead
 
                         // First, resolve what the target absolute path would be
-                        const executableDir = testFile.artifactDir; // e.g., /Users/mob/c/r/test/.testme/socket
-                        const targetPath = path.resolve(executableDir, relativePart);
+                        const executableDir = testFile.artifactDir // e.g., /Users/mob/c/r/test/.testme/socket
+                        const targetPath = path.resolve(executableDir, relativePart)
 
                         // Now make it relative to the test directory (working directory)
-                        processedPath = path.relative(testFile.directory, targetPath);
+                        processedPath = path.relative(testFile.directory, targetPath)
                     }
 
                     // Runtime paths need to be relative to test directory (working directory)
-                    const relativePath = this.makePathRelativeIfLocal(processedPath, testFile.directory);
-                    runpathSearchPaths.push(`"${relativePath}"`);
+                    const relativePath = this.makePathRelativeIfLocal(processedPath, testFile.directory)
+                    runpathSearchPaths.push(`"${relativePath}"`)
                 }
             } else if (flag.startsWith('-std=')) {
                 // Map C standard to Xcode setting
-                const std = flag.substring(5);
+                const std = flag.substring(5)
                 if (std === 'c99') {
-                    settings.push('GCC_C_LANGUAGE_STANDARD: c99');
+                    settings.push('GCC_C_LANGUAGE_STANDARD: c99')
                 } else if (std === 'c11') {
-                    settings.push('GCC_C_LANGUAGE_STANDARD: c11');
+                    settings.push('GCC_C_LANGUAGE_STANDARD: c11')
                 }
             } else if (flag === '-Wall') {
-                settings.push('WARNING_CFLAGS: "-Wall"');
+                settings.push('WARNING_CFLAGS: "-Wall"')
             } else if (flag === '-Wextra') {
                 // Add to other C flags since Xcode doesn't have direct equivalent
-                otherCFlags.push(flag);
+                otherCFlags.push(flag)
             } else if (flag.startsWith('-W') || flag.startsWith('-O') || flag.startsWith('-g')) {
                 // Other warning, optimization, or debug flags
-                otherCFlags.push(flag);
+                otherCFlags.push(flag)
             }
         }
 
         // Add header search paths
         // Always include the test directory itself for header searches
-        const testDirFromArtifact = this.makePathRelativeIfLocal(testFile.directory, testFile.artifactDir);
-        headerSearchPaths.unshift(`"${testDirFromArtifact}"`);
+        const testDirFromArtifact = this.makePathRelativeIfLocal(testFile.directory, testFile.artifactDir)
+        headerSearchPaths.unshift(`"${testDirFromArtifact}"`)
 
         if (headerSearchPaths.length > 0) {
-            settings.push(`HEADER_SEARCH_PATHS: [${headerSearchPaths.join(', ')}]`);
+            settings.push(`HEADER_SEARCH_PATHS: [${headerSearchPaths.join(', ')}]`)
         }
 
         // Add library search paths
         if (librarySearchPaths.length > 0) {
-            settings.push(`LIBRARY_SEARCH_PATHS: [${librarySearchPaths.join(', ')}]`);
+            settings.push(`LIBRARY_SEARCH_PATHS: [${librarySearchPaths.join(', ')}]`)
         }
 
         // Add runtime library search paths (rpath)
         if (runpathSearchPaths.length > 0) {
-            settings.push(`LD_RUNPATH_SEARCH_PATHS: [${runpathSearchPaths.join(', ')}]`);
+            settings.push(`LD_RUNPATH_SEARCH_PATHS: [${runpathSearchPaths.join(', ')}]`)
         }
 
         // Add other C flags
         if (otherCFlags.length > 0) {
-            settings.push(`OTHER_CFLAGS: "${otherCFlags.join(' ')}"`);
+            settings.push(`OTHER_CFLAGS: "${otherCFlags.join(' ')}"`)
         }
 
         return {
-            settings: settings.map(setting => `      ${setting}`).join('\n'),
-            librarySearchPaths
-        };
+            settings: settings.map((setting) => `      ${setting}`).join('\n'),
+            librarySearchPaths,
+        }
     }
 
     /*
@@ -534,26 +536,28 @@ schemes:
      */
     private processLibrariesForXcode(libraries: string[]): string {
         if (libraries.length === 0) {
-            return '';
+            return ''
         }
 
-        const settings: string[] = [];
+        const settings: string[] = []
 
         // Note: LIBRARY_SEARCH_PATHS is now handled in processCompilerFlagsForXcode() from -L flags
 
         // Use -l flags for all libraries - let Xcode find .a or .dylib automatically
-        const libFlags = libraries.map(lib => {
-            // Remove "lib" prefix if present, then add "-l" prefix
-            const libName = lib.startsWith('lib') ? lib.slice(3) : lib;
-            return `-l${libName}`;
-        }).join(' ');
+        const libFlags = libraries
+            .map((lib) => {
+                // Remove "lib" prefix if present, then add "-l" prefix
+                const libName = lib.startsWith('lib') ? lib.slice(3) : lib
+                return `-l${libName}`
+            })
+            .join(' ')
 
         if (libFlags) {
-            settings.push(`OTHER_LDFLAGS: "${libFlags}"`);
+            settings.push(`OTHER_LDFLAGS: "${libFlags}"`)
         }
 
         // Note: LD_RUNPATH_SEARCH_PATHS is now handled in processCompilerFlagsForXcode() from rpath flags
 
-        return settings.map(setting => `      ${setting}`).join('\n');
+        return settings.map((setting) => `      ${setting}`).join('\n')
     }
 }

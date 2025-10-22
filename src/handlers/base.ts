@@ -1,15 +1,10 @@
-import type {
-    TestFile,
-    TestResult,
-    TestConfig,
-    TestHandler,
-} from "../types.ts";
-import { TestStatus } from "../types.ts";
-import { GlobExpansion } from "../utils/glob-expansion.ts";
-import { ErrorMessages } from "../utils/error-messages.ts";
-import { PlatformDetector } from "../platform/detector.ts";
-import { countAssertions } from "../utils/assertion-counter.ts";
-import { resolve } from "path";
+import type {TestFile, TestResult, TestConfig, TestHandler} from '../types.ts'
+import {TestStatus} from '../types.ts'
+import {GlobExpansion} from '../utils/glob-expansion.ts'
+import {ErrorMessages} from '../utils/error-messages.ts'
+import {PlatformDetector} from '../platform/detector.ts'
+import {countAssertions} from '../utils/assertion-counter.ts'
+import {resolve} from 'path'
 
 /*
  Abstract base class for all test handlers
@@ -21,7 +16,7 @@ export abstract class BaseTestHandler implements TestHandler {
      @param file Test file to check
      @returns true if handler can process this file type
      */
-    abstract canHandle(file: TestFile): boolean;
+    abstract canHandle(file: TestFile): boolean
 
     /*
      Executes the test file and returns results
@@ -29,7 +24,7 @@ export abstract class BaseTestHandler implements TestHandler {
      @param config Test execution configuration
      @returns Promise resolving to test results
      */
-    abstract execute(file: TestFile, config: TestConfig): Promise<TestResult>;
+    abstract execute(file: TestFile, config: TestConfig): Promise<TestResult>
 
     /*
      Optional preparation step before test execution
@@ -59,24 +54,24 @@ export abstract class BaseTestHandler implements TestHandler {
         command: string,
         args: string[],
         options: {
-            cwd?: string;
-            timeout?: number;
-            env?: Record<string, string>;
+            cwd?: string
+            timeout?: number
+            env?: Record<string, string>
         } = {}
-    ): Promise<{ exitCode: number; stdout: string; stderr: string }> {
+    ): Promise<{exitCode: number; stdout: string; stderr: string}> {
         // Build environment - be defensive about PATH handling on Windows
-        const spawnEnv: Record<string, string> = {};
+        const spawnEnv: Record<string, string> = {}
 
         // Copy all environment variables
         for (const [key, value] of Object.entries(process.env)) {
             if (value !== undefined) {
-                spawnEnv[key] = value;
+                spawnEnv[key] = value
             }
         }
 
         // Merge options.env
         for (const [key, value] of Object.entries(options.env || {})) {
-            spawnEnv[key] = value;
+            spawnEnv[key] = value
         }
 
         // On Windows, if we have a custom PATH, ensure it completely replaces any variants
@@ -84,7 +79,7 @@ export abstract class BaseTestHandler implements TestHandler {
             // Remove any case variants from process.env, keep only our uppercase PATH
             for (const key of Object.keys(spawnEnv)) {
                 if (key !== 'PATH' && key.toUpperCase() === 'PATH') {
-                    delete spawnEnv[key];
+                    delete spawnEnv[key]
                 }
             }
         }
@@ -92,25 +87,25 @@ export abstract class BaseTestHandler implements TestHandler {
         const proc = Bun.spawn([command, ...args], {
             cwd: options.cwd,
             env: spawnEnv,
-            stdout: "pipe",
-            stderr: "pipe",
-            stdin: PlatformDetector.isWindows() ? "pipe" : "ignore",
-        });
+            stdout: 'pipe',
+            stderr: 'pipe',
+            stdin: PlatformDetector.isWindows() ? 'pipe' : 'ignore',
+        })
 
         // On Windows, close stdin pipe immediately to prevent process from waiting for input
         if (PlatformDetector.isWindows() && proc.stdin) {
-            proc.stdin.end();
+            proc.stdin.end()
         }
 
-        let timeoutId: Timer | undefined;
-        let timedOut = false;
+        let timeoutId: Timer | undefined
+        let timedOut = false
 
         // Set up timeout if specified
         if (options.timeout) {
             timeoutId = setTimeout(() => {
-                timedOut = true;
-                proc.kill();
-            }, options.timeout);
+                timedOut = true
+                proc.kill()
+            }, options.timeout)
         }
 
         try {
@@ -120,49 +115,57 @@ export abstract class BaseTestHandler implements TestHandler {
                 proc.exited,
                 new Response(proc.stdout).text(),
                 new Response(proc.stderr).text(),
-            ]);
+            ])
 
             if (timeoutId) {
-                clearTimeout(timeoutId);
+                clearTimeout(timeoutId)
             }
 
             if (timedOut) {
                 return {
                     exitCode: -1,
                     stdout: stdout,
-                    stderr: stderr + "\nProcess timed out",
-                };
+                    stderr: stderr + '\nProcess timed out',
+                }
             }
 
             return {
                 exitCode: result,
                 stdout,
                 stderr,
-            };
+            }
         } catch (error) {
             if (timeoutId) {
-                clearTimeout(timeoutId);
+                clearTimeout(timeoutId)
             }
 
             // Provide helpful error messages for common failures
-            let errorMessage = `Failed to execute command: ${error}`;
+            let errorMessage = `Failed to execute command: ${error}`
 
-            const errorStr = String(error);
+            const errorStr = String(error)
             // Detect "command not found" or "executable not found" errors
-            if (errorStr.includes("ENOENT") || errorStr.includes("not found") ||
-                errorStr.includes("No such file")) {
-
+            if (errorStr.includes('ENOENT') || errorStr.includes('not found') || errorStr.includes('No such file')) {
                 // Check if it's a compiler
-                if (command === "gcc" || command === "clang" || command === "cl" ||
-                    command === "cl.exe" || command.includes("gcc") || command.includes("clang")) {
-                    errorMessage = ErrorMessages.compilerNotFound(command);
+                if (
+                    command === 'gcc' ||
+                    command === 'clang' ||
+                    command === 'cl' ||
+                    command === 'cl.exe' ||
+                    command.includes('gcc') ||
+                    command.includes('clang')
+                ) {
+                    errorMessage = ErrorMessages.compilerNotFound(command)
                 }
                 // Check if it's a runtime dependency
-                else if (command === "python" || command === "python3" || command === "go" ||
-                         command === "node" || command === "bun") {
-                    errorMessage = ErrorMessages.dependencyNotFound(command);
-                }
-                else {
+                else if (
+                    command === 'python' ||
+                    command === 'python3' ||
+                    command === 'go' ||
+                    command === 'node' ||
+                    command === 'bun'
+                ) {
+                    errorMessage = ErrorMessages.dependencyNotFound(command)
+                } else {
                     errorMessage = `Executable not found in $PATH: "${command}"
 
 Common solutions:
@@ -170,15 +173,15 @@ Common solutions:
 2. Add ${command}'s directory to your PATH environment variable
 3. Specify the full path to ${command}
 
-Original error: ${error}`;
+Original error: ${error}`
                 }
             }
 
             return {
                 exitCode: -1,
-                stdout: "",
+                stdout: '',
                 stderr: errorMessage,
-            };
+            }
         }
     }
 
@@ -192,23 +195,23 @@ Original error: ${error}`;
         file?: TestFile,
         compiler?: string
     ): Promise<Record<string, string>> {
-        const env: Record<string, string> = {};
+        const env: Record<string, string> = {}
 
         // Set TESTME_VERBOSE if verbose mode is enabled
         if (config.output?.verbose) {
-            env.TESTME_VERBOSE = "1";
+            env.TESTME_VERBOSE = '1'
         }
 
         // Set TESTME_DEPTH if depth is specified
         if (config.execution?.depth !== undefined) {
-            env.TESTME_DEPTH = config.execution.depth.toString();
+            env.TESTME_DEPTH = config.execution.depth.toString()
         }
 
         // Set TESTME_ITERATIONS (default to 1 if not specified)
-        env.TESTME_ITERATIONS = (config.execution?.iterations ?? 1).toString();
+        env.TESTME_ITERATIONS = (config.execution?.iterations ?? 1).toString()
 
         // Create special variables for expansion if we have file context
-        let specialVars;
+        let specialVars
         if (file) {
             specialVars = GlobExpansion.createSpecialVariables(
                 file.artifactDir,
@@ -216,143 +219,130 @@ Original error: ${error}`;
                 config.configDir || file.directory,
                 compiler,
                 config.profile
-            );
+            )
 
             // Export special variables as environment variables for tests
-            if (specialVars.PLATFORM !== undefined) env.TESTME_PLATFORM = specialVars.PLATFORM;
-            if (specialVars.PROFILE !== undefined) env.TESTME_PROFILE = specialVars.PROFILE;
-            if (specialVars.OS !== undefined) env.TESTME_OS = specialVars.OS;
-            if (specialVars.ARCH !== undefined) env.TESTME_ARCH = specialVars.ARCH;
-            if (specialVars.CC !== undefined) env.TESTME_CC = specialVars.CC;
-            if (specialVars.TESTDIR !== undefined) env.TESTME_TESTDIR = specialVars.TESTDIR;
-            if (specialVars.CONFIGDIR !== undefined) env.TESTME_CONFIGDIR = specialVars.CONFIGDIR;
+            if (specialVars.PLATFORM !== undefined) env.TESTME_PLATFORM = specialVars.PLATFORM
+            if (specialVars.PROFILE !== undefined) env.TESTME_PROFILE = specialVars.PROFILE
+            if (specialVars.OS !== undefined) env.TESTME_OS = specialVars.OS
+            if (specialVars.ARCH !== undefined) env.TESTME_ARCH = specialVars.ARCH
+            if (specialVars.CC !== undefined) env.TESTME_CC = specialVars.CC
+            if (specialVars.TESTDIR !== undefined) env.TESTME_TESTDIR = specialVars.TESTDIR
+            if (specialVars.CONFIGDIR !== undefined) env.TESTME_CONFIGDIR = specialVars.CONFIGDIR
         }
 
         // Add environment variables from configuration with expansion
         // Support both 'environment' (new) and 'env' (legacy) keys
-        const configEnv = config.environment || config.env;
+        const configEnv = config.environment || config.env
         if (configEnv) {
             // Use _envConfigDir if available (for inherited env vars), otherwise use configDir
             // This ensures inherited paths are resolved relative to where they were defined
-            const baseDir = (config as any)._envConfigDir || config.configDir || process.cwd();
+            const baseDir = (config as any)._envConfigDir || config.configDir || process.cwd()
 
             // Determine current platform
-            const platform = PlatformDetector.isWindows() ? 'windows' :
-                           PlatformDetector.isMacOS() ? 'macosx' : 'linux';
+            const platform = PlatformDetector.isWindows() ? 'windows' : PlatformDetector.isMacOS() ? 'macosx' : 'linux'
 
             // First, process base environment variables (exclude platform keys)
             for (const [key, value] of Object.entries(configEnv)) {
                 // Skip platform-specific section keys (legacy format)
                 if (key === 'windows' || key === 'macosx' || key === 'linux' || key === 'default') {
-                    continue;
+                    continue
                 }
 
-                let resolvedValue: string | undefined;
+                let resolvedValue: string | undefined
 
                 // Handle object values with default/platform pattern
                 if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
                     // Cast to our platform object type
-                    const platformObj = value as { default?: string; windows?: string; macosx?: string; linux?: string };
+                    const platformObj = value as {default?: string; windows?: string; macosx?: string; linux?: string}
                     // Try platform-specific value first, fall back to default
-                    resolvedValue = platformObj[platform as 'windows' | 'macosx' | 'linux'] || platformObj.default;
+                    resolvedValue = platformObj[platform as 'windows' | 'macosx' | 'linux'] || platformObj.default
                 } else if (value === null || value === undefined) {
                     // Skip null/undefined values
-                    continue;
+                    continue
                 } else {
                     // Convert non-string values (numbers, booleans) to strings
-                    resolvedValue = typeof value === 'string' ? value : String(value);
+                    resolvedValue = typeof value === 'string' ? value : String(value)
                 }
 
                 // Skip if no value resolved
                 if (!resolvedValue) {
-                    continue;
+                    continue
                 }
 
                 // Expand ${...} references in environment variable values
-                let expandedValue = await GlobExpansion.expandSingle(
-                    resolvedValue,
-                    baseDir,
-                    specialVars
-                );
+                let expandedValue = await GlobExpansion.expandSingle(resolvedValue, baseDir, specialVars)
 
                 // Normalize PATH variable on Windows (Path, path -> PATH)
-                let envKey = key;
+                let envKey = key
                 if (PlatformDetector.isWindows() && key.toUpperCase() === 'PATH') {
-                    envKey = 'PATH';
-                    expandedValue = this.convertPathSeparators(expandedValue);
+                    envKey = 'PATH'
+                    expandedValue = this.convertPathSeparators(expandedValue)
                 }
 
                 // Convert relative paths in PATH to absolute paths (based on config directory)
                 if (key.toUpperCase() === 'PATH' || key === 'LD_LIBRARY_PATH' || key === 'DYLD_LIBRARY_PATH') {
-                    expandedValue = this.resolvePathComponents(expandedValue, baseDir);
+                    expandedValue = this.resolvePathComponents(expandedValue, baseDir)
                 }
 
-                env[envKey] = expandedValue;
+                env[envKey] = expandedValue
             }
 
             // Then, merge default environment variables (legacy format with env.default section)
-            const defaultEnv = configEnv['default'];
+            const defaultEnv = configEnv['default']
             if (defaultEnv && typeof defaultEnv === 'object') {
                 for (const [key, value] of Object.entries(defaultEnv)) {
                     if (value === null || value === undefined) {
-                        continue;
+                        continue
                     }
                     // Convert non-string values to strings
-                    const stringValue = typeof value === 'string' ? value : String(value);
-                    let expandedValue = await GlobExpansion.expandSingle(
-                        stringValue,
-                        baseDir,
-                        specialVars
-                    );
+                    const stringValue = typeof value === 'string' ? value : String(value)
+                    let expandedValue = await GlobExpansion.expandSingle(stringValue, baseDir, specialVars)
                     // Normalize PATH variable on Windows (Path, path -> PATH)
-                    let envKey = key;
+                    let envKey = key
                     if (PlatformDetector.isWindows() && key.toUpperCase() === 'PATH') {
-                        envKey = 'PATH';
-                        expandedValue = this.convertPathSeparators(expandedValue);
+                        envKey = 'PATH'
+                        expandedValue = this.convertPathSeparators(expandedValue)
                     }
 
                     // Convert relative paths in PATH to absolute paths (based on config directory)
                     if (key.toUpperCase() === 'PATH' || key === 'LD_LIBRARY_PATH' || key === 'DYLD_LIBRARY_PATH') {
-                        expandedValue = this.resolvePathComponents(expandedValue, baseDir);
+                        expandedValue = this.resolvePathComponents(expandedValue, baseDir)
                     }
 
-                    env[envKey] = expandedValue;
+                    env[envKey] = expandedValue
                 }
             }
 
             // Finally, merge platform-specific environment variables (legacy format)
             // These override both base and default values
-            const platformEnv = configEnv[platform];
+            const platformEnv = configEnv[platform]
             if (platformEnv && typeof platformEnv === 'object') {
                 for (const [key, value] of Object.entries(platformEnv)) {
                     if (value === null || value === undefined) {
-                        continue;
+                        continue
                     }
                     // Convert non-string values to strings
-                    const stringValue = typeof value === 'string' ? value : String(value);
-                    let expandedValue = await GlobExpansion.expandSingle(
-                        stringValue,
-                        baseDir,
-                        specialVars
-                    );
+                    const stringValue = typeof value === 'string' ? value : String(value)
+                    let expandedValue = await GlobExpansion.expandSingle(stringValue, baseDir, specialVars)
                     // Normalize PATH variable on Windows (Path, path -> PATH)
-                    let envKey = key;
+                    let envKey = key
                     if (PlatformDetector.isWindows() && key.toUpperCase() === 'PATH') {
-                        envKey = 'PATH';
-                        expandedValue = this.convertPathSeparators(expandedValue);
+                        envKey = 'PATH'
+                        expandedValue = this.convertPathSeparators(expandedValue)
                     }
 
                     // Convert relative paths in PATH to absolute paths (based on config directory)
                     if (key.toUpperCase() === 'PATH' || key === 'LD_LIBRARY_PATH' || key === 'DYLD_LIBRARY_PATH') {
-                        expandedValue = this.resolvePathComponents(expandedValue, baseDir);
+                        expandedValue = this.resolvePathComponents(expandedValue, baseDir)
                     }
 
-                    env[envKey] = expandedValue;
+                    env[envKey] = expandedValue
                 }
             }
         }
 
-        return env;
+        return env
     }
 
     /*
@@ -363,7 +353,7 @@ Original error: ${error}`;
     private convertPathSeparators(path: string): string {
         // Replace : with ; but avoid replacing : in drive letters (e.g., C:)
         // Windows drive letters are followed by \ or / or end of string
-        return path.replace(/:(?![\\\/]|$)/g, ';');
+        return path.replace(/:(?![\\\/]|$)/g, ';')
     }
 
     /*
@@ -374,29 +364,29 @@ Original error: ${error}`;
      */
     private resolvePathComponents(pathValue: string, baseDir: string): string {
         // Determine separator based on platform
-        const sep = PlatformDetector.isWindows() ? ';' : ':';
+        const sep = PlatformDetector.isWindows() ? ';' : ':'
 
         // Split by separator, resolve each component, rejoin
-        const components = pathValue.split(sep);
-        const resolved = components.map(component => {
+        const components = pathValue.split(sep)
+        const resolved = components.map((component) => {
             // Skip empty components
-            if (!component) return component;
+            if (!component) return component
 
             // Skip if already absolute (starts with / on Unix, or drive letter on Windows)
             if (component.startsWith('/') || /^[a-zA-Z]:/.test(component)) {
-                return component;
+                return component
             }
 
             // Skip environment variable references like ${PATH}, $PATH, %PATH%
             if (component.includes('$') || component.includes('%')) {
-                return component;
+                return component
             }
 
             // Resolve relative path to absolute based on baseDir
-            return resolve(baseDir, component);
-        });
+            return resolve(baseDir, component)
+        })
 
-        return resolved.join(sep);
+        return resolved.join(sep)
     }
 
     /*
@@ -418,7 +408,7 @@ Original error: ${error}`;
         exitCode?: number
     ): TestResult {
         // Count assertions in output (✓ and ✗ symbols from test macros)
-        const assertions = countAssertions(output);
+        const assertions = countAssertions(output)
 
         return {
             file,
@@ -428,7 +418,7 @@ Original error: ${error}`;
             error,
             exitCode,
             assertions: assertions || undefined,
-        };
+        }
     }
 
     /*
@@ -436,14 +426,12 @@ Original error: ${error}`;
      @param fn Function to measure
      @returns Promise resolving to result and duration
      */
-    protected async measureExecution<T>(
-        fn: () => Promise<T>
-    ): Promise<{ result: T; duration: number }> {
-        const startTime = performance.now();
-        const result = await fn();
-        const duration = performance.now() - startTime;
+    protected async measureExecution<T>(fn: () => Promise<T>): Promise<{result: T; duration: number}> {
+        const startTime = performance.now()
+        const result = await fn()
+        const duration = performance.now() - startTime
 
-        return { result, duration };
+        return {result, duration}
     }
 
     /**
@@ -458,14 +446,14 @@ Original error: ${error}`;
      * Empty output sections are omitted.
      */
     protected combineOutput(stdout: string, stderr: string): string {
-        let output = "";
+        let output = ''
         if (stdout.trim()) {
-            output += `STDOUT:\n${stdout}\n`;
+            output += `STDOUT:\n${stdout}\n`
         }
         if (stderr.trim()) {
-            output += `STDERR:\n${stderr}`;
+            output += `STDERR:\n${stderr}`
         }
-        return output.trim();
+        return output.trim()
     }
 
     /**
@@ -480,19 +468,15 @@ Original error: ${error}`;
      * Use this for infrastructure failures (compilation errors, runtime errors, etc.)
      * rather than test assertion failures.
      */
-    protected createErrorResult(
-        file: TestFile,
-        error: unknown,
-        duration: number = 0
-    ): TestResult {
-        const errorMessage = error instanceof Error ? error.message : String(error);
+    protected createErrorResult(file: TestFile, error: unknown, duration: number = 0): TestResult {
+        const errorMessage = error instanceof Error ? error.message : String(error)
         return this.createTestResult(
             file,
             TestStatus.Error,
             duration,
-            "",
+            '',
             `Test execution error in ${file.path}: ${errorMessage}`
-        );
+        )
     }
 
     /*
@@ -507,26 +491,26 @@ Original error: ${error}`;
         testEnv: Record<string, string>
     ): Promise<void> {
         if (!config.execution?.showCommands) {
-            return;
+            return
         }
 
-        console.log(`📄 Config used for ${file.name}:`);
-        console.log(this.formatConfig(config));
+        console.log(`📄 Config used for ${file.name}:`)
+        console.log(this.formatConfig(config))
 
         // Show environment variables defined by TestMe
         if (Object.keys(testEnv).length > 0) {
-            console.log(`\n🌍 TestMe environment variables:`);
+            console.log(`\n🌍 TestMe environment variables:`)
             for (const [key, value] of Object.entries(testEnv)) {
-                console.log(`   ${key}=${value}`);
+                console.log(`   ${key}=${value}`)
             }
         }
 
         // Show full environment if verbose mode is enabled
         if (config.output?.verbose) {
-            console.log(`\n🌍 Full environment (${Object.keys(process.env).length} variables):`);
-            const sortedKeys = Object.keys(process.env).sort();
+            console.log(`\n🌍 Full environment (${Object.keys(process.env).length} variables):`)
+            const sortedKeys = Object.keys(process.env).sort()
             for (const key of sortedKeys) {
-                console.log(`   ${key}=${process.env[key]}`);
+                console.log(`   ${key}=${process.env[key]}`)
             }
         }
     }
@@ -556,12 +540,12 @@ Original error: ${error}`;
             patterns: config.patterns,
             services: config.services,
             environment: config.environment || config.env,
-        };
+        }
 
         // Remove undefined values for cleaner output
-        const cleanConfig = this.removeUndefined(displayConfig);
+        const cleanConfig = this.removeUndefined(displayConfig)
 
-        return JSON.stringify(cleanConfig, null, 2);
+        return JSON.stringify(cleanConfig, null, 2)
     }
 
     /*
@@ -571,20 +555,20 @@ Original error: ${error}`;
      */
     protected removeUndefined(obj: any): any {
         if (obj === null || typeof obj !== 'object') {
-            return obj;
+            return obj
         }
 
         if (Array.isArray(obj)) {
-            return obj.map((item) => this.removeUndefined(item));
+            return obj.map((item) => this.removeUndefined(item))
         }
 
-        const result: any = {};
+        const result: any = {}
         for (const [key, value] of Object.entries(obj)) {
             if (value !== undefined) {
-                result[key] = this.removeUndefined(value);
+                result[key] = this.removeUndefined(value)
             }
         }
 
-        return result;
+        return result
     }
 }

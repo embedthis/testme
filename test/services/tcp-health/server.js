@@ -7,7 +7,7 @@ const server = Bun.listen({
     port: 8898,
     socket: {
         data(socket, data) {
-            socket.end();
+            socket.end()
         },
         open(socket) {
             // Connection accepted
@@ -16,12 +16,12 @@ const server = Bun.listen({
             // Connection closed
         },
         error(socket, error) {
-            console.error('Socket error:', error);
+            console.error('Socket error:', error)
         },
     },
-});
+})
 
-console.log(`TCP server listening on localhost:${server.port}`);
+console.log(`TCP server listening on localhost:${server.port}`)
 
 // Keep process running
-await new Promise(() => {});
+await new Promise(() => {})

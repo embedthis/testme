@@ -10,18 +10,18 @@
 export function isInteractiveTTY(): boolean {
     // First check process.stdout.isTTY (works in Node.js)
     if (typeof process !== 'undefined' && process.stdout && process.stdout.isTTY === true) {
-        return true;
+        return true
     }
 
     // In Bun compiled binaries, isTTY may be undefined
     // Check if TERM environment variable is set (indicates terminal)
     // and CI is not set (not running in CI environment)
     if (process.env.TERM && process.env.TERM !== 'dumb' && !process.env.CI) {
-        return true;
+        return true
     }
 
     // Default to false for safety (file redirection, pipes, etc.)
-    return false;
+    return false
 }
 
 /*
@@ -32,29 +32,29 @@ export function isInteractiveTTY(): boolean {
 export function supportsANSI(): boolean {
     // Not a TTY? No ANSI support
     if (!isInteractiveTTY()) {
-        return false;
+        return false
     }
 
     // Windows detection - check for Windows Terminal, VS Code, or modern PowerShell
     if (process.platform === 'win32') {
         // Windows Terminal, VS Code terminal, and modern shells set WT_SESSION or TERM_PROGRAM
         if (process.env.WT_SESSION || process.env.TERM_PROGRAM) {
-            return true;
+            return true
         }
         // ConEmu sets this
         if (process.env.ConEmuANSI === 'ON') {
-            return true;
+            return true
         }
         // If TERM is set on Windows, assume ANSI support (e.g., Git Bash, WSL)
         if (process.env.TERM && process.env.TERM !== 'dumb') {
-            return true;
+            return true
         }
         // Default to no ANSI on Windows (older cmd.exe/PowerShell)
-        return false;
+        return false
     }
 
     // Unix-like systems generally support ANSI
-    return true;
+    return true
 }
 
 /*
@@ -75,7 +75,7 @@ export const ANSI = {
 
     // Show cursor
     showCursor: '\x1b[?25h',
-};
+}
 
 /*
  Writes text that can be overwritten on the next write
@@ -84,10 +84,10 @@ export const ANSI = {
  */
 export function writeOverwritable(text: string): void {
     if (isInteractiveTTY() && supportsANSI()) {
-        Bun.write(Bun.stdout, ANSI.clearLineAndReset + text);
+        Bun.write(Bun.stdout, ANSI.clearLineAndReset + text)
     } else if (isInteractiveTTY()) {
         // Fallback for terminals without ANSI: just write normally with newline
-        console.log(text);
+        console.log(text)
     }
 }
 
@@ -98,10 +98,10 @@ export function writeOverwritable(text: string): void {
  */
 export function clearCurrentLine(): void {
     if (isInteractiveTTY() && supportsANSI()) {
-        Bun.write(Bun.stdout, ANSI.clearLineAndReset);
+        Bun.write(Bun.stdout, ANSI.clearLineAndReset)
     } else if (isInteractiveTTY()) {
         // Fallback for non-ANSI terminals: just move to new line
-        process.stdout.write('\n');
+        process.stdout.write('\n')
     }
 }
 
@@ -110,5 +110,5 @@ export function clearCurrentLine(): void {
  @param text Text to write
  */
 export function writeLine(text: string): void {
-    console.log(text);
+    console.log(text)
 }

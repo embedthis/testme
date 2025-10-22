@@ -1,4 +1,4 @@
-import type { CliOptions } from "./types.ts";
+import type {CliOptions} from './types.ts'
 
 /*
  Command-line interface parser for the testme application
@@ -28,184 +28,183 @@ export class CliParser {
             continue: false,
             noServices: false,
             stop: false,
-        };
+        }
 
-        let i = 0;
+        let i = 0
         while (i < args.length) {
-            const arg = args[i];
+            const arg = args[i]
 
             switch (arg) {
-                case "--config":
-                case "-c":
+                case '--config':
+                case '-c':
                     if (i + 1 < args.length) {
-                        options.config = args[i + 1]!;
-                        i += 2;
+                        options.config = args[i + 1]!
+                        i += 2
                     } else {
-                        throw new Error(`${arg} requires a value`);
+                        throw new Error(`${arg} requires a value`)
                     }
-                    break;
+                    break
 
-                case "--clean":
-                    options.clean = true;
-                    i++;
-                    break;
+                case '--clean':
+                    options.clean = true
+                    i++
+                    break
 
-                case "--list":
-                case "-l":
-                    options.list = true;
-                    i++;
-                    break;
+                case '--list':
+                case '-l':
+                    options.list = true
+                    i++
+                    break
 
-                case "--verbose":
-                case "-v":
-                    options.verbose = true;
-                    i++;
-                    break;
+                case '--verbose':
+                case '-v':
+                    options.verbose = true
+                    i++
+                    break
 
+                case '--help':
+                case '-h':
+                    options.help = true
+                    i++
+                    break
 
-                case "--help":
-                case "-h":
-                    options.help = true;
-                    i++;
-                    break;
+                case '--version':
+                case '-V':
+                    options.version = true
+                    i++
+                    break
 
-                case "--version":
-                case "-V":
-                    options.version = true;
-                    i++;
-                    break;
-
-                case "--chdir":
+                case '--chdir':
                     if (i + 1 < args.length) {
-                        options.chdir = args[i + 1]!;
-                        i += 2;
+                        options.chdir = args[i + 1]!
+                        i += 2
                     } else {
-                        throw new Error(`${arg} requires a directory path`);
+                        throw new Error(`${arg} requires a directory path`)
                     }
-                    break;
+                    break
 
-                case "--quiet":
-                case "-q":
-                    options.quiet = true;
-                    i++;
-                    break;
+                case '--quiet':
+                case '-q':
+                    options.quiet = true
+                    i++
+                    break
 
-                case "--keep":
-                case "-k":
-                    options.keep = true;
-                    i++;
-                    break;
+                case '--keep':
+                case '-k':
+                    options.keep = true
+                    i++
+                    break
 
-                case "--step":
-                    options.step = true;
-                    i++;
-                    break;
+                case '--step':
+                    options.step = true
+                    i++
+                    break
 
-                case "--depth":
+                case '--depth':
                     if (i + 1 < args.length) {
-                        const depthValue = parseInt(args[i + 1]!, 10);
+                        const depthValue = parseInt(args[i + 1]!, 10)
                         if (isNaN(depthValue) || depthValue < 0) {
-                            throw new Error(`${arg} requires a non-negative number`);
+                            throw new Error(`${arg} requires a non-negative number`)
                         }
-                        options.depth = depthValue;
-                        i += 2;
+                        options.depth = depthValue
+                        i += 2
                     } else {
-                        throw new Error(`${arg} requires a number value`);
+                        throw new Error(`${arg} requires a number value`)
                     }
-                    break;
+                    break
 
-                case "--debug":
-                case "-d":
-                    options.debug = true;
-                    i++;
-                    break;
+                case '--debug':
+                case '-d':
+                    options.debug = true
+                    i++
+                    break
 
-                case "--show":
-                case "-s":
-                    options.show = true;
-                    i++;
-                    break;
+                case '--show':
+                case '-s':
+                    options.show = true
+                    i++
+                    break
 
-                case "--workers":
-                case "-w":
+                case '--workers':
+                case '-w':
                     if (i + 1 < args.length) {
-                        const workersValue = parseInt(args[i + 1]!, 10);
+                        const workersValue = parseInt(args[i + 1]!, 10)
                         if (isNaN(workersValue) || workersValue < 1) {
-                            throw new Error(`${arg} requires a positive number`);
+                            throw new Error(`${arg} requires a positive number`)
                         }
-                        options.workers = workersValue;
-                        i += 2;
+                        options.workers = workersValue
+                        i += 2
                     } else {
-                        throw new Error(`${arg} requires a number value`);
+                        throw new Error(`${arg} requires a number value`)
                     }
-                    break;
+                    break
 
-                case "--profile":
-                case "-p":
+                case '--profile':
+                case '-p':
                     if (i + 1 < args.length) {
-                        options.profile = args[i + 1]!;
-                        i += 2;
+                        options.profile = args[i + 1]!
+                        i += 2
                     } else {
-                        throw new Error(`${arg} requires a profile name`);
+                        throw new Error(`${arg} requires a profile name`)
                     }
-                    break;
+                    break
 
-                case "--iterations":
-                case "-i":
+                case '--iterations':
+                case '-i':
                     if (i + 1 < args.length) {
-                        const iterationsValue = parseInt(args[i + 1]!, 10);
+                        const iterationsValue = parseInt(args[i + 1]!, 10)
                         if (isNaN(iterationsValue) || iterationsValue < 1) {
-                            throw new Error(`${arg} requires a positive number`);
+                            throw new Error(`${arg} requires a positive number`)
                         }
-                        options.iterations = iterationsValue;
-                        i += 2;
+                        options.iterations = iterationsValue
+                        i += 2
                     } else {
-                        throw new Error(`${arg} requires a number value`);
+                        throw new Error(`${arg} requires a number value`)
                     }
-                    break;
+                    break
 
-                case "--init":
-                    options.init = true;
-                    i++;
-                    break;
+                case '--init':
+                    options.init = true
+                    i++
+                    break
 
-                case "--new":
+                case '--new':
                     if (i + 1 < args.length) {
-                        options.new = args[i + 1]!;
-                        i += 2;
+                        options.new = args[i + 1]!
+                        i += 2
                     } else {
-                        throw new Error(`${arg} requires a test name`);
+                        throw new Error(`${arg} requires a test name`)
                     }
-                    break;
+                    break
 
-                case "--continue":
-                    options.continue = true;
-                    i++;
-                    break;
+                case '--continue':
+                    options.continue = true
+                    i++
+                    break
 
-                case "--no-services":
-                case "-n":
-                    options.noServices = true;
-                    i++;
-                    break;
+                case '--no-services':
+                case '-n':
+                    options.noServices = true
+                    i++
+                    break
 
-                case "--stop":
-                    options.stop = true;
-                    i++;
-                    break;
+                case '--stop':
+                    options.stop = true
+                    i++
+                    break
 
                 default:
-                    if (arg.startsWith("-")) {
-                        throw new Error(`Unknown option: ${arg}`);
+                    if (arg.startsWith('-')) {
+                        throw new Error(`Unknown option: ${arg}`)
                     }
                     // This is a test pattern
-                    options.patterns.push(arg);
-                    i++;
-                    break;
+                    options.patterns.push(arg)
+                    i++
+                    break
             }
         }
 
-        return options;
+        return options
     }
 
     /*
@@ -300,7 +299,7 @@ CONFIGURATION:
     - Depth requirements (tests only run if --depth >= config depth)
 
 For more information, see the project documentation.
-`;
+`
     }
 
     /*
@@ -310,21 +309,21 @@ For more information, see the project documentation.
      */
     static validateOptions(options: CliOptions): void {
         if (options.config && !options.config.trim()) {
-            throw new Error("Config file path cannot be empty");
+            throw new Error('Config file path cannot be empty')
         }
 
         if (options.help) {
-            return; // Help option is always valid, skip other validations
+            return // Help option is always valid, skip other validations
         }
 
         if (options.clean && options.list) {
-            throw new Error("Cannot use --clean and --list together");
+            throw new Error('Cannot use --clean and --list together')
         }
 
         // Validate test patterns
         for (const pattern of options.patterns) {
             if (!pattern.trim()) {
-                throw new Error("Empty patterns are not allowed");
+                throw new Error('Empty patterns are not allowed')
             }
         }
     }

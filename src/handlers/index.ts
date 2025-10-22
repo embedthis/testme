@@ -1,11 +1,11 @@
-import type { TestHandler } from '../types.ts';
-import { ShellTestHandler } from './shell.ts';
-import { CTestHandler } from './c.ts';
-import { JavaScriptTestHandler } from './javascript.ts';
-import { TypeScriptTestHandler } from './typescript.ts';
-import { EjscriptTestHandler } from './ejscript.ts';
-import { PythonTestHandler } from './python.ts';
-import { GoTestHandler } from './go.ts';
+import type {TestHandler} from '../types.ts'
+import {ShellTestHandler} from './shell.ts'
+import {CTestHandler} from './c.ts'
+import {JavaScriptTestHandler} from './javascript.ts'
+import {TypeScriptTestHandler} from './typescript.ts'
+import {EjscriptTestHandler} from './ejscript.ts'
+import {PythonTestHandler} from './python.ts'
+import {GoTestHandler} from './go.ts'
 
 /*
  Creates and returns all available test handlers
@@ -19,9 +19,9 @@ export const createHandlers = (): TestHandler[] => {
         new TypeScriptTestHandler(),
         new EjscriptTestHandler(),
         new PythonTestHandler(),
-        new GoTestHandler()
-    ];
-};
+        new GoTestHandler(),
+    ]
+}
 
 // Re-export handler classes for direct use
 export {
@@ -31,5 +31,5 @@ export {
     TypeScriptTestHandler,
     EjscriptTestHandler,
     PythonTestHandler,
-    GoTestHandler
-};
+    GoTestHandler,
+}

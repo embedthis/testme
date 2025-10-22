@@ -16,6 +16,6 @@ await describe('Tests that should pass', () => {
 
 await describe('Test with a failure', () => {
     test('this test will fail', () => {
-        expect(1).toBe(2)  // This should fail
+        expect(1).toBe(2) // This should fail
     })
 })

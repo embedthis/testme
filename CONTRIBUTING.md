@@ -28,29 +28,32 @@ Be respectful, professional, and constructive in all interactions. We're buildin
 ### Setup
 
 1. **Fork and clone the repository**
-   ```bash
-   git fork https://github.com/embedthis/testme
-   cd testme
-   ```
+
+    ```bash
+    git fork https://github.com/embedthis/testme
+    cd testme
+    ```
 
 2. **Install dependencies**
-   ```bash
-   bun install
-   ```
+
+    ```bash
+    bun install
+    ```
 
 3. **Build the project**
-   ```bash
-   make build
-   # or
-   bun run build
-   ```
+
+    ```bash
+    make build
+    # or
+    bun run build
+    ```
 
 4. **Run tests**
-   ```bash
-   make test
-   # or
-   cd test && tm
-   ```
+    ```bash
+    make test
+    # or
+    cd test && tm
+    ```
 
 ## Development Workflow
 
@@ -148,13 +151,13 @@ testme/
 - **Indentation**: 4 spaces (configured in `.editorconfig`)
 - **Line length**: 120 characters maximum
 - **Naming conventions**:
-  - `camelCase` for functions and variables
-  - `PascalCase` for classes and types
-  - `UPPER_CASE` for constants
+    - `camelCase` for functions and variables
+    - `PascalCase` for classes and types
+    - `UPPER_CASE` for constants
 - **Comments**:
-  - Use `//` for single-line comments
-  - Use JSDoc `/* */` for multi-line comments
-  - Don't prefix each line with `*` in multi-line comments
+    - Use `//` for single-line comments
+    - Use JSDoc `/* */` for multi-line comments
+    - Don't prefix each line with `*` in multi-line comments
 
 ### Code Quality
 
@@ -199,6 +202,7 @@ async execute(file: TestFile, config: TestConfig): Promise<TestResult> {
 TestMe uses itself for testing! Tests are located in the `test/` directory.
 
 **Test File Naming:**
+
 - C tests: `*.tst.c`
 - Shell tests: `*.tst.sh`
 - PowerShell tests: `*.tst.ps1`
@@ -225,6 +229,7 @@ int main() {
 ```
 
 **Test Organization:**
+
 - `test/portable/` - Cross-platform unit tests
 - `test/platform/` - Platform abstraction layer tests
 - `test/service/` - Service lifecycle integration tests
@@ -299,6 +304,7 @@ DOC: Update README with new CLI options
 ```
 
 **Format:**
+
 - Single line describing the change
 - Imperative mood ("Add" not "Added")
 - No period at the end
@@ -309,68 +315,78 @@ DOC: Update README with new CLI options
 ### Before Submitting
 
 1. **Run tests**: Ensure all tests pass
-   ```bash
-   make test
-   ```
+
+    ```bash
+    make test
+    ```
 
 2. **Build successfully**: Verify clean build
-   ```bash
-   make clean && make build
-   ```
+
+    ```bash
+    make clean && make build
+    ```
 
 3. **Update documentation**: Add/update relevant docs
 
 4. **Follow code style**: Check formatting
-   ```bash
-   bun run format
-   ```
+    ```bash
+    bun run format
+    ```
 
 ### Submitting a PR
 
 1. **Create a feature branch**
-   ```bash
-   git checkout -b feature/my-feature
-   ```
+
+    ```bash
+    git checkout -b feature/my-feature
+    ```
 
 2. **Make focused commits**
-   - Keep commits atomic and focused
-   - Use proper commit message format
-   - Avoid mixing unrelated changes
+    - Keep commits atomic and focused
+    - Use proper commit message format
+    - Avoid mixing unrelated changes
 
 3. **Push and create PR**
-   ```bash
-   git push origin feature/my-feature
-   ```
+
+    ```bash
+    git push origin feature/my-feature
+    ```
 
 4. **PR Description**
-   - Clearly describe what and why
-   - Link related issues
-   - Include examples if applicable
-   - List any breaking changes
+    - Clearly describe what and why
+    - Link related issues
+    - Include examples if applicable
+    - List any breaking changes
 
 ### PR Template
 
 ```markdown
 ## Description
+
 Brief description of changes
 
 ## Motivation
+
 Why is this change needed?
 
 ## Changes
+
 - Change 1
 - Change 2
 
 ## Testing
+
 How was this tested?
 
 ## Documentation
+
 - [ ] Updated README.md
 - [ ] Updated DESIGN.md if architecture changed
 - [ ] Updated CHANGELOG.md
 - [ ] Added/updated code comments
 
 ## Checklist
+
 - [ ] Tests pass locally
 - [ ] Code follows style guidelines
 - [ ] Documentation updated
@@ -391,17 +407,18 @@ How was this tested?
 If you want to add support for a new language (e.g., Python):
 
 1. **Create handler**: `src/handlers/python.ts`
-   ```typescript
-   export class PythonTestHandler extends BaseTestHandler {
-       canHandle(file: TestFile): boolean {
-           return file.type === TestType.Python;
-       }
 
-       async execute(file: TestFile, config: TestConfig): Promise<TestResult> {
-           // Implementation
-       }
-   }
-   ```
+    ```typescript
+    export class PythonTestHandler extends BaseTestHandler {
+        canHandle(file: TestFile): boolean {
+            return file.type === TestType.Python
+        }
+
+        async execute(file: TestFile, config: TestConfig): Promise<TestResult> {
+            // Implementation
+        }
+    }
+    ```
 
 2. **Register handler**: Add to `src/handlers/index.ts`
 

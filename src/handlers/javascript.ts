@@ -1,17 +1,10 @@
-import type {
-    TestFile,
-    TestResult,
-    TestConfig,
-} from "../types.ts";
-import {
-    TestStatus,
-    TestType,
-} from "../types.ts";
-import { BaseTestHandler } from "./base.ts";
-import { PlatformDetector } from "../platform/detector.ts";
-import * as path from "path";
-import * as fs from "fs";
-import * as os from "os";
+import type {TestFile, TestResult, TestConfig} from '../types.ts'
+import {TestStatus, TestType} from '../types.ts'
+import {BaseTestHandler} from './base.ts'
+import {PlatformDetector} from '../platform/detector.ts'
+import * as path from 'path'
+import * as fs from 'fs'
+import * as os from 'os'
 
 /*
  Handler for executing JavaScript tests (.tst.js files)
@@ -24,7 +17,7 @@ export class JavaScriptTestHandler extends BaseTestHandler {
      @returns true if file is a JavaScript test
      */
     canHandle(file: TestFile): boolean {
-        return file.type === TestType.JavaScript;
+        return file.type === TestType.JavaScript
     }
 
     /*
@@ -35,40 +28,32 @@ export class JavaScriptTestHandler extends BaseTestHandler {
      */
     async execute(file: TestFile, config: TestConfig): Promise<TestResult> {
         // Ensure testme module is linked
-        await this.ensureTestmeLinked(file);
+        await this.ensureTestmeLinked(file)
 
         // Handle debug mode
         if (config.execution?.debugMode) {
-            return await this.launchDebugger(file, config);
+            return await this.launchDebugger(file, config)
         }
 
         // Get test environment
-        const testEnv = await this.getTestEnvironment(config, file);
+        const testEnv = await this.getTestEnvironment(config, file)
 
         // Display environment info if showCommands is enabled
-        await this.displayEnvironmentInfo(config, file, testEnv);
+        await this.displayEnvironmentInfo(config, file, testEnv)
 
-        const { result, duration } = await this.measureExecution(async () => {
-            return await this.runCommand("bun", [file.path], {
+        const {result, duration} = await this.measureExecution(async () => {
+            return await this.runCommand('bun', [file.path], {
                 cwd: file.directory,
                 timeout: (config.execution?.timeout || 30) * 1000,
                 env: testEnv,
-            });
-        });
+            })
+        })
 
-        const status =
-            result.exitCode === 0 ? TestStatus.Passed : TestStatus.Failed;
-        const output = this.combineOutput(result.stdout, result.stderr);
-        const error = result.exitCode !== 0 ? result.stderr : undefined;
+        const status = result.exitCode === 0 ? TestStatus.Passed : TestStatus.Failed
+        const output = this.combineOutput(result.stdout, result.stderr)
+        const error = result.exitCode !== 0 ? result.stderr : undefined
 
-        return this.createTestResult(
-            file,
-            status,
-            duration,
-            output,
-            error,
-            result.exitCode
-        );
+        return this.createTestResult(file, status, duration, output, error, result.exitCode)
     }
 
     /*
@@ -79,21 +64,21 @@ export class JavaScriptTestHandler extends BaseTestHandler {
      */
     private async ensureTestmeLinked(file: TestFile): Promise<void> {
         // Search up from test file directory for testme.json5
-        const linkDir = this.findLinkDirectory(file.directory);
+        const linkDir = this.findLinkDirectory(file.directory)
 
         if (!linkDir) {
-            return; // No suitable directory found
+            return // No suitable directory found
         }
 
-        const testmeModulePath = path.join(linkDir, 'node_modules', 'testme');
+        const testmeModulePath = path.join(linkDir, 'node_modules', 'testme')
 
         // Check if testme module already exists as a local link
         if (fs.existsSync(testmeModulePath)) {
             // Verify it's a symlink (not a real package)
             try {
-                const stats = fs.lstatSync(testmeModulePath);
+                const stats = fs.lstatSync(testmeModulePath)
                 if (stats.isSymbolicLink()) {
-                    return; // Already linked
+                    return // Already linked
                 }
             } catch {
                 // Continue to create link
@@ -104,7 +89,7 @@ export class JavaScriptTestHandler extends BaseTestHandler {
         try {
             await this.runCommand('bun', ['link', 'testme'], {
                 cwd: linkDir,
-            });
+            })
         } catch (error) {
             // Linking failed, but continue anyway - the test might not need it
         }
@@ -117,30 +102,30 @@ export class JavaScriptTestHandler extends BaseTestHandler {
      @returns Directory path containing testme.json5, or null if not found
      */
     private findLinkDirectory(startDir: string): string | null {
-        let currentDir = startDir;
-        const homeDir = os.homedir();
+        let currentDir = startDir
+        const homeDir = os.homedir()
 
         while (true) {
             // Stop at home directory
             if (currentDir === homeDir) {
-                return null;
+                return null
             }
 
             // Check for testme.json5
-            const configPath = path.join(currentDir, 'testme.json5');
+            const configPath = path.join(currentDir, 'testme.json5')
             if (fs.existsSync(configPath)) {
-                return currentDir;
+                return currentDir
             }
 
             // Move up one directory
-            const parentDir = path.dirname(currentDir);
+            const parentDir = path.dirname(currentDir)
 
             // Stop if we've reached the root
             if (parentDir === currentDir) {
-                return null;
+                return null
             }
 
-            currentDir = parentDir;
+            currentDir = parentDir
         }
     }
 
@@ -150,27 +135,24 @@ export class JavaScriptTestHandler extends BaseTestHandler {
      @param config Test configuration
      @returns Promise resolving to test results
      */
-    private async launchDebugger(
-        file: TestFile,
-        config: TestConfig
-    ): Promise<TestResult> {
+    private async launchDebugger(file: TestFile, config: TestConfig): Promise<TestResult> {
         try {
-            const debuggerName = config.debug?.js || this.getDefaultDebugger();
+            const debuggerName = config.debug?.js || this.getDefaultDebugger()
 
-            console.log(`\n🐛 Launching ${debuggerName} debugger for: ${file.path}`);
-            console.log(`Working directory: ${file.directory}\n`);
+            console.log(`\n🐛 Launching ${debuggerName} debugger for: ${file.path}`)
+            console.log(`Working directory: ${file.directory}\n`)
 
             switch (debuggerName) {
                 case 'vscode':
-                    return await this.launchVSCodeDebugger(file, config, 'code');
+                    return await this.launchVSCodeDebugger(file, config, 'code')
                 case 'cursor':
-                    return await this.launchVSCodeDebugger(file, config, 'cursor');
+                    return await this.launchVSCodeDebugger(file, config, 'cursor')
                 default:
                     // Treat as path to debugger executable
-                    return await this.launchCustomDebugger(file, config, debuggerName);
+                    return await this.launchCustomDebugger(file, config, debuggerName)
             }
         } catch (error) {
-            return this.createErrorResult(file, error);
+            return this.createErrorResult(file, error)
         }
     }
 
@@ -179,7 +161,7 @@ export class JavaScriptTestHandler extends BaseTestHandler {
      @returns Default debugger name
      */
     private getDefaultDebugger(): string {
-        return 'vscode';
+        return 'vscode'
     }
 
     /*
@@ -193,61 +175,54 @@ export class JavaScriptTestHandler extends BaseTestHandler {
         config: TestConfig,
         editorCommand: string = 'code'
     ): Promise<TestResult> {
-        const startTime = performance.now();
-        const editorName = editorCommand === 'cursor' ? 'Cursor' : 'VSCode';
+        const startTime = performance.now()
+        const editorName = editorCommand === 'cursor' ? 'Cursor' : 'VSCode'
 
-        console.log(`Starting test with Bun debugger in ${editorName}...`);
-        console.log(`File: ${file.path}\n`);
+        console.log(`Starting test with Bun debugger in ${editorName}...`)
+        console.log(`File: ${file.path}\n`)
 
         // Create .vscode directory and launch.json
-        await this.createVSCodeConfig(file);
+        await this.createVSCodeConfig(file)
 
-        console.log(`Opening ${editorName} workspace...`);
-        console.log('\nPrerequisites:');
-        console.log('- Install Bun extension: https://marketplace.visualstudio.com/items?itemName=oven.bun-vscode');
-        console.log('\nInstructions:');
-        console.log(`1. ${editorName} will open with your test directory`);
-        console.log('2. Open the test file and set breakpoints');
-        console.log('3. Press F5 or Run > Start Debugging');
-        console.log('4. Select "Debug Bun Test" configuration\n');
+        console.log(`Opening ${editorName} workspace...`)
+        console.log('\nPrerequisites:')
+        console.log('- Install Bun extension: https://marketplace.visualstudio.com/items?itemName=oven.bun-vscode')
+        console.log('\nInstructions:')
+        console.log(`1. ${editorName} will open with your test directory`)
+        console.log('2. Open the test file and set breakpoints')
+        console.log('3. Press F5 or Run > Start Debugging')
+        console.log('4. Select "Debug Bun Test" configuration\n')
 
         // Find the editor executable
-        const debuggers = await PlatformDetector.detectDebuggers();
-        const debuggerName = editorCommand === 'cursor' ? 'Cursor' : 'VS Code';
-        const editorDebugger = debuggers.find(d => d.name === debuggerName);
+        const debuggers = await PlatformDetector.detectDebuggers()
+        const debuggerName = editorCommand === 'cursor' ? 'Cursor' : 'VS Code'
+        const editorDebugger = debuggers.find((d) => d.name === debuggerName)
 
         if (!editorDebugger) {
-            throw new Error(`${editorName} not found. Please install ${editorName} or add it to PATH`);
+            throw new Error(`${editorName} not found. Please install ${editorName} or add it to PATH`)
         }
 
         // Launch editor with the directory (so .vscode is visible)
         await this.runCommand(editorDebugger.path, [file.directory], {
             cwd: file.directory,
-        });
+        })
 
         // Wait for user to set up debugging in VSCode
-        console.log('\nWaiting for you to start debugging in VSCode...');
-        console.log('The test will run when you start the debugger (F5)\n');
+        console.log('\nWaiting for you to start debugging in VSCode...')
+        console.log('The test will run when you start the debugger (F5)\n')
 
         // Run test normally - user will attach debugger
         const result = await this.runCommand('bun', [file.path], {
             cwd: file.directory,
             env: await this.getTestEnvironment(config, file),
-        });
+        })
 
-        const duration = performance.now() - startTime;
-        const status = result.exitCode === 0 ? TestStatus.Passed : TestStatus.Failed;
-        const output = this.combineOutput(result.stdout, result.stderr);
-        const error = result.exitCode !== 0 ? result.stderr : undefined;
+        const duration = performance.now() - startTime
+        const status = result.exitCode === 0 ? TestStatus.Passed : TestStatus.Failed
+        const output = this.combineOutput(result.stdout, result.stderr)
+        const error = result.exitCode !== 0 ? result.stderr : undefined
 
-        return this.createTestResult(
-            file,
-            status,
-            duration,
-            output,
-            error,
-            result.exitCode
-        );
+        return this.createTestResult(file, status, duration, output, error, result.exitCode)
     }
 
     /*
@@ -255,12 +230,12 @@ export class JavaScriptTestHandler extends BaseTestHandler {
      @param file Test file to create configuration for
      */
     private async createVSCodeConfig(file: TestFile): Promise<void> {
-        const vscodeDir = path.join(file.directory, '.vscode');
-        const launchJsonPath = path.join(vscodeDir, 'launch.json');
+        const vscodeDir = path.join(file.directory, '.vscode')
+        const launchJsonPath = path.join(vscodeDir, 'launch.json')
 
         // Create .vscode directory if it doesn't exist
         if (!fs.existsSync(vscodeDir)) {
-            fs.mkdirSync(vscodeDir, { recursive: true });
+            fs.mkdirSync(vscodeDir, {recursive: true})
         }
 
         // Create launch.json configuration
@@ -274,19 +249,19 @@ export class JavaScriptTestHandler extends BaseTestHandler {
                     program: file.path,
                     cwd: file.directory,
                     stopOnEntry: false,
-                    watchMode: false
-                }
-            ]
-        };
+                    watchMode: false,
+                },
+            ],
+        }
 
         // Write or update launch.json
         if (fs.existsSync(launchJsonPath)) {
-            console.log('Updating existing .vscode/launch.json...');
+            console.log('Updating existing .vscode/launch.json...')
         } else {
-            console.log('Creating .vscode/launch.json...');
+            console.log('Creating .vscode/launch.json...')
         }
 
-        fs.writeFileSync(launchJsonPath, JSON.stringify(launchConfig, null, 4));
+        fs.writeFileSync(launchJsonPath, JSON.stringify(launchConfig, null, 4))
     }
 
     /*
@@ -296,31 +271,20 @@ export class JavaScriptTestHandler extends BaseTestHandler {
      @param debuggerPath Path to debugger executable
      @returns Promise resolving to test results
      */
-    private async launchCustomDebugger(
-        file: TestFile,
-        config: TestConfig,
-        debuggerPath: string
-    ): Promise<TestResult> {
-        const startTime = performance.now();
+    private async launchCustomDebugger(file: TestFile, config: TestConfig, debuggerPath: string): Promise<TestResult> {
+        const startTime = performance.now()
 
-        console.log(`Launching custom debugger: ${debuggerPath}`);
+        console.log(`Launching custom debugger: ${debuggerPath}`)
         const result = await this.runCommand(debuggerPath, [file.path], {
             cwd: file.directory,
             env: await this.getTestEnvironment(config, file),
-        });
+        })
 
-        const duration = performance.now() - startTime;
-        const status = result.exitCode === 0 ? TestStatus.Passed : TestStatus.Failed;
-        const output = this.combineOutput(result.stdout, result.stderr);
-        const error = result.exitCode !== 0 ? result.stderr : undefined;
+        const duration = performance.now() - startTime
+        const status = result.exitCode === 0 ? TestStatus.Passed : TestStatus.Failed
+        const output = this.combineOutput(result.stdout, result.stderr)
+        const error = result.exitCode !== 0 ? result.stderr : undefined
 
-        return this.createTestResult(
-            file,
-            status,
-            duration,
-            output,
-            error,
-            result.exitCode
-        );
+        return this.createTestResult(file, status, duration, output, error, result.exitCode)
     }
 }

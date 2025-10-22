@@ -1,7 +1,7 @@
-import type { TestFile, DiscoveryOptions } from './types.ts';
-import { TestType } from './types.ts';
-import { join, dirname, basename, extname } from 'path';
-import { readdir, stat } from 'node:fs/promises';
+import type {TestFile, DiscoveryOptions} from './types.ts'
+import {TestType} from './types.ts'
+import {join, dirname, basename, extname} from 'path'
+import {readdir, stat} from 'node:fs/promises'
 
 /*
  TestDiscovery - Pattern-driven test file discovery engine
@@ -54,8 +54,8 @@ export class TestDiscovery {
         '.cmd': TestType.Batch,
         '.py': TestType.Python,
         '.go': TestType.Go,
-        '.es': TestType.Ejscript
-    };
+        '.es': TestType.Ejscript,
+    }
 
     /*
      Discovers test files based on provided options
@@ -64,15 +64,15 @@ export class TestDiscovery {
      @throws Error if directory cannot be read
      */
     static async discoverTests(options: DiscoveryOptions): Promise<TestFile[]> {
-        const tests: TestFile[] = [];
+        const tests: TestFile[] = []
 
         try {
-            await this.searchDirectory(options.rootDir, options, tests);
+            await this.searchDirectory(options.rootDir, options, tests)
         } catch (error) {
-            throw new Error(`Failed to discover tests in ${options.rootDir}: ${error}`);
+            throw new Error(`Failed to discover tests in ${options.rootDir}: ${error}`)
         }
 
-        return this.filterByPatterns(tests, options.patterns, options.rootDir);
+        return this.filterByPatterns(tests, options.patterns, options.rootDir)
     }
 
     /*
@@ -82,35 +82,31 @@ export class TestDiscovery {
      @param options Discovery options
      @param tests Array to accumulate found test files
      */
-    private static async searchDirectory(
-        dirPath: string,
-        options: DiscoveryOptions,
-        tests: TestFile[]
-    ): Promise<void> {
+    private static async searchDirectory(dirPath: string, options: DiscoveryOptions, tests: TestFile[]): Promise<void> {
         try {
-            const entries = await readdir(dirPath);
+            const entries = await readdir(dirPath)
 
             for (const entry of entries) {
-                const fullPath = join(dirPath, entry);
-                const stats = await stat(fullPath);
+                const fullPath = join(dirPath, entry)
+                const stats = await stat(fullPath)
 
                 if (stats.isDirectory()) {
                     // Skip excluded directories
                     if (this.shouldSkipDirectory(entry)) {
-                        continue;
+                        continue
                     }
 
                     // Recursively search subdirectories
-                    await this.searchDirectory(fullPath, options, tests);
+                    await this.searchDirectory(fullPath, options, tests)
                 } else if (stats.isFile()) {
                     // First check if file matches include patterns
                     if (this.matchesIncludePatterns(fullPath, options.patterns, options.rootDir)) {
                         // Then check if it's excluded
                         if (this.matchesExcludePatterns(fullPath, options.excludePatterns)) {
                             // Analyze file based on final extension
-                            const testFile = this.analyzeFileByExtension(fullPath);
+                            const testFile = this.analyzeFileByExtension(fullPath)
                             if (testFile) {
-                                tests.push(testFile);
+                                tests.push(testFile)
                             }
                         }
                     }
@@ -118,7 +114,7 @@ export class TestDiscovery {
             }
         } catch (error) {
             // Log warning but continue - might be permission issue
-            console.warn(`Warning: Could not read directory ${dirPath}: ${error}`);
+            console.warn(`Warning: Could not read directory ${dirPath}: ${error}`)
         }
     }
 
@@ -130,14 +126,14 @@ export class TestDiscovery {
      @returns true if file matches at least one include pattern
      */
     private static matchesIncludePatterns(filePath: string, patterns: string[], rootDir: string): boolean {
-        if (!patterns.length) return false;
+        if (!patterns.length) return false
 
         const relativePath = filePath.startsWith(rootDir)
             ? filePath.slice(rootDir.length).replace(/^[\/\\]/, '')
-            : filePath;
-        const normalizedPath = relativePath.replace(/\\/g, '/');
+            : filePath
+        const normalizedPath = relativePath.replace(/\\/g, '/')
 
-        return patterns.some(pattern => this.matchesGlob(normalizedPath, pattern));
+        return patterns.some((pattern) => this.matchesGlob(normalizedPath, pattern))
     }
 
     /*
@@ -146,20 +142,20 @@ export class TestDiscovery {
      @returns TestFile object if extension is recognized, null otherwise
      */
     private static analyzeFileByExtension(filePath: string): TestFile | null {
-        const fileName = basename(filePath);
-        const directory = dirname(filePath);
+        const fileName = basename(filePath)
+        const directory = dirname(filePath)
 
         // Extract final extension (.c, .js, .sh, etc.)
-        const ext = extname(fileName).toLowerCase();
+        const ext = extname(fileName).toLowerCase()
 
         // Map extension to test type
-        const testType = this.EXTENSION_TO_TYPE[ext];
+        const testType = this.EXTENSION_TO_TYPE[ext]
         if (!testType) {
-            return null; // Unknown extension
+            return null // Unknown extension
         }
 
         // Create artifact directory based on full filename without final extension
-        const testBaseName = fileName.slice(0, -ext.length);
+        const testBaseName = fileName.slice(0, -ext.length)
 
         return {
             path: filePath,
@@ -167,8 +163,8 @@ export class TestDiscovery {
             extension: ext,
             type: testType,
             directory,
-            artifactDir: join(directory, '.testme', testBaseName)
-        };
+            artifactDir: join(directory, '.testme', testBaseName),
+        }
     }
 
     /*
@@ -187,10 +183,10 @@ export class TestDiscovery {
             '.pytest_cache',
             'coverage',
             'dist',
-            'build'
-        ];
+            'build',
+        ]
 
-        return skipDirs.includes(dirName) || dirName.startsWith('.');
+        return skipDirs.includes(dirName) || dirName.startsWith('.')
     }
 
     /*
@@ -200,11 +196,11 @@ export class TestDiscovery {
      @returns true if file should be included (not excluded)
      */
     private static matchesExcludePatterns(filePath: string, excludePatterns: string[]): boolean {
-        if (!excludePatterns.length) return true;
+        if (!excludePatterns.length) return true
 
-        return !excludePatterns.some(pattern => {
-            return this.matchesGlob(filePath, pattern);
-        });
+        return !excludePatterns.some((pattern) => {
+            return this.matchesGlob(filePath, pattern)
+        })
     }
 
     /*
@@ -215,7 +211,7 @@ export class TestDiscovery {
      @returns Filtered array of test files
      */
     static filterTestsByPatterns(tests: TestFile[], patterns: string[], rootDir: string): TestFile[] {
-        return this.filterByPatterns(tests, patterns, rootDir);
+        return this.filterByPatterns(tests, patterns, rootDir)
     }
 
     /*
@@ -226,77 +222,89 @@ export class TestDiscovery {
      @returns Filtered array of test files
      */
     private static filterByPatterns(tests: TestFile[], patterns: string[], rootDir: string): TestFile[] {
-        if (!patterns.length) return tests;
+        if (!patterns.length) return tests
 
         // Separate extension patterns (starting with .) from path patterns
-        const extensionPatterns = patterns.filter(p => p.startsWith('.') && !p.includes('/'));
-        const otherPatterns = patterns.filter(p => !extensionPatterns.includes(p));
+        const extensionPatterns = patterns.filter((p) => p.startsWith('.') && !p.includes('/'))
+        const otherPatterns = patterns.filter((p) => !extensionPatterns.includes(p))
 
-        return tests.filter(test => {
+        return tests.filter((test) => {
             // First check if test matches any non-extension pattern
             // If there are ONLY extension patterns (no other patterns), pass this check
             // If there are other patterns, at least one must match
-            const matchesOtherPattern = (otherPatterns.length === 0 && extensionPatterns.length > 0) || otherPatterns.some(pattern => {
-                // Get base name without final extension for matching (e.g., "math.tst" from "math.tst.c")
-                const baseName = this.getBaseNameWithoutExtension(test.name);
-                // Also get the test base name (e.g., "math" from "math.tst.c")
-                const testBaseName = this.getTestBaseName(test.name);
+            const matchesOtherPattern =
+                (otherPatterns.length === 0 && extensionPatterns.length > 0) ||
+                otherPatterns.some((pattern) => {
+                    // Get base name without final extension for matching (e.g., "math.tst" from "math.tst.c")
+                    const baseName = this.getBaseNameWithoutExtension(test.name)
+                    // Also get the test base name (e.g., "math" from "math.tst.c")
+                    const testBaseName = this.getTestBaseName(test.name)
 
-                // Check if pattern matches a directory component (relative to rootDir)
-                const relativePath = test.directory.startsWith(rootDir)
-                    ? test.directory.slice(rootDir.length).replace(/^[\/\\]/, '')
-                    : test.directory;
-                const directoryParts = relativePath.split(/[\/\\]/).filter(p => p.length > 0);
-                if (directoryParts.includes(pattern)) {
-                    return true;
-                }
-
-                // If pattern contains a path separator, check if the path ends with the pattern
-                if (pattern.includes('/') || pattern.includes('\\')) {
-                    // Normalize both pattern and paths to use forward slashes for comparison
-                    const normalizedPattern = pattern.replace(/\\/g, '/');
-                    const normalizedPath = test.path.replace(/\\/g, '/');
-                    const normalizedDir = test.directory.replace(/\\/g, '/');
-
-                    if (normalizedPath.endsWith(normalizedPattern)) {
-                        return true;
+                    // Check if pattern matches a directory component (relative to rootDir)
+                    const relativePath = test.directory.startsWith(rootDir)
+                        ? test.directory.slice(rootDir.length).replace(/^[\/\\]/, '')
+                        : test.directory
+                    const directoryParts = relativePath.split(/[\/\\]/).filter((p) => p.length > 0)
+                    if (directoryParts.includes(pattern)) {
+                        return true
                     }
-                    // Also try matching with the test extension removed from the path
-                    const pathWithoutExt = normalizedPath.slice(0, -test.extension.length);
-                    if (pathWithoutExt.endsWith(normalizedPattern)) {
-                        return true;
-                    }
-                    // Check if pattern is a directory prefix (test directory contains the pattern)
-                    const patternWithSlash = normalizedPattern.endsWith('/') ? normalizedPattern : normalizedPattern + '/';
-                    if (normalizedPath.includes('/' + patternWithSlash) || normalizedPath.includes(patternWithSlash) ||
-                        normalizedDir.includes('/' + patternWithSlash) || normalizedDir.includes(patternWithSlash)) {
-                        return true;
-                    }
-                }
 
-                // For glob patterns, match against relative path with normalized separators
-                const relativeFilePath = test.path.startsWith(rootDir)
-                    ? test.path.slice(rootDir.length).replace(/^[\/\\]/, '')
-                    : test.path;
-                const normalizedRelativePath = relativeFilePath.replace(/\\/g, '/');
-                const normalizedPattern = pattern.replace(/\\/g, '/');
+                    // If pattern contains a path separator, check if the path ends with the pattern
+                    if (pattern.includes('/') || pattern.includes('\\')) {
+                        // Normalize both pattern and paths to use forward slashes for comparison
+                        const normalizedPattern = pattern.replace(/\\/g, '/')
+                        const normalizedPath = test.path.replace(/\\/g, '/')
+                        const normalizedDir = test.directory.replace(/\\/g, '/')
 
-                // Match against relative path, full filename, base name, or test base name
-                return this.matchesGlob(normalizedRelativePath, normalizedPattern) ||
-                       this.matchesGlob(test.name, pattern) ||
-                       this.matchesGlob(baseName, pattern) ||
-                       this.matchesGlob(testBaseName, pattern);
-            });
+                        if (normalizedPath.endsWith(normalizedPattern)) {
+                            return true
+                        }
+                        // Also try matching with the test extension removed from the path
+                        const pathWithoutExt = normalizedPath.slice(0, -test.extension.length)
+                        if (pathWithoutExt.endsWith(normalizedPattern)) {
+                            return true
+                        }
+                        // Check if pattern is a directory prefix (test directory contains the pattern)
+                        const patternWithSlash = normalizedPattern.endsWith('/')
+                            ? normalizedPattern
+                            : normalizedPattern + '/'
+                        if (
+                            normalizedPath.includes('/' + patternWithSlash) ||
+                            normalizedPath.includes(patternWithSlash) ||
+                            normalizedDir.includes('/' + patternWithSlash) ||
+                            normalizedDir.includes(patternWithSlash)
+                        ) {
+                            return true
+                        }
+                    }
+
+                    // For glob patterns, match against relative path with normalized separators
+                    const relativeFilePath = test.path.startsWith(rootDir)
+                        ? test.path.slice(rootDir.length).replace(/^[\/\\]/, '')
+                        : test.path
+                    const normalizedRelativePath = relativeFilePath.replace(/\\/g, '/')
+                    const normalizedPattern = pattern.replace(/\\/g, '/')
+
+                    // Match against relative path, full filename, base name, or test base name
+                    return (
+                        this.matchesGlob(normalizedRelativePath, normalizedPattern) ||
+                        this.matchesGlob(test.name, pattern) ||
+                        this.matchesGlob(baseName, pattern) ||
+                        this.matchesGlob(testBaseName, pattern)
+                    )
+                })
 
             // If there are extension patterns, also check if test matches any of them
             // This implements AND logic: test must match other patterns AND extension patterns
-            const matchesExtensionPattern = extensionPatterns.length === 0 || extensionPatterns.some(pattern => {
-                // Extension pattern like ".c" or ".js"
-                return test.extension === pattern || test.name.endsWith(pattern);
-            });
+            const matchesExtensionPattern =
+                extensionPatterns.length === 0 ||
+                extensionPatterns.some((pattern) => {
+                    // Extension pattern like ".c" or ".js"
+                    return test.extension === pattern || test.name.endsWith(pattern)
+                })
 
-            return matchesOtherPattern && matchesExtensionPattern;
-        });
+            return matchesOtherPattern && matchesExtensionPattern
+        })
     }
 
     /*
@@ -305,8 +313,8 @@ export class TestDiscovery {
      @returns Base name without final extension (e.g., "math.tst")
      */
     private static getBaseNameWithoutExtension(fileName: string): string {
-        const ext = extname(fileName);
-        return ext ? fileName.slice(0, -ext.length) : fileName;
+        const ext = extname(fileName)
+        return ext ? fileName.slice(0, -ext.length) : fileName
     }
 
     /*
@@ -315,13 +323,24 @@ export class TestDiscovery {
      @returns Base name without test extension (e.g., "math")
      */
     private static getTestBaseName(fileName: string): string {
-        const testExtensions = ['.tst.sh', '.tst.ps1', '.tst.bat', '.tst.cmd', '.tst.c', '.tst.js', '.tst.ts', '.tst.es', '.tst.py', '.tst.go'];
+        const testExtensions = [
+            '.tst.sh',
+            '.tst.ps1',
+            '.tst.bat',
+            '.tst.cmd',
+            '.tst.c',
+            '.tst.js',
+            '.tst.ts',
+            '.tst.es',
+            '.tst.py',
+            '.tst.go',
+        ]
         for (const ext of testExtensions) {
             if (fileName.endsWith(ext)) {
-                return fileName.slice(0, -ext.length);
+                return fileName.slice(0, -ext.length)
             }
         }
-        return fileName;
+        return fileName
     }
 
     /*
@@ -333,10 +352,10 @@ export class TestDiscovery {
     private static matchesGlob(text: string, pattern: string): boolean {
         // Simple manual glob matching without complex regex
         // Split pattern into segments
-        const patternParts = pattern.split('/');
-        const textParts = text.split('/');
+        const patternParts = pattern.split('/')
+        const textParts = text.split('/')
 
-        return this.matchGlobParts(textParts, patternParts);
+        return this.matchGlobParts(textParts, patternParts)
     }
 
     /*
@@ -348,40 +367,40 @@ export class TestDiscovery {
     private static matchGlobParts(textParts: string[], patternParts: string[]): boolean {
         // Base case: both empty = match
         if (patternParts.length === 0 && textParts.length === 0) {
-            return true;
+            return true
         }
 
         // Pattern empty but text remains = no match
         if (patternParts.length === 0) {
-            return false;
+            return false
         }
 
-        const [patternHead, ...patternTail] = patternParts;
+        const [patternHead, ...patternTail] = patternParts
 
         // Handle ** (matches zero or more path segments)
         if (patternHead === '**') {
             // Try matching with ** consuming 0, 1, 2, ... segments
             for (let i = 0; i <= textParts.length; i++) {
                 if (this.matchGlobParts(textParts.slice(i), patternTail)) {
-                    return true;
+                    return true
                 }
             }
-            return false;
+            return false
         }
 
         // Text empty but pattern remains (and it's not **) = no match
         if (textParts.length === 0) {
-            return false;
+            return false
         }
 
-        const [textHead, ...textTail] = textParts;
+        const [textHead, ...textTail] = textParts
 
         // Match current segment
         if (this.matchSegment(textHead, patternHead)) {
-            return this.matchGlobParts(textTail, patternTail);
+            return this.matchGlobParts(textTail, patternTail)
         }
 
-        return false;
+        return false
     }
 
     /*
@@ -395,10 +414,10 @@ export class TestDiscovery {
         const regexPattern = pattern
             .replace(/[.+^${}()|[\]\\]/g, '\\$&') // Escape regex special chars
             .replace(/\*/g, '.*') // * matches anything
-            .replace(/\?/g, '.'); // ? matches single char
+            .replace(/\?/g, '.') // ? matches single char
 
-        const regex = new RegExp(`^${regexPattern}$`, 'i');
-        return regex.test(text);
+        const regex = new RegExp(`^${regexPattern}$`, 'i')
+        return regex.test(text)
     }
 
     /*
@@ -407,7 +426,7 @@ export class TestDiscovery {
      @returns TestType enum value or null if not supported
      */
     static getTestTypeFromExtension(extension: string): TestType | null {
-        return this.EXTENSION_TO_TYPE[extension.toLowerCase()] || null;
+        return this.EXTENSION_TO_TYPE[extension.toLowerCase()] || null
     }
 
     /*
@@ -415,6 +434,6 @@ export class TestDiscovery {
      @returns Array of supported extensions (.c, .js, .sh, etc.)
      */
     static getSupportedExtensions(): string[] {
-        return Object.keys(this.EXTENSION_TO_TYPE);
+        return Object.keys(this.EXTENSION_TO_TYPE)
     }
 }

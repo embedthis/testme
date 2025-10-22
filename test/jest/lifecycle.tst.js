@@ -33,10 +33,10 @@ await describe('beforeAll and afterAll hooks', async () => {
     test('second test', () => {
         executionLog.push('test-2')
         //  beforeAll should only run once
-        const beforeAllCount = executionLog.filter(x => x === 'beforeAll-1').length
+        const beforeAllCount = executionLog.filter((x) => x === 'beforeAll-1').length
         expect(beforeAllCount).toBe(1)
         //  beforeEach should run for each test
-        const beforeEachCount = executionLog.filter(x => x === 'beforeEach').length
+        const beforeEachCount = executionLog.filter((x) => x === 'beforeEach').length
         expect(beforeEachCount).toBe(2)
     })
 
@@ -103,7 +103,7 @@ await describe('nested describe blocks', async () => {
         test('inner test 2', () => {
             executionLog.push('inner-test-2')
             //  inner beforeAll should only run once
-            const innerBeforeAllCount = executionLog.filter(x => x === 'inner-beforeAll').length
+            const innerBeforeAllCount = executionLog.filter((x) => x === 'inner-beforeAll').length
             expect(innerBeforeAllCount).toBe(1)
         })
     })
@@ -137,12 +137,12 @@ let asyncValue = 0
 
 await describe('async lifecycle hooks', async () => {
     beforeAll(async () => {
-        await new Promise(resolve => setTimeout(resolve, 10))
+        await new Promise((resolve) => setTimeout(resolve, 10))
         asyncValue = 42
     })
 
     afterAll(async () => {
-        await new Promise(resolve => setTimeout(resolve, 10))
+        await new Promise((resolve) => setTimeout(resolve, 10))
         asyncValue = 0
     })
 
@@ -272,23 +272,12 @@ await describe('combined hooks', async () => {
 
     test('first combined test', () => {
         executionLog.push('test-A')
-        expect(executionLog).toEqual([
-            'setup-once',
-            'setup-each',
-            'test-A'
-        ])
+        expect(executionLog).toEqual(['setup-once', 'setup-each', 'test-A'])
     })
 
     test('second combined test', () => {
         executionLog.push('test-B')
-        expect(executionLog).toEqual([
-            'setup-once',
-            'setup-each',
-            'test-A',
-            'teardown-each',
-            'setup-each',
-            'test-B'
-        ])
+        expect(executionLog).toEqual(['setup-once', 'setup-each', 'test-A', 'teardown-each', 'setup-each', 'test-B'])
     })
 })
 
@@ -301,7 +290,7 @@ test('verify combined hooks order', () => {
         'setup-each',
         'test-B',
         'teardown-each',
-        'teardown-once'
+        'teardown-once',
     ])
 })
 

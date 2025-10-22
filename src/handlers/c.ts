@@ -119,7 +119,9 @@ export class CTestHandler extends BaseTestHandler {
             const baseDir = config.configDir || file.directory
 
             // Get compiler configuration (auto-detect if not specified)
-            const compilerConfig = await CompilerManager.getDefaultCompilerConfig(this.resolveCompilerName(config.compiler?.c?.compiler))
+            const compilerConfig = await CompilerManager.getDefaultCompilerConfig(
+                this.resolveCompilerName(config.compiler?.c?.compiler)
+            )
 
             // Get compiler-specific or default flags and libraries
             let userFlags: string[] = []
@@ -132,8 +134,8 @@ export class CTestHandler extends BaseTestHandler {
                 const platform = PlatformDetector.isWindows()
                     ? 'windows'
                     : PlatformDetector.isMacOS()
-                    ? 'macosx'
-                    : 'linux'
+                      ? 'macosx'
+                      : 'linux'
 
                 // Start with generic flags/libraries (if present)
                 userFlags = [...(cConfig.flags || [])]
@@ -261,10 +263,10 @@ export class CTestHandler extends BaseTestHandler {
                     compilerConfig.type === CompilerType.GCC
                         ? 'gcc'
                         : compilerConfig.type === CompilerType.Clang
-                        ? 'clang'
-                        : compilerConfig.type === CompilerType.MSVC
-                        ? 'msvc'
-                        : undefined
+                          ? 'clang'
+                          : compilerConfig.type === CompilerType.MSVC
+                            ? 'msvc'
+                            : undefined
                 const testEnv = await this.getTestEnvironment(config, file, compilerName)
                 if (Object.keys(testEnv).length > 0) {
                     console.log(`\n🌍 TestMe environment variables:`)
@@ -335,15 +337,17 @@ ${result.stderr}`
         }
 
         // Get compiler name for special variable expansion
-        const compilerConfig = await CompilerManager.getDefaultCompilerConfig(this.resolveCompilerName(config.compiler?.c?.compiler))
+        const compilerConfig = await CompilerManager.getDefaultCompilerConfig(
+            this.resolveCompilerName(config.compiler?.c?.compiler)
+        )
         const compilerName =
             compilerConfig.type === CompilerType.GCC
                 ? 'gcc'
                 : compilerConfig.type === CompilerType.Clang
-                ? 'clang'
-                : compilerConfig.type === CompilerType.MSVC
-                ? 'msvc'
-                : undefined
+                  ? 'clang'
+                  : compilerConfig.type === CompilerType.MSVC
+                    ? 'msvc'
+                    : undefined
 
         return {success, duration, output, error, compiler: compilerName}
     }
@@ -353,7 +357,9 @@ ${result.stderr}`
      @param compiler Compiler config value (string or platform object)
      @returns Resolved compiler name string
      */
-    private resolveCompilerName(compiler?: string | {windows?: string; macosx?: string; linux?: string}): string | undefined {
+    private resolveCompilerName(
+        compiler?: string | {windows?: string; macosx?: string; linux?: string}
+    ): string | undefined {
         if (!compiler) {
             return undefined
         }
@@ -361,8 +367,7 @@ ${result.stderr}`
             return compiler
         }
         // Resolve platform-specific compiler
-        const platform = PlatformDetector.isWindows() ? 'windows' :
-                       PlatformDetector.isMacOS() ? 'macosx' : 'linux'
+        const platform = PlatformDetector.isWindows() ? 'windows' : PlatformDetector.isMacOS() ? 'macosx' : 'linux'
         return compiler[platform as 'windows' | 'macosx' | 'linux']
     }
 
@@ -485,7 +490,9 @@ ${result.stderr}`
         try {
             // Get expanded flags and libraries (same as used for compilation)
             const baseDir = config.configDir || file.directory
-            const compilerConfig = await CompilerManager.getDefaultCompilerConfig(this.resolveCompilerName(config.compiler?.c?.compiler))
+            const compilerConfig = await CompilerManager.getDefaultCompilerConfig(
+                this.resolveCompilerName(config.compiler?.c?.compiler)
+            )
 
             // Get compiler-specific or default user flags and libraries (same as compile method)
             let userFlags: string[] = []
@@ -497,8 +504,8 @@ ${result.stderr}`
                 const platform = PlatformDetector.isWindows()
                     ? 'windows'
                     : PlatformDetector.isMacOS()
-                    ? 'macosx'
-                    : 'linux'
+                      ? 'macosx'
+                      : 'linux'
 
                 // Try compiler-specific config first
                 if (compilerConfig.type === CompilerType.MSVC && cConfig.msvc) {
@@ -641,30 +648,30 @@ To debug:
 
             // Launch LLDB in interactive mode with stdin/stdout/stderr inheritance
             const testEnv = await this.getTestEnvironment(config, file, compiler)
-            const spawnEnv: Record<string, string> = {};
+            const spawnEnv: Record<string, string> = {}
 
             // Copy all environment variables
             for (const [key, value] of Object.entries(process.env)) {
                 if (value !== undefined) {
-                    spawnEnv[key] = value;
+                    spawnEnv[key] = value
                 }
             }
 
             // Merge test environment
             for (const [key, value] of Object.entries(testEnv)) {
-                spawnEnv[key] = value;
+                spawnEnv[key] = value
             }
 
             const proc = Bun.spawn(['lldb', binaryPath], {
                 cwd: file.directory,
                 env: spawnEnv,
-                stdin: "inherit",  // Allow interactive input
-                stdout: "inherit", // Show output directly
-                stderr: "inherit", // Show errors directly
-            });
+                stdin: 'inherit', // Allow interactive input
+                stdout: 'inherit', // Show output directly
+                stderr: 'inherit', // Show errors directly
+            })
 
             // Wait for debugger to finish
-            const exitCode = await proc.exited;
+            const exitCode = await proc.exited
 
             const output = `LLDB debugging session completed.`
             const status = exitCode === 0 ? TestStatus.Passed : TestStatus.Failed
@@ -704,30 +711,30 @@ To debug:
 
             // Launch GDB in interactive mode with stdin/stdout/stderr inheritance
             const testEnv = await this.getTestEnvironment(config, file, compiler)
-            const spawnEnv: Record<string, string> = {};
+            const spawnEnv: Record<string, string> = {}
 
             // Copy all environment variables
             for (const [key, value] of Object.entries(process.env)) {
                 if (value !== undefined) {
-                    spawnEnv[key] = value;
+                    spawnEnv[key] = value
                 }
             }
 
             // Merge test environment
             for (const [key, value] of Object.entries(testEnv)) {
-                spawnEnv[key] = value;
+                spawnEnv[key] = value
             }
 
             const proc = Bun.spawn(['gdb', binaryPath], {
                 cwd: file.directory,
                 env: spawnEnv,
-                stdin: "inherit",  // Allow interactive input
-                stdout: "inherit", // Show output directly
-                stderr: "inherit", // Show errors directly
-            });
+                stdin: 'inherit', // Allow interactive input
+                stdout: 'inherit', // Show output directly
+                stderr: 'inherit', // Show errors directly
+            })
 
             // Wait for debugger to finish
-            const exitCode = await proc.exited;
+            const exitCode = await proc.exited
 
             const output = `GDB debugging session completed.`
             const status = exitCode === 0 ? TestStatus.Passed : TestStatus.Failed
@@ -759,7 +766,9 @@ To debug:
             console.log(`📂 Working Directory: ${file.directory}`)
 
             // Get compiler config to find devenv path from MSVC installation
-            const compilerConfig = await CompilerManager.getDefaultCompilerConfig(this.resolveCompilerName(config.compiler?.c?.compiler))
+            const compilerConfig = await CompilerManager.getDefaultCompilerConfig(
+                this.resolveCompilerName(config.compiler?.c?.compiler)
+            )
 
             let devenvPath = 'devenv'
 

@@ -1,15 +1,15 @@
-import { PlatformDetector } from "./detector.ts";
-import { extname } from "path";
+import {PlatformDetector} from './detector.ts'
+import {extname} from 'path'
 
 export enum ShellType {
-    Bash = "bash",
-    Sh = "sh",
-    Zsh = "zsh",
-    Fish = "fish",
-    PowerShell = "powershell",
-    PowerShellCore = "pwsh",
-    Cmd = "cmd",
-    Unknown = "unknown"
+    Bash = 'bash',
+    Sh = 'sh',
+    Zsh = 'zsh',
+    Fish = 'fish',
+    PowerShell = 'powershell',
+    PowerShellCore = 'pwsh',
+    Cmd = 'cmd',
+    Unknown = 'unknown',
 }
 
 /*
@@ -22,35 +22,35 @@ export class ShellDetector {
      @returns Promise resolving to shell command to use
      */
     static async detectShell(filePath: string): Promise<string> {
-        const ext = extname(filePath).toLowerCase();
+        const ext = extname(filePath).toLowerCase()
 
         // Extension-based detection (works on all platforms)
-        if (ext === ".ps1") {
-            return await this.findPowerShell();
-        } else if (ext === ".bat" || ext === ".cmd") {
-            return "cmd.exe";
-        } else if (ext === ".sh") {
+        if (ext === '.ps1') {
+            return await this.findPowerShell()
+        } else if (ext === '.bat' || ext === '.cmd') {
+            return 'cmd.exe'
+        } else if (ext === '.sh') {
             // Try to read shebang for .sh files
-            const shebangShell = await this.detectShellFromShebang(filePath);
+            const shebangShell = await this.detectShellFromShebang(filePath)
             if (shebangShell !== ShellType.Unknown) {
-                return shebangShell;
+                return shebangShell
             }
 
             // Fall back to system default for .sh files
             if (PlatformDetector.isWindows()) {
                 // On Windows, look for Git Bash
-                const bash = await this.findInPath("bash.exe");
-                return bash || "sh";
+                const bash = await this.findInPath('bash.exe')
+                return bash || 'sh'
             } else {
-                return await this.detectUnixShell();
+                return await this.detectUnixShell()
             }
         }
 
         // Default shell for platform
         if (PlatformDetector.isWindows()) {
-            return "cmd.exe";
+            return 'cmd.exe'
         } else {
-            return await this.detectUnixShell();
+            return await this.detectUnixShell()
         }
     }
 
@@ -61,22 +61,22 @@ export class ShellDetector {
      */
     private static async detectShellFromShebang(filePath: string): Promise<string> {
         try {
-            const file = Bun.file(filePath);
-            const content = await file.text();
-            const firstLine = content.split("\n")[0];
+            const file = Bun.file(filePath)
+            const content = await file.text()
+            const firstLine = content.split('\n')[0]
 
-            if (firstLine.startsWith("#!")) {
-                const shebang = firstLine.slice(2).trim();
-                if (shebang.includes("bash")) return "bash";
-                if (shebang.includes("zsh")) return "zsh";
-                if (shebang.includes("fish")) return "fish";
-                if (shebang.includes("sh")) return "sh";
+            if (firstLine.startsWith('#!')) {
+                const shebang = firstLine.slice(2).trim()
+                if (shebang.includes('bash')) return 'bash'
+                if (shebang.includes('zsh')) return 'zsh'
+                if (shebang.includes('fish')) return 'fish'
+                if (shebang.includes('sh')) return 'sh'
             }
         } catch {
             // Ignore errors and fall back to default
         }
 
-        return ShellType.Unknown;
+        return ShellType.Unknown
     }
 
     /*
@@ -86,14 +86,14 @@ export class ShellDetector {
     private static async detectUnixShell(): Promise<string> {
         // Check SHELL environment variable
         if (process.env.SHELL) {
-            const shellPath = process.env.SHELL;
-            if (shellPath.includes("bash")) return "bash";
-            if (shellPath.includes("zsh")) return "zsh";
-            if (shellPath.includes("fish")) return "fish";
+            const shellPath = process.env.SHELL
+            if (shellPath.includes('bash')) return 'bash'
+            if (shellPath.includes('zsh')) return 'zsh'
+            if (shellPath.includes('fish')) return 'fish'
         }
 
         // Ultimate fallback to POSIX shell
-        return "sh";
+        return 'sh'
     }
 
     /*
@@ -102,17 +102,17 @@ export class ShellDetector {
      */
     private static async findPowerShell(): Promise<string> {
         // Try PowerShell Core first (cross-platform)
-        const pwsh = await this.findInPath(PlatformDetector.isWindows() ? "pwsh.exe" : "pwsh");
+        const pwsh = await this.findInPath(PlatformDetector.isWindows() ? 'pwsh.exe' : 'pwsh')
         if (pwsh) {
-            return PlatformDetector.isWindows() ? "pwsh.exe" : "pwsh";
+            return PlatformDetector.isWindows() ? 'pwsh.exe' : 'pwsh'
         }
 
         // Fall back to Windows PowerShell
         if (PlatformDetector.isWindows()) {
-            return "powershell.exe";
+            return 'powershell.exe'
         }
 
-        throw new Error("PowerShell not found on this system");
+        throw new Error('PowerShell not found on this system')
     }
 
     /*
@@ -121,18 +121,18 @@ export class ShellDetector {
      @returns ShellType enum value
      */
     static getShellTypeFromExtension(filePath: string): ShellType {
-        const ext = extname(filePath).toLowerCase();
+        const ext = extname(filePath).toLowerCase()
 
         switch (ext) {
-            case ".ps1":
-                return ShellType.PowerShell;
-            case ".bat":
-            case ".cmd":
-                return ShellType.Cmd;
-            case ".sh":
-                return ShellType.Bash; // Default assumption
+            case '.ps1':
+                return ShellType.PowerShell
+            case '.bat':
+            case '.cmd':
+                return ShellType.Cmd
+            case '.sh':
+                return ShellType.Bash // Default assumption
             default:
-                return ShellType.Unknown;
+                return ShellType.Unknown
         }
     }
 
@@ -142,9 +142,9 @@ export class ShellDetector {
      @returns true if shell requires special execution parameters
      */
     static requiresSpecialHandling(shellType: ShellType): boolean {
-        return shellType === ShellType.PowerShell ||
-               shellType === ShellType.PowerShellCore ||
-               shellType === ShellType.Cmd;
+        return (
+            shellType === ShellType.PowerShell || shellType === ShellType.PowerShellCore || shellType === ShellType.Cmd
+        )
     }
 
     /*
@@ -158,13 +158,13 @@ export class ShellDetector {
             case ShellType.PowerShell:
             case ShellType.PowerShellCore:
                 // PowerShell needs -ExecutionPolicy Bypass and -File
-                return ["-ExecutionPolicy", "Bypass", "-File", scriptPath];
+                return ['-ExecutionPolicy', 'Bypass', '-File', scriptPath]
             case ShellType.Cmd:
                 // Use 'call' to execute batch file and return to caller
-                return ["/c", "call", scriptPath];
+                return ['/c', 'call', scriptPath]
             default:
                 // Unix shells just take the script path
-                return [scriptPath];
+                return [scriptPath]
         }
     }
 
@@ -174,9 +174,9 @@ export class ShellDetector {
      @returns true if file is a shell script
      */
     static isShellScript(filePath: string): boolean {
-        const ext = extname(filePath).toLowerCase();
-        const shellExtensions = [".sh", ".bash", ".zsh", ".fish", ".ps1", ".bat", ".cmd"];
-        return shellExtensions.includes(ext);
+        const ext = extname(filePath).toLowerCase()
+        const shellExtensions = ['.sh', '.bash', '.zsh', '.fish', '.ps1', '.bat', '.cmd']
+        return shellExtensions.includes(ext)
     }
 
     /*
@@ -185,9 +185,9 @@ export class ShellDetector {
      */
     static getSupportedExtensions(): string[] {
         if (PlatformDetector.isWindows()) {
-            return [".ps1", ".bat", ".cmd", ".sh"]; // .sh if Git Bash is available
+            return ['.ps1', '.bat', '.cmd', '.sh'] // .sh if Git Bash is available
         } else {
-            return [".sh", ".bash", ".zsh", ".fish"];
+            return ['.sh', '.bash', '.zsh', '.fish']
         }
     }
 
@@ -198,21 +198,21 @@ export class ShellDetector {
      */
     private static async findInPath(executable: string): Promise<string | null> {
         try {
-            const which = PlatformDetector.isWindows() ? "where" : "which";
+            const which = PlatformDetector.isWindows() ? 'where' : 'which'
             const proc = Bun.spawn([which, executable], {
-                stdout: "pipe",
-                stderr: "pipe"
-            });
+                stdout: 'pipe',
+                stderr: 'pipe',
+            })
 
-            const result = await proc.exited;
+            const result = await proc.exited
             if (result === 0) {
-                const stdout = await new Response(proc.stdout).text();
-                const firstPath = stdout.trim().split('\n')[0].trim();
-                return firstPath || null;
+                const stdout = await new Response(proc.stdout).text()
+                const firstPath = stdout.trim().split('\n')[0].trim()
+                return firstPath || null
             }
-            return null;
+            return null
         } catch {
-            return null;
+            return null
         }
     }
 }

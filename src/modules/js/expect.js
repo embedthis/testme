@@ -309,7 +309,11 @@ class ExpectMatcher {
                     const value = await this.received
                     return matcher(value)
                 } catch (error) {
-                    this.createResult('resolves', false, `Expected promise to resolve but it rejected with: ${error.message}`)
+                    this.createResult(
+                        'resolves',
+                        false,
+                        `Expected promise to resolve but it rejected with: ${error.message}`
+                    )
                 }
             })()
         } else if (this.promise === 'rejects') {
@@ -589,7 +593,11 @@ class ExpectMatcher {
             } else if (Array.isArray(received)) {
                 pass = received.includes(item)
             } else {
-                this.createResult('toContain', false, `toContain() expects array or string, received ${typeof received}`)
+                this.createResult(
+                    'toContain',
+                    false,
+                    `toContain() expects array or string, received ${typeof received}`
+                )
                 return
             }
             const message = pass
@@ -606,7 +614,11 @@ class ExpectMatcher {
     async toContainEqual(item) {
         return this.handleAsync((received) => {
             if (!Array.isArray(received)) {
-                this.createResult('toContainEqual', false, `toContainEqual() expects an array, received ${typeof received}`)
+                this.createResult(
+                    'toContainEqual',
+                    false,
+                    `toContainEqual() expects an array, received ${typeof received}`
+                )
                 return
             }
             const pass = received.some((element) => deepEqual(element, item))
@@ -624,7 +636,11 @@ class ExpectMatcher {
     async toHaveLength(expected) {
         return this.handleAsync((received) => {
             if (typeof received !== 'string' && !Array.isArray(received)) {
-                this.createResult('toHaveLength', false, `toHaveLength() expects array or string, received ${typeof received}`)
+                this.createResult(
+                    'toHaveLength',
+                    false,
+                    `toHaveLength() expects array or string, received ${typeof received}`
+                )
                 return
             }
             const pass = received.length === expected
@@ -643,7 +659,11 @@ class ExpectMatcher {
     async toHaveProperty(keyPath, value) {
         return this.handleAsync((received) => {
             if (typeof received !== 'object' || received === null) {
-                this.createResult('toHaveProperty', false, `toHaveProperty() expects an object, received ${typeof received}`)
+                this.createResult(
+                    'toHaveProperty',
+                    false,
+                    `toHaveProperty() expects an object, received ${typeof received}`
+                )
                 return
             }
             const propertyExists = hasProperty(received, keyPath)
@@ -677,7 +697,11 @@ class ExpectMatcher {
     async toMatchObject(pattern) {
         return this.handleAsync((received) => {
             if (typeof received !== 'object' || received === null) {
-                this.createResult('toMatchObject', false, `toMatchObject() expects an object, received ${typeof received}`)
+                this.createResult(
+                    'toMatchObject',
+                    false,
+                    `toMatchObject() expects an object, received ${typeof received}`
+                )
                 return
             }
             const pass = matchObject(received, pattern)

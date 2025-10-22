@@ -1,15 +1,8 @@
-import type {
-    TestFile,
-    TestResult,
-    TestConfig,
-} from "../types.ts";
-import {
-    TestStatus,
-    TestType,
-} from "../types.ts";
-import { BaseTestHandler } from "./base.ts";
-import { PermissionManager } from "../platform/permissions.ts";
-import { ShellDetector } from "../platform/shell.ts";
+import type {TestFile, TestResult, TestConfig} from '../types.ts'
+import {TestStatus, TestType} from '../types.ts'
+import {BaseTestHandler} from './base.ts'
+import {PermissionManager} from '../platform/permissions.ts'
+import {ShellDetector} from '../platform/shell.ts'
 
 /*
  Handler for executing shell script tests (.tst.sh files)
@@ -22,9 +15,7 @@ export class ShellTestHandler extends BaseTestHandler {
      @returns true if file is a shell test
      */
     canHandle(file: TestFile): boolean {
-        return file.type === TestType.Shell ||
-               file.type === TestType.PowerShell ||
-               file.type === TestType.Batch;
+        return file.type === TestType.Shell || file.type === TestType.PowerShell || file.type === TestType.Batch
     }
 
     /*
@@ -35,9 +26,9 @@ export class ShellTestHandler extends BaseTestHandler {
     override async prepare(file: TestFile): Promise<void> {
         // Make shell script executable (no-op on Windows)
         try {
-            await PermissionManager.makeExecutable(file.path);
+            await PermissionManager.makeExecutable(file.path)
         } catch (error) {
-            throw new Error(`Failed to make shell script executable: ${error}`);
+            throw new Error(`Failed to make shell script executable: ${error}`)
         }
     }
 
@@ -49,36 +40,28 @@ export class ShellTestHandler extends BaseTestHandler {
      */
     async execute(file: TestFile, config: TestConfig): Promise<TestResult> {
         // Get test environment
-        const testEnv = await this.getTestEnvironment(config, file);
+        const testEnv = await this.getTestEnvironment(config, file)
 
         // Display environment info if showCommands is enabled
-        await this.displayEnvironmentInfo(config, file, testEnv);
+        await this.displayEnvironmentInfo(config, file, testEnv)
 
-        const { result, duration } = await this.measureExecution(async () => {
+        const {result, duration} = await this.measureExecution(async () => {
             // Determine shell to use
-            const shell = await ShellDetector.detectShell(file.path);
-            const shellType = ShellDetector.getShellTypeFromExtension(file.path);
-            const args = ShellDetector.getShellArgs(shellType, file.path);
+            const shell = await ShellDetector.detectShell(file.path)
+            const shellType = ShellDetector.getShellTypeFromExtension(file.path)
+            const args = ShellDetector.getShellArgs(shellType, file.path)
 
             return await this.runCommand(shell, args, {
                 cwd: file.directory,
                 timeout: (config.execution?.timeout || 30) * 1000,
                 env: testEnv,
-            });
-        });
+            })
+        })
 
-        const status =
-            result.exitCode === 0 ? TestStatus.Passed : TestStatus.Failed;
-        const output = this.combineOutput(result.stdout, result.stderr);
-        const error = result.exitCode !== 0 ? result.stderr : undefined;
+        const status = result.exitCode === 0 ? TestStatus.Passed : TestStatus.Failed
+        const output = this.combineOutput(result.stdout, result.stderr)
+        const error = result.exitCode !== 0 ? result.stderr : undefined
 
-        return this.createTestResult(
-            file,
-            status,
-            duration,
-            output,
-            error,
-            result.exitCode
-        );
+        return this.createTestResult(file, status, duration, output, error, result.exitCode)
     }
 }

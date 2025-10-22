@@ -127,11 +127,7 @@ async function runTests() {
     await expect(promises[2]).resolves.toBe(3)
 
     //  Promise.all scenario
-    const allPromises = Promise.all([
-        Promise.resolve(1),
-        Promise.resolve(2),
-        Promise.resolve(3),
-    ])
+    const allPromises = Promise.all([Promise.resolve(1), Promise.resolve(2), Promise.resolve(3)])
     await expect(allPromises).resolves.toEqual([1, 2, 3])
     await expect(allPromises).resolves.toHaveLength(3)
 

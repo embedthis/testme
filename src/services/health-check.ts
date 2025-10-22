@@ -1,4 +1,4 @@
-import type { HealthCheckConfig } from '../types.ts';
+import type {HealthCheckConfig} from '../types.ts'
 
 /*
  HealthCheckManager - Manages service health checking
@@ -21,50 +21,48 @@ export class HealthCheckManager {
      @returns Promise that resolves when healthy, rejects on timeout
      */
     async waitForHealthy(config: HealthCheckConfig, verbose: boolean = false): Promise<void> {
-        const interval = config.interval ?? 100; // Default 100ms
-        const timeout = (config.timeout ?? 30) * 1000; // Default 30s, convert to ms
-        const startTime = Date.now();
+        const interval = config.interval ?? 100 // Default 100ms
+        const timeout = (config.timeout ?? 30) * 1000 // Default 30s, convert to ms
+        const startTime = Date.now()
 
         // Determine health check type (default to http)
-        const type = config.type ?? 'http';
+        const type = config.type ?? 'http'
 
         if (verbose) {
-            console.log(`⏳ Waiting for service to be healthy (${type} check, timeout: ${timeout / 1000}s)...`);
+            console.log(`⏳ Waiting for service to be healthy (${type} check, timeout: ${timeout / 1000}s)...`)
         }
 
-        let attemptCount = 0;
-        let lastError: string | null = null;
+        let attemptCount = 0
+        let lastError: string | null = null
 
         while (Date.now() - startTime < timeout) {
-            attemptCount++;
+            attemptCount++
 
             try {
-                const isHealthy = await this.checkHealth(config, type);
+                const isHealthy = await this.checkHealth(config, type)
 
                 if (isHealthy) {
                     if (verbose) {
-                        const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
-                        console.log(`✓ Service is healthy (${elapsed}s, ${attemptCount} attempts)`);
+                        const elapsed = ((Date.now() - startTime) / 1000).toFixed(2)
+                        console.log(`✓ Service is healthy (${elapsed}s, ${attemptCount} attempts)`)
                     }
-                    return; // Success!
+                    return // Success!
                 }
             } catch (error) {
-                lastError = error instanceof Error ? error.message : String(error);
+                lastError = error instanceof Error ? error.message : String(error)
                 if (verbose && attemptCount === 1) {
-                    console.log(`  Checking... (will retry every ${interval}ms)`);
+                    console.log(`  Checking... (will retry every ${interval}ms)`)
                 }
             }
 
             // Wait before next check
-            await new Promise(resolve => setTimeout(resolve, interval));
+            await new Promise((resolve) => setTimeout(resolve, interval))
         }
 
         // Timeout reached
-        const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
-        const errorMsg = lastError ? `: ${lastError}` : '';
-        throw new Error(
-            `Health check timed out after ${elapsed}s (${attemptCount} attempts)${errorMsg}`
-        );
+        const elapsed = ((Date.now() - startTime) / 1000).toFixed(2)
+        const errorMsg = lastError ? `: ${lastError}` : ''
+        throw new Error(`Health check timed out after ${elapsed}s (${attemptCount} attempts)${errorMsg}`)
     }
 
     /*
@@ -76,15 +74,15 @@ export class HealthCheckManager {
     private async checkHealth(config: HealthCheckConfig, type: string): Promise<boolean> {
         switch (type) {
             case 'http':
-                return await this.checkHttp(config as Extract<HealthCheckConfig, { url: string }>);
+                return await this.checkHttp(config as Extract<HealthCheckConfig, {url: string}>)
             case 'tcp':
-                return await this.checkTcp(config as Extract<HealthCheckConfig, { host: string; port: number }>);
+                return await this.checkTcp(config as Extract<HealthCheckConfig, {host: string; port: number}>)
             case 'script':
-                return await this.checkScript(config as Extract<HealthCheckConfig, { command: string }>);
+                return await this.checkScript(config as Extract<HealthCheckConfig, {command: string}>)
             case 'file':
-                return await this.checkFile(config as Extract<HealthCheckConfig, { path: string }>);
+                return await this.checkFile(config as Extract<HealthCheckConfig, {path: string}>)
             default:
-                throw new Error(`Unknown health check type: ${type}`);
+                throw new Error(`Unknown health check type: ${type}`)
         }
     }
 
@@ -93,32 +91,32 @@ export class HealthCheckManager {
      @param config HTTP health check configuration
      @returns Promise resolving to true if healthy
      */
-    private async checkHttp(config: Extract<HealthCheckConfig, { url: string }>): Promise<boolean> {
-        const expectedStatus = config.expectedStatus ?? 200;
+    private async checkHttp(config: Extract<HealthCheckConfig, {url: string}>): Promise<boolean> {
+        const expectedStatus = config.expectedStatus ?? 200
 
         try {
             const response = await fetch(config.url, {
                 method: 'GET',
                 signal: AbortSignal.timeout(5000), // 5s timeout per request
-            });
+            })
 
             // Check status code
             if (response.status !== expectedStatus) {
-                return false;
+                return false
             }
 
             // Check body if expected body is specified
             if (config.expectedBody) {
-                const body = await response.text();
+                const body = await response.text()
                 if (!body.includes(config.expectedBody)) {
-                    return false;
+                    return false
                 }
             }
 
-            return true;
+            return true
         } catch (error) {
             // Connection failed, service not ready
-            return false;
+            return false
         }
     }
 
@@ -127,7 +125,7 @@ export class HealthCheckManager {
      @param config TCP health check configuration
      @returns Promise resolving to true if healthy
      */
-    private async checkTcp(config: Extract<HealthCheckConfig, { host: string; port: number }>): Promise<boolean> {
+    private async checkTcp(config: Extract<HealthCheckConfig, {host: string; port: number}>): Promise<boolean> {
         try {
             // Attempt TCP connection using Bun.connect
             const socket = await Bun.connect({
@@ -135,10 +133,10 @@ export class HealthCheckManager {
                 port: config.port,
                 socket: {
                     data(socket, data) {
-                        socket.end();
+                        socket.end()
                     },
                     open(socket) {
-                        socket.end(); // Close immediately after connecting
+                        socket.end() // Close immediately after connecting
                     },
                     close(socket) {
                         // Connection successful
@@ -147,11 +145,11 @@ export class HealthCheckManager {
                         // Connection failed
                     },
                 },
-            });
+            })
 
-            return true; // Connection succeeded
+            return true // Connection succeeded
         } catch (error) {
-            return false; // Connection failed
+            return false // Connection failed
         }
     }
 
@@ -160,19 +158,19 @@ export class HealthCheckManager {
      @param config Script health check configuration
      @returns Promise resolving to true if healthy
      */
-    private async checkScript(config: Extract<HealthCheckConfig, { command: string }>): Promise<boolean> {
-        const expectedExit = config.expectedExit ?? 0;
+    private async checkScript(config: Extract<HealthCheckConfig, {command: string}>): Promise<boolean> {
+        const expectedExit = config.expectedExit ?? 0
 
         try {
             const proc = Bun.spawn(config.command.split(' '), {
                 stdout: 'pipe',
                 stderr: 'pipe',
-            });
+            })
 
-            const exitCode = await proc.exited;
-            return exitCode === expectedExit;
+            const exitCode = await proc.exited
+            return exitCode === expectedExit
         } catch (error) {
-            return false;
+            return false
         }
     }
 
@@ -181,12 +179,12 @@ export class HealthCheckManager {
      @param config File health check configuration
      @returns Promise resolving to true if healthy
      */
-    private async checkFile(config: Extract<HealthCheckConfig, { path: string }>): Promise<boolean> {
+    private async checkFile(config: Extract<HealthCheckConfig, {path: string}>): Promise<boolean> {
         try {
-            const file = Bun.file(config.path);
-            return await file.exists();
+            const file = Bun.file(config.path)
+            return await file.exists()
         } catch (error) {
-            return false;
+            return false
         }
     }
 }

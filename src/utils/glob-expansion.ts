@@ -1,18 +1,18 @@
-import { glob } from 'glob';
-import { relative } from 'path';
+import {glob} from 'glob'
+import {relative} from 'path'
 
 /*
  Special variables that can be used in ${...} expressions
  */
 export type SpecialVariables = {
-    TESTDIR?: string;      // Relative path from executable to test file directory
-    CONFIGDIR?: string;    // Relative path from executable to testme.json5 directory
-    OS?: string;           // Operating system: darwin, linux, windows
-    ARCH?: string;         // CPU architecture: arm64, x64, x86
-    PLATFORM?: string;     // Combined OS-ARCH: macosx-arm64, linux-x64, windows-x64
-    CC?: string;           // Compiler name: gcc, clang, msvc
-    PROFILE?: string;      // Build profile: dev, prod, debug, release, etc.
-};
+    TESTDIR?: string // Relative path from executable to test file directory
+    CONFIGDIR?: string // Relative path from executable to testme.json5 directory
+    OS?: string // Operating system: darwin, linux, windows
+    ARCH?: string // CPU architecture: arm64, x64, x86
+    PLATFORM?: string // Combined OS-ARCH: macosx-arm64, linux-x64, windows-x64
+    CC?: string // Compiler name: gcc, clang, msvc
+    PROFILE?: string // Build profile: dev, prod, debug, release, etc.
+}
 
 /*
  Expands ${...} references in strings using glob patterns and special variables
@@ -27,44 +27,48 @@ export class GlobExpansion {
      @param specialVars Optional special variables to substitute
      @returns Promise resolving to array of expanded strings
      */
-    static async expandString(input: string, baseDir: string = process.cwd(), specialVars?: SpecialVariables): Promise<string[]> {
+    static async expandString(
+        input: string,
+        baseDir: string = process.cwd(),
+        specialVars?: SpecialVariables
+    ): Promise<string[]> {
         // Type guard - ensure input is a string
         if (typeof input !== 'string') {
-            throw new TypeError(`expandString expects a string, got ${typeof input}: ${JSON.stringify(input)}`);
+            throw new TypeError(`expandString expects a string, got ${typeof input}: ${JSON.stringify(input)}`)
         }
 
         // If no ${...} pattern found, return input as-is
         if (!input.includes('${')) {
-            return [input];
+            return [input]
         }
 
         // First, substitute special variables (${TESTDIR}, ${OS}, etc.)
         // These take priority over environment variables
-        let processed = this.substituteSpecialVariables(input, specialVars);
+        let processed = this.substituteSpecialVariables(input, specialVars)
 
         // Then, substitute environment variables (${PATH}, ${HOME}, etc.)
-        processed = this.substituteEnvironmentVariables(processed);
+        processed = this.substituteEnvironmentVariables(processed)
 
         // If all ${...} patterns were substituted, we're done
         if (!processed.includes('${')) {
-            return [processed];
+            return [processed]
         }
 
         // Find all remaining ${...} patterns (glob patterns)
-        const patterns = this.extractPatterns(processed);
+        const patterns = this.extractPatterns(processed)
         if (patterns.length === 0) {
-            return [processed];
+            return [processed]
         }
 
         // For simplicity, handle strings with a single ${...} pattern
         // Multiple patterns in one string would require more complex expansion logic
         if (patterns.length === 1) {
-            return await this.expandSinglePattern(processed, patterns[0], baseDir);
+            return await this.expandSinglePattern(processed, patterns[0], baseDir)
         }
 
         // For multiple patterns, we'd need to generate all combinations
         // For now, just expand the first pattern found
-        return await this.expandSinglePattern(processed, patterns[0], baseDir);
+        return await this.expandSinglePattern(processed, patterns[0], baseDir)
     }
 
     /*
@@ -74,15 +78,19 @@ export class GlobExpansion {
      @param specialVars Optional special variables to substitute
      @returns Promise resolving to flattened array of expanded strings
      */
-    static async expandArray(inputs: string[], baseDir: string = process.cwd(), specialVars?: SpecialVariables): Promise<string[]> {
-        const results: string[] = [];
+    static async expandArray(
+        inputs: string[],
+        baseDir: string = process.cwd(),
+        specialVars?: SpecialVariables
+    ): Promise<string[]> {
+        const results: string[] = []
 
         for (const input of inputs) {
-            const expanded = await this.expandString(input, baseDir, specialVars);
-            results.push(...expanded);
+            const expanded = await this.expandString(input, baseDir, specialVars)
+            results.push(...expanded)
         }
 
-        return results;
+        return results
     }
 
     /*
@@ -92,19 +100,23 @@ export class GlobExpansion {
      @param specialVars Optional special variables to substitute
      @returns Promise resolving to the first expanded string
      */
-    static async expandSingle(input: string, baseDir: string = process.cwd(), specialVars?: SpecialVariables): Promise<string> {
+    static async expandSingle(
+        input: string,
+        baseDir: string = process.cwd(),
+        specialVars?: SpecialVariables
+    ): Promise<string> {
         // Type guard - ensure input is a string
         if (typeof input !== 'string') {
-            throw new TypeError(`expandSingle expects a string, got ${typeof input}: ${JSON.stringify(input)}`);
+            throw new TypeError(`expandSingle expects a string, got ${typeof input}: ${JSON.stringify(input)}`)
         }
 
         // If no ${...} pattern, return input as-is without expansion
         if (!input.includes('${')) {
-            return input;
+            return input
         }
 
-        const expanded = await this.expandString(input, baseDir, specialVars);
-        return expanded[0] || input;
+        const expanded = await this.expandString(input, baseDir, specialVars)
+        return expanded[0] || input
     }
 
     /*
@@ -124,39 +136,39 @@ export class GlobExpansion {
         profile?: string
     ): SpecialVariables {
         // Calculate relative paths from executable to test/config directories
-        const testDirRel = relative(executableDir, testDir);
-        const configDirRel = configDir ? relative(executableDir, configDir) : testDirRel;
+        const testDirRel = relative(executableDir, testDir)
+        const configDirRel = configDir ? relative(executableDir, configDir) : testDirRel
 
         // Detect OS
-        let os = 'unknown';
-        if (process.platform === 'darwin') os = 'macosx';
-        else if (process.platform === 'linux') os = 'linux';
-        else if (process.platform === 'win32') os = 'windows';
+        let os = 'unknown'
+        if (process.platform === 'darwin') os = 'macosx'
+        else if (process.platform === 'linux') os = 'linux'
+        else if (process.platform === 'win32') os = 'windows'
 
         // Detect architecture
-        let arch = 'unknown';
-        if (process.arch === 'arm64') arch = 'arm64';
-        else if (process.arch === 'x64') arch = 'x64';
-        else if (process.arch === 'ia32') arch = 'x86';
+        let arch = 'unknown'
+        if (process.arch === 'arm64') arch = 'arm64'
+        else if (process.arch === 'x64') arch = 'x64'
+        else if (process.arch === 'ia32') arch = 'x86'
 
         // Combine OS and architecture
-        const platform = `${os}-${arch}`;
+        const platform = `${os}-${arch}`
 
         // Extract compiler name from path if needed
-        let cc = compiler || 'unknown';
+        let cc = compiler || 'unknown'
         if (cc.includes('/')) {
-            cc = cc.split('/').pop() || cc;
+            cc = cc.split('/').pop() || cc
         }
         if (cc.startsWith('cl.exe') || cc === 'cl') {
-            cc = 'msvc';
+            cc = 'msvc'
         } else if (cc.includes('gcc')) {
-            cc = 'gcc';
+            cc = 'gcc'
         } else if (cc.includes('clang')) {
-            cc = 'clang';
+            cc = 'clang'
         }
 
         // Determine profile (use provided, or from environment, or default to 'dev')
-        const profileValue = profile || process.env.PROFILE || 'dev';
+        const profileValue = profile || process.env.PROFILE || 'dev'
 
         return {
             TESTDIR: testDirRel,
@@ -165,8 +177,8 @@ export class GlobExpansion {
             ARCH: arch,
             PLATFORM: platform,
             CC: cc,
-            PROFILE: profileValue
-        };
+            PROFILE: profileValue,
+        }
     }
 
     /*
@@ -177,35 +189,35 @@ export class GlobExpansion {
      */
     private static substituteSpecialVariables(input: string, specialVars?: SpecialVariables): string {
         if (!specialVars) {
-            return input;
+            return input
         }
 
-        let result = input;
+        let result = input
 
         // Replace each special variable if defined
         if (specialVars.TESTDIR !== undefined) {
-            result = result.replace(/\$\{TESTDIR\}/g, specialVars.TESTDIR);
+            result = result.replace(/\$\{TESTDIR\}/g, specialVars.TESTDIR)
         }
         if (specialVars.CONFIGDIR !== undefined) {
-            result = result.replace(/\$\{CONFIGDIR\}/g, specialVars.CONFIGDIR);
+            result = result.replace(/\$\{CONFIGDIR\}/g, specialVars.CONFIGDIR)
         }
         if (specialVars.OS !== undefined) {
-            result = result.replace(/\$\{OS\}/g, specialVars.OS);
+            result = result.replace(/\$\{OS\}/g, specialVars.OS)
         }
         if (specialVars.ARCH !== undefined) {
-            result = result.replace(/\$\{ARCH\}/g, specialVars.ARCH);
+            result = result.replace(/\$\{ARCH\}/g, specialVars.ARCH)
         }
         if (specialVars.PLATFORM !== undefined) {
-            result = result.replace(/\$\{PLATFORM\}/g, specialVars.PLATFORM);
+            result = result.replace(/\$\{PLATFORM\}/g, specialVars.PLATFORM)
         }
         if (specialVars.CC !== undefined) {
-            result = result.replace(/\$\{CC\}/g, specialVars.CC);
+            result = result.replace(/\$\{CC\}/g, specialVars.CC)
         }
         if (specialVars.PROFILE !== undefined) {
-            result = result.replace(/\$\{PROFILE\}/g, specialVars.PROFILE);
+            result = result.replace(/\$\{PROFILE\}/g, specialVars.PROFILE)
         }
 
-        return result;
+        return result
     }
 
     /*
@@ -216,18 +228,18 @@ export class GlobExpansion {
      */
     private static substituteEnvironmentVariables(input: string): string {
         // Match ${VAR} patterns that are not glob patterns (don't contain / or *)
-        const envVarRegex = /\$\{([A-Z_][A-Z0-9_]*)\}/g;
+        const envVarRegex = /\$\{([A-Z_][A-Z0-9_]*)\}/g
 
         return input.replace(envVarRegex, (match, varName) => {
             // Check if this environment variable exists
-            const envValue = process.env[varName];
+            const envValue = process.env[varName]
             if (envValue !== undefined) {
-                return envValue;
+                return envValue
             }
             // If not found in environment, keep the original ${VAR} pattern
             // so it can potentially be processed as a glob pattern later
-            return match;
-        });
+            return match
+        })
     }
 
     /*
@@ -236,15 +248,15 @@ export class GlobExpansion {
      @returns Array of extracted patterns (without ${} wrapper)
      */
     private static extractPatterns(input: string): string[] {
-        const patterns: string[] = [];
-        const regex = /\$\{([^}]+)\}/g;
-        let match;
+        const patterns: string[] = []
+        const regex = /\$\{([^}]+)\}/g
+        let match
 
         while ((match = regex.exec(input)) !== null) {
-            patterns.push(match[1]);
+            patterns.push(match[1])
         }
 
-        return patterns;
+        return patterns
     }
 
     /*
@@ -260,23 +272,22 @@ export class GlobExpansion {
             const matches = await glob(pattern, {
                 cwd: baseDir,
                 absolute: false,
-                nodir: false // Allow directories to match too
-            });
+                nodir: false, // Allow directories to match too
+            })
 
             if (matches.length === 0) {
                 // If no matches found, return the original string with ${...} removed
                 // This allows graceful degradation
-                const fallback = input.replace(`\${${pattern}}`, pattern);
-                return [fallback];
+                const fallback = input.replace(`\${${pattern}}`, pattern)
+                return [fallback]
             }
 
             // Replace ${pattern} with each match
-            return matches.map(match => input.replace(`\${${pattern}}`, match));
-
+            return matches.map((match) => input.replace(`\${${pattern}}`, match))
         } catch (error) {
             // If glob fails, return original string with ${...} removed
-            const fallback = input.replace(`\${${pattern}}`, pattern);
-            return [fallback];
+            const fallback = input.replace(`\${${pattern}}`, pattern)
+            return [fallback]
         }
     }
 }

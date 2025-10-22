@@ -1,9 +1,9 @@
-import type { TestConfig } from "./types.ts";
-import { relative, delimiter, isAbsolute, join } from "path";
-import { GlobExpansion } from "./utils/glob-expansion.ts";
-import { ProcessManager } from "./platform/process.ts";
-import { PlatformDetector } from "./platform/detector.ts";
-import { HealthCheckManager } from "./services/health-check.ts";
+import type {TestConfig} from './types.ts'
+import {relative, delimiter, isAbsolute, join} from 'path'
+import {GlobExpansion} from './utils/glob-expansion.ts'
+import {ProcessManager} from './platform/process.ts'
+import {PlatformDetector} from './platform/detector.ts'
+import {HealthCheckManager} from './services/health-check.ts'
 
 /**
  * Manages setup and cleanup services for test execution
@@ -52,13 +52,13 @@ import { HealthCheckManager } from "./services/health-check.ts";
  */
 export class ServiceManager {
     /** @internal */
-    private setupProcess: Bun.Subprocess | null = null;
+    private setupProcess: Bun.Subprocess | null = null
     /** @internal */
-    private isSetupRunning = false;
+    private isSetupRunning = false
     /** @internal */
-    private invocationDir: string;
+    private invocationDir: string
     /** @internal */
-    private environmentVars: Record<string, string> = {};
+    private environmentVars: Record<string, string> = {}
 
     /**
      * Creates a new ServiceManager instance
@@ -66,7 +66,7 @@ export class ServiceManager {
      * @param invocationDir - Directory from which tests were invoked (for display paths)
      */
     constructor(invocationDir?: string) {
-        this.invocationDir = invocationDir || process.cwd();
+        this.invocationDir = invocationDir || process.cwd()
     }
 
     /**
@@ -80,72 +80,72 @@ export class ServiceManager {
      * Non-zero exit code means tests should be skipped.
      * Any output (stdout/stderr) from the skip script is captured as the skip message.
      */
-    async runSkip(config: TestConfig): Promise<{ shouldSkip: boolean; message?: string }> {
-        const skipCommand = config.services?.skip;
+    async runSkip(config: TestConfig): Promise<{shouldSkip: boolean; message?: string}> {
+        const skipCommand = config.services?.skip
         if (!skipCommand) {
-            return { shouldSkip: false };
+            return {shouldSkip: false}
         }
 
-        const timeout = (config.services?.skipTimeout || 30) * 1000;
+        const timeout = (config.services?.skipTimeout || 30) * 1000
 
-        const displayPath = this.getDisplayPath(skipCommand, config);
+        const displayPath = this.getDisplayPath(skipCommand, config)
         if (config.output?.verbose) {
-            console.log(`Running skip script: ${displayPath}`);
+            console.log(`Running skip script: ${displayPath}`)
         }
 
         try {
             // Parse command and arguments
-            const [command, ...args] = this.parseCommand(skipCommand, config.configDir);
+            const [command, ...args] = this.parseCommand(skipCommand, config.configDir)
 
             // In verbose mode, inherit stdout/stderr to show service output
             // Otherwise pipe it so we can capture on errors
-            const stdoutMode = config.output?.verbose ? "inherit" : "pipe";
-            const stderrMode = config.output?.verbose ? "inherit" : "pipe";
+            const stdoutMode = config.output?.verbose ? 'inherit' : 'pipe'
+            const stderrMode = config.output?.verbose ? 'inherit' : 'pipe'
 
             // Run skip script in foreground with proper environment
             const skipProcess = Bun.spawn([command, ...args], {
                 stdout: stdoutMode,
                 stderr: stderrMode,
                 cwd: config.configDir, // Run in the directory containing testme.json5
-                env: await this.getServiceEnvironment(config)
-            });
+                env: await this.getServiceEnvironment(config),
+            })
 
             // Set up timeout
-            let timeoutId: Timer | undefined;
-            let timedOut = false;
+            let timeoutId: Timer | undefined
+            let timedOut = false
 
             if (timeout > 0) {
                 timeoutId = setTimeout(() => {
-                    timedOut = true;
-                    skipProcess.kill();
-                }, timeout);
+                    timedOut = true
+                    skipProcess.kill()
+                }, timeout)
             }
 
-            const result = await skipProcess.exited;
+            const result = await skipProcess.exited
 
             if (timeoutId) {
-                clearTimeout(timeoutId);
+                clearTimeout(timeoutId)
             }
 
             if (timedOut) {
-                throw new Error(`Skip script timed out after ${timeout}ms`);
+                throw new Error(`Skip script timed out after ${timeout}ms`)
             } else if (result === 0) {
                 // Exit code 0 means don't skip (run tests)
                 if (config.output?.verbose) {
-                    console.log("✓ Skip script returned 0 - tests will run");
+                    console.log('✓ Skip script returned 0 - tests will run')
                 }
-                return { shouldSkip: false };
+                return {shouldSkip: false}
             } else {
                 // Non-zero exit code means skip tests
-                const stdout = await new Response(skipProcess.stdout).text();
-                const stderr = await new Response(skipProcess.stderr).text();
-                const message = (stdout.trim() || stderr.trim()) || `Skip script returned exit code ${result}`;
-                return { shouldSkip: true, message };
+                const stdout = await new Response(skipProcess.stdout).text()
+                const stderr = await new Response(skipProcess.stderr).text()
+                const message = stdout.trim() || stderr.trim() || `Skip script returned exit code ${result}`
+                return {shouldSkip: true, message}
             }
         } catch (error) {
             // Extract just the message to avoid nested error wrapping
-            const message = error instanceof Error ? error.message : String(error);
-            throw new Error(`Failed to run skip script: ${message}`);
+            const message = error instanceof Error ? error.message : String(error)
+            throw new Error(`Failed to run skip script: ${message}`)
         }
     }
 
@@ -161,91 +161,91 @@ export class ServiceManager {
      * These variables are then added to the environment for all service scripts and tests.
      */
     async runEnvironment(config: TestConfig): Promise<Record<string, string>> {
-        const environmentCommand = config.services?.environment;
+        const environmentCommand = config.services?.environment
         if (!environmentCommand) {
-            return {};
+            return {}
         }
 
-        const timeout = (config.services?.environmentTimeout || 30) * 1000;
+        const timeout = (config.services?.environmentTimeout || 30) * 1000
 
-        const displayPath = this.getDisplayPath(environmentCommand, config);
+        const displayPath = this.getDisplayPath(environmentCommand, config)
         if (config.output?.verbose) {
-            console.log(`Running environment script: ${displayPath}`);
+            console.log(`Running environment script: ${displayPath}`)
         }
 
         try {
             // Parse command and arguments
-            const [command, ...args] = this.parseCommand(environmentCommand, config.configDir);
+            const [command, ...args] = this.parseCommand(environmentCommand, config.configDir)
 
             // Always pipe stdout to capture environment variables
             // Pipe stderr in quiet mode, inherit in verbose mode
-            const stderrMode = config.output?.verbose ? "inherit" : "pipe";
+            const stderrMode = config.output?.verbose ? 'inherit' : 'pipe'
 
             // Run environment script in foreground with config environment
             const envProcess = Bun.spawn([command, ...args], {
-                stdout: "pipe", // Always pipe stdout to capture output
+                stdout: 'pipe', // Always pipe stdout to capture output
                 stderr: stderrMode,
                 cwd: config.configDir, // Run in the directory containing testme.json5
-                env: await this.getServiceEnvironment(config) // Include config environment variables
-            });
+                env: await this.getServiceEnvironment(config), // Include config environment variables
+            })
 
             // Set up timeout
-            let timeoutId: Timer | undefined;
-            let timedOut = false;
+            let timeoutId: Timer | undefined
+            let timedOut = false
 
             if (timeout > 0) {
                 timeoutId = setTimeout(() => {
-                    timedOut = true;
-                    envProcess.kill();
-                }, timeout);
+                    timedOut = true
+                    envProcess.kill()
+                }, timeout)
             }
 
-            const result = await envProcess.exited;
+            const result = await envProcess.exited
 
             if (timeoutId) {
-                clearTimeout(timeoutId);
+                clearTimeout(timeoutId)
             }
 
             if (timedOut) {
-                throw new Error(`Environment script timed out after ${timeout}ms`);
+                throw new Error(`Environment script timed out after ${timeout}ms`)
             } else if (result === 0) {
                 // Parse stdout for key=value pairs
-                const stdout = await new Response(envProcess.stdout).text();
-                const envVars: Record<string, string> = {};
+                const stdout = await new Response(envProcess.stdout).text()
+                const envVars: Record<string, string> = {}
 
                 // Parse each line for KEY=VALUE format
-                const lines = stdout.split('\n');
+                const lines = stdout.split('\n')
                 for (const line of lines) {
-                    const trimmed = line.trim();
+                    const trimmed = line.trim()
                     if (!trimmed || trimmed.startsWith('#')) {
                         // Skip empty lines and comments
-                        continue;
+                        continue
                     }
 
-                    const equalIndex = trimmed.indexOf('=');
+                    const equalIndex = trimmed.indexOf('=')
                     if (equalIndex > 0) {
-                        const key = trimmed.substring(0, equalIndex).trim();
-                        const value = trimmed.substring(equalIndex + 1).trim();
-                        envVars[key] = value;
+                        const key = trimmed.substring(0, equalIndex).trim()
+                        const value = trimmed.substring(equalIndex + 1).trim()
+                        envVars[key] = value
                     }
                 }
 
                 if (config.output?.verbose) {
-                    console.log(`✓ Environment script completed - loaded ${Object.keys(envVars).length} variable(s)`);
+                    console.log(`✓ Environment script completed - loaded ${Object.keys(envVars).length} variable(s)`)
                 }
 
                 // Store environment variables for use by other scripts
-                this.environmentVars = envVars;
+                this.environmentVars = envVars
 
-                return envVars;
+                return envVars
             } else {
-                const stderr = await new Response(envProcess.stderr).text();
-                throw new Error(`Environment script failed with exit code ${result}: ${stderr}`);
+                const stderr = await new Response(envProcess.stderr).text()
+                throw new Error(`Environment script failed with exit code ${result}: ${stderr}`)
             }
         } catch (error) {
             // Extract just the message to avoid nested error wrapping
-            const message = error instanceof Error ? error.message : String(error);
-            throw new Error(`Failed to run environment script: ${message}`);
+            const message = error instanceof Error ? error.message : String(error)
+            throw new Error(`Failed to run environment script: ${message}`)
         }
     }
 
@@ -261,64 +261,64 @@ export class ServiceManager {
      * Use for global setup operations that need to happen before all tests (e.g., building shared libraries).
      */
     async runGlobalPrep(config: TestConfig): Promise<void> {
-        const globalPrepCommand = config.services?.globalPrep;
+        const globalPrepCommand = config.services?.globalPrep
         if (!globalPrepCommand) {
-            return;
+            return
         }
 
-        const timeout = (config.services?.globalPrepTimeout || 30) * 1000;
+        const timeout = (config.services?.globalPrepTimeout || 30) * 1000
 
-        const displayPath = this.getDisplayPath(globalPrepCommand, config);
+        const displayPath = this.getDisplayPath(globalPrepCommand, config)
         if (config.output?.verbose) {
-            console.log(`Running global prep: ${displayPath}`);
+            console.log(`Running global prep: ${displayPath}`)
         }
 
         try {
             // Parse command and arguments
-            const [command, ...args] = this.parseCommand(globalPrepCommand, config.configDir);
+            const [command, ...args] = this.parseCommand(globalPrepCommand, config.configDir)
 
             // In verbose mode, inherit stdout/stderr to show service output
             // Otherwise pipe it so we can capture on errors
-            const stdoutMode = config.output?.verbose ? "inherit" : "pipe";
-            const stderrMode = config.output?.verbose ? "inherit" : "pipe";
+            const stdoutMode = config.output?.verbose ? 'inherit' : 'pipe'
+            const stderrMode = config.output?.verbose ? 'inherit' : 'pipe'
 
             // Run global prep in foreground with proper environment
             const globalPrepProcess = Bun.spawn([command, ...args], {
                 stdout: stdoutMode,
                 stderr: stderrMode,
                 cwd: config.configDir, // Run in the directory containing testme.json5
-                env: await this.getServiceEnvironment(config)
-            });
+                env: await this.getServiceEnvironment(config),
+            })
 
             // Set up timeout
-            let timeoutId: Timer | undefined;
-            let timedOut = false;
+            let timeoutId: Timer | undefined
+            let timedOut = false
 
             if (timeout > 0) {
                 timeoutId = setTimeout(() => {
-                    timedOut = true;
-                    globalPrepProcess.kill();
-                }, timeout);
+                    timedOut = true
+                    globalPrepProcess.kill()
+                }, timeout)
             }
 
-            const result = await globalPrepProcess.exited;
+            const result = await globalPrepProcess.exited
 
             if (timeoutId) {
-                clearTimeout(timeoutId);
+                clearTimeout(timeoutId)
             }
 
             if (timedOut) {
-                throw new Error(`Global prep script timed out after ${timeout}ms`);
+                throw new Error(`Global prep script timed out after ${timeout}ms`)
             } else if (result === 0) {
-                console.log(`✓ Global prep completed successfully: ${displayPath}`);
+                console.log(`✓ Global prep completed successfully: ${displayPath}`)
             } else {
-                const stderr = await new Response(globalPrepProcess.stderr).text();
-                throw new Error(`Global prep script failed with exit code ${result}: ${stderr}`);
+                const stderr = await new Response(globalPrepProcess.stderr).text()
+                throw new Error(`Global prep script failed with exit code ${result}: ${stderr}`)
             }
         } catch (error) {
             // Extract just the message to avoid nested error wrapping
-            const message = error instanceof Error ? error.message : String(error);
-            throw new Error(`Failed to run global prep script: ${message}`);
+            const message = error instanceof Error ? error.message : String(error)
+            throw new Error(`Failed to run global prep script: ${message}`)
         }
     }
 
@@ -333,64 +333,64 @@ export class ServiceManager {
      * Use for one-time setup operations like compiling code or starting databases.
      */
     async runPrep(config: TestConfig): Promise<void> {
-        const prepCommand = config.services?.prep;
+        const prepCommand = config.services?.prep
         if (!prepCommand) {
-            return;
+            return
         }
 
-        const timeout = (config.services?.prepTimeout || 30) * 1000;
+        const timeout = (config.services?.prepTimeout || 30) * 1000
 
-        const displayPath = this.getDisplayPath(prepCommand, config);
+        const displayPath = this.getDisplayPath(prepCommand, config)
         if (config.output?.verbose) {
-            console.log(`Running prep script: ${displayPath}`);
+            console.log(`Running prep script: ${displayPath}`)
         }
 
         try {
             // Parse command and arguments
-            const [command, ...args] = this.parseCommand(prepCommand, config.configDir);
+            const [command, ...args] = this.parseCommand(prepCommand, config.configDir)
 
             // In verbose mode, inherit stdout/stderr to show service output
             // Otherwise pipe it so we can capture on errors
-            const stdoutMode = config.output?.verbose ? "inherit" : "pipe";
-            const stderrMode = config.output?.verbose ? "inherit" : "pipe";
+            const stdoutMode = config.output?.verbose ? 'inherit' : 'pipe'
+            const stderrMode = config.output?.verbose ? 'inherit' : 'pipe'
 
             // Run prep in foreground with proper environment
             const prepProcess = Bun.spawn([command, ...args], {
                 stdout: stdoutMode,
                 stderr: stderrMode,
                 cwd: config.configDir, // Run in the directory containing testme.json5
-                env: await this.getServiceEnvironment(config)
-            });
+                env: await this.getServiceEnvironment(config),
+            })
 
             // Set up timeout
-            let timeoutId: Timer | undefined;
-            let timedOut = false;
+            let timeoutId: Timer | undefined
+            let timedOut = false
 
             if (timeout > 0) {
                 timeoutId = setTimeout(() => {
-                    timedOut = true;
-                    prepProcess.kill();
-                }, timeout);
+                    timedOut = true
+                    prepProcess.kill()
+                }, timeout)
             }
 
-            const result = await prepProcess.exited;
+            const result = await prepProcess.exited
 
             if (timeoutId) {
-                clearTimeout(timeoutId);
+                clearTimeout(timeoutId)
             }
 
             if (timedOut) {
-                throw new Error(`Prep script timed out after ${timeout}ms`);
+                throw new Error(`Prep script timed out after ${timeout}ms`)
             } else if (result === 0) {
-                console.log(`✓ Prep script completed successfully: ${displayPath}`);
+                console.log(`✓ Prep script completed successfully: ${displayPath}`)
             } else {
-                const stderr = await new Response(prepProcess.stderr).text();
-                throw new Error(`Prep script failed with exit code ${result}: ${stderr}`);
+                const stderr = await new Response(prepProcess.stderr).text()
+                throw new Error(`Prep script failed with exit code ${result}: ${stderr}`)
             }
         } catch (error) {
             // Extract just the message to avoid nested error wrapping
-            const message = error instanceof Error ? error.message : String(error);
-            throw new Error(`Failed to run prep script: ${message}`);
+            const message = error instanceof Error ? error.message : String(error)
+            throw new Error(`Failed to run prep script: ${message}`)
         }
     }
 
@@ -406,160 +406,162 @@ export class ServiceManager {
      * Supports health checks to verify service readiness or falls back to setupDelay.
      */
     async runSetup(config: TestConfig): Promise<void> {
-        const setupCommand = config.services?.setup;
+        const setupCommand = config.services?.setup
         if (!setupCommand) {
-            return;
+            return
         }
 
-        const timeout = (config.services?.setupTimeout || 30) * 1000;
+        const timeout = (config.services?.setupTimeout || 30) * 1000
 
-        const displayPath = this.getDisplayPath(setupCommand, config);
+        const displayPath = this.getDisplayPath(setupCommand, config)
         if (config.output?.verbose) {
-            console.log(`Starting setup service: ${displayPath}`);
+            console.log(`Starting setup service: ${displayPath}`)
         }
 
         try {
             // Parse command and arguments
-            const [command, ...args] = this.parseCommand(setupCommand, config.configDir, true);
+            const [command, ...args] = this.parseCommand(setupCommand, config.configDir, true)
 
             // In verbose mode, inherit stdout/stderr to show service output
             // Otherwise pipe it so we can capture on errors
-            const stdoutMode = config.output?.verbose ? "inherit" : "pipe";
-            const stderrMode = config.output?.verbose ? "inherit" : "pipe";
+            const stdoutMode = config.output?.verbose ? 'inherit' : 'pipe'
+            const stderrMode = config.output?.verbose ? 'inherit' : 'pipe'
 
             // Start the background process with proper environment
             this.setupProcess = Bun.spawn([command, ...args], {
                 stdout: stdoutMode,
                 stderr: stderrMode,
-                stdin: "pipe", // Don't ignore stdin on Windows - some commands like timeout need it
+                stdin: 'pipe', // Don't ignore stdin on Windows - some commands like timeout need it
                 cwd: config.configDir, // Run in the directory containing testme.json5
-                env: await this.getServiceEnvironment(config)
-            });
+                env: await this.getServiceEnvironment(config),
+            })
 
-            this.isSetupRunning = true;
+            this.isSetupRunning = true
 
             // Set up timeout
-            let timeoutId: Timer | undefined;
-            let timedOut = false;
+            let timeoutId: Timer | undefined
+            let timedOut = false
 
             if (timeout > 0) {
                 timeoutId = setTimeout(() => {
-                    timedOut = true;
-                    console.log(
-                        `✗ Setup command timed out after ${timeout}ms`
-                    );
-                    this.killSetup();
-                }, timeout);
+                    timedOut = true
+                    console.log(`✗ Setup command timed out after ${timeout}ms`)
+                    this.killSetup()
+                }, timeout)
             }
 
             // Wait for service to be ready using health check or delay
             // Support healthCheck (camelCase), healthcheck (lowercase), and health (short form) for backward compatibility
-            const healthCheckConfig = (config.services as any)?.healthCheck || (config.services as any)?.healthcheck || (config.services as any)?.health;
+            const healthCheckConfig =
+                (config.services as any)?.healthCheck ||
+                (config.services as any)?.healthcheck ||
+                (config.services as any)?.health
             if (healthCheckConfig) {
                 // Use health check to verify service is ready
-                const healthCheckManager = new HealthCheckManager();
+                const healthCheckManager = new HealthCheckManager()
                 try {
-                    await healthCheckManager.waitForHealthy(healthCheckConfig, config.output?.verbose);
+                    await healthCheckManager.waitForHealthy(healthCheckConfig, config.output?.verbose)
                 } catch (error) {
                     // Health check failed - kill the setup process
-                    await this.killSetup(config);
-                    throw error;
+                    await this.killSetup(config)
+                    throw error
                 }
             } else {
                 // Fall back to setupDelay if no health check configured
                 // Use setupDelay if configured, fall back to legacy 'delay', default to 1 second
-                const initialDelay = (config.services?.setupDelay !== undefined
-                    ? config.services.setupDelay
-                    : config.services?.delay !== undefined
-                    ? config.services.delay
-                    : 1) * 1000;
+                const initialDelay =
+                    (config.services?.setupDelay !== undefined
+                        ? config.services.setupDelay
+                        : config.services?.delay !== undefined
+                          ? config.services.delay
+                          : 1) * 1000
 
                 if (initialDelay > 0) {
-                    await new Promise((resolve) => setTimeout(resolve, initialDelay));
+                    await new Promise((resolve) => setTimeout(resolve, initialDelay))
                 }
             }
 
             // Check if process is still running by checking if exited promise is still pending
-            const exitPromise = this.setupProcess.exited;
-            const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve('timeout'), 100));
-            const raceResult = await Promise.race([exitPromise, timeoutPromise]);
+            const exitPromise = this.setupProcess.exited
+            const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve('timeout'), 100))
+            const raceResult = await Promise.race([exitPromise, timeoutPromise])
 
             // If the race resolved to 'timeout', the process is still running
             if (this.setupProcess && raceResult === 'timeout') {
                 if (timeoutId) {
-                    clearTimeout(timeoutId);
+                    clearTimeout(timeoutId)
                 }
 
                 if (!timedOut) {
                     if (config.output?.verbose) {
-                        console.log("✓ Setup service started successfully");
+                        console.log('✓ Setup service started successfully')
                     }
 
                     // Note: Setup service output is not displayed in real-time to avoid cluttering test output.
                     // Output will be shown if the service fails or exits unexpectedly.
 
                     // Set up cleanup on process exit
-                    this.registerCleanupHandlers();
+                    this.registerCleanupHandlers()
                 }
             } else {
                 // Process exited immediately - capture output for debugging
-                const exitCode = typeof raceResult === 'number' ? raceResult : -1;
-                let errorMessage = `Setup process exited immediately with code ${exitCode}`;
+                const exitCode = typeof raceResult === 'number' ? raceResult : -1
+                let errorMessage = `Setup process exited immediately with code ${exitCode}`
 
                 // Try to read any output from the process (only if piped, not inherited)
                 if (!config.output?.verbose) {
                     try {
-                        let stdout = '';
-                        let stderr = '';
+                        let stdout = ''
+                        let stderr = ''
 
                         // Read stdout if it's a stream
                         if (this.setupProcess.stdout && typeof this.setupProcess.stdout !== 'number') {
-                            const reader = this.setupProcess.stdout.getReader();
-                            const chunks: Uint8Array[] = [];
-                            let done = false;
+                            const reader = this.setupProcess.stdout.getReader()
+                            const chunks: Uint8Array[] = []
+                            let done = false
                             while (!done) {
-                                const result = await reader.read();
-                                if (result.value) chunks.push(result.value);
-                                done = result.done;
+                                const result = await reader.read()
+                                if (result.value) chunks.push(result.value)
+                                done = result.done
                             }
-                            const decoder = new TextDecoder();
-                            stdout = decoder.decode(Buffer.concat(chunks));
+                            const decoder = new TextDecoder()
+                            stdout = decoder.decode(Buffer.concat(chunks))
                         }
 
                         // Read stderr if it's a stream
                         if (this.setupProcess.stderr && typeof this.setupProcess.stderr !== 'number') {
-                            const reader = this.setupProcess.stderr.getReader();
-                            const chunks: Uint8Array[] = [];
-                            let done = false;
+                            const reader = this.setupProcess.stderr.getReader()
+                            const chunks: Uint8Array[] = []
+                            let done = false
                             while (!done) {
-                                const result = await reader.read();
-                                if (result.value) chunks.push(result.value);
-                                done = result.done;
+                                const result = await reader.read()
+                                if (result.value) chunks.push(result.value)
+                                done = result.done
                             }
-                            const decoder = new TextDecoder();
-                            stderr = decoder.decode(Buffer.concat(chunks));
+                            const decoder = new TextDecoder()
+                            stderr = decoder.decode(Buffer.concat(chunks))
                         }
 
                         if (stdout || stderr) {
-                            errorMessage += '\n\nProcess output:';
-                            if (stdout) errorMessage += `\nSTDOUT:\n${stdout}`;
-                            if (stderr) errorMessage += `\nSTDERR:\n${stderr}`;
+                            errorMessage += '\n\nProcess output:'
+                            if (stdout) errorMessage += `\nSTDOUT:\n${stdout}`
+                            if (stderr) errorMessage += `\nSTDERR:\n${stderr}`
                         }
                     } catch (readError) {
-                        errorMessage += `\n(Could not read process output: ${readError})`;
+                        errorMessage += `\n(Could not read process output: ${readError})`
                     }
                 } else {
-                    errorMessage += '\n(Output was displayed above in verbose mode)';
+                    errorMessage += '\n(Output was displayed above in verbose mode)'
                 }
 
-                throw new Error(errorMessage);
+                throw new Error(errorMessage)
             }
         } catch (error) {
-            this.isSetupRunning = false;
-            this.setupProcess = null;
+            this.isSetupRunning = false
+            this.setupProcess = null
             // Extract just the message to avoid nested error wrapping
-            const message = error instanceof Error ? error.message : String(error);
-            throw new Error(`Failed to start setup service: ${message}`);
+            const message = error instanceof Error ? error.message : String(error)
+            throw new Error(`Failed to start setup service: ${message}`)
         }
     }
 
@@ -578,73 +580,71 @@ export class ServiceManager {
      * Sets TESTME_KEEP=1 if keepArtifacts is enabled, 0 otherwise.
      */
     async runGlobalCleanup(config: TestConfig, allTestsPassed?: boolean): Promise<void> {
-        const globalCleanupCommand = config.services?.globalCleanup;
+        const globalCleanupCommand = config.services?.globalCleanup
         if (!globalCleanupCommand) {
-            return;
+            return
         }
 
-        const timeout = (config.services?.globalCleanupTimeout || 10) * 1000;
+        const timeout = (config.services?.globalCleanupTimeout || 10) * 1000
 
-        const displayPath = this.getDisplayPath(globalCleanupCommand, config);
+        const displayPath = this.getDisplayPath(globalCleanupCommand, config)
         if (config.output?.verbose) {
-            console.log(`Running global cleanup: ${displayPath}`);
+            console.log(`Running global cleanup: ${displayPath}`)
         }
 
         try {
             // Parse command and arguments
-            const [command, ...args] = this.parseCommand(globalCleanupCommand, config.configDir);
+            const [command, ...args] = this.parseCommand(globalCleanupCommand, config.configDir)
 
             // In verbose mode, inherit stdout/stderr to show service output
             // Otherwise pipe it so we can capture on errors
-            const stdoutMode = config.output?.verbose ? "inherit" : "pipe";
-            const stderrMode = config.output?.verbose ? "inherit" : "pipe";
+            const stdoutMode = config.output?.verbose ? 'inherit' : 'pipe'
+            const stderrMode = config.output?.verbose ? 'inherit' : 'pipe'
 
             // Get service environment and add cleanup-specific variables
-            const env = await this.getServiceEnvironment(config);
+            const env = await this.getServiceEnvironment(config)
 
             // Add TESTME_SUCCESS (1 if all tests passed, 0 otherwise)
-            env.TESTME_SUCCESS = allTestsPassed === true ? '1' : '0';
+            env.TESTME_SUCCESS = allTestsPassed === true ? '1' : '0'
 
             // Add TESTME_KEEP (1 if keepArtifacts is enabled, 0 otherwise)
-            env.TESTME_KEEP = config.execution?.keepArtifacts === true ? '1' : '0';
+            env.TESTME_KEEP = config.execution?.keepArtifacts === true ? '1' : '0'
 
             // Run global cleanup in foreground with proper environment
             const globalCleanupProcess = Bun.spawn([command, ...args], {
                 stdout: stdoutMode,
                 stderr: stderrMode,
                 cwd: config.configDir, // Run in the directory containing testme.json5
-                env
-            });
+                env,
+            })
 
             // Set up timeout
-            let timeoutId: Timer | undefined;
-            let timedOut = false;
+            let timeoutId: Timer | undefined
+            let timedOut = false
 
             if (timeout > 0) {
                 timeoutId = setTimeout(() => {
-                    timedOut = true;
-                    globalCleanupProcess.kill();
-                }, timeout);
+                    timedOut = true
+                    globalCleanupProcess.kill()
+                }, timeout)
             }
 
-            const result = await globalCleanupProcess.exited;
+            const result = await globalCleanupProcess.exited
 
             if (timeoutId) {
-                clearTimeout(timeoutId);
+                clearTimeout(timeoutId)
             }
 
             if (timedOut) {
-                console.log(`✗ Global cleanup command timed out after ${timeout}ms`);
+                console.log(`✗ Global cleanup command timed out after ${timeout}ms`)
             } else if (result === 0) {
-                console.log(`✓ Global cleanup completed successfully: ${displayPath}`);
+                console.log(`✓ Global cleanup completed successfully: ${displayPath}`)
             } else {
-                const stderr = await new Response(globalCleanupProcess.stderr).text();
-                console.warn(
-                    `✗ Global cleanup completed with exit code ${result}: ${stderr}`
-                );
+                const stderr = await new Response(globalCleanupProcess.stderr).text()
+                console.warn(`✗ Global cleanup completed with exit code ${result}: ${stderr}`)
             }
         } catch (error) {
-            console.error(`✗ Global cleanup failed: ${error}`);
+            console.error(`✗ Global cleanup failed: ${error}`)
         }
     }
 
@@ -662,76 +662,74 @@ export class ServiceManager {
      * Sets TESTME_KEEP=1 if keepArtifacts is enabled, 0 otherwise.
      */
     async runCleanup(config: TestConfig, allTestsPassed?: boolean): Promise<void> {
-        const cleanupCommand = config.services?.cleanup;
+        const cleanupCommand = config.services?.cleanup
         if (!cleanupCommand) {
-            return;
+            return
         }
 
         // First kill the setup process if it's running
-        await this.killSetup(config);
+        await this.killSetup(config)
 
-        const timeout = (config.services?.cleanupTimeout || 10) * 1000;
+        const timeout = (config.services?.cleanupTimeout || 10) * 1000
 
-        const displayPath = this.getDisplayPath(cleanupCommand, config);
+        const displayPath = this.getDisplayPath(cleanupCommand, config)
         if (config.output?.verbose) {
-            console.log(`Running cleanup: ${displayPath}`);
+            console.log(`Running cleanup: ${displayPath}`)
         }
 
         try {
             // Parse command and arguments
-            const [command, ...args] = this.parseCommand(cleanupCommand, config.configDir);
+            const [command, ...args] = this.parseCommand(cleanupCommand, config.configDir)
 
             // In verbose mode, inherit stdout/stderr to show service output
             // Otherwise pipe it so we can capture on errors
-            const stdoutMode = config.output?.verbose ? "inherit" : "pipe";
-            const stderrMode = config.output?.verbose ? "inherit" : "pipe";
+            const stdoutMode = config.output?.verbose ? 'inherit' : 'pipe'
+            const stderrMode = config.output?.verbose ? 'inherit' : 'pipe'
 
             // Get service environment and add cleanup-specific variables
-            const env = await this.getServiceEnvironment(config);
+            const env = await this.getServiceEnvironment(config)
 
             // Add TESTME_SUCCESS (1 if all tests passed, 0 otherwise)
-            env.TESTME_SUCCESS = allTestsPassed === true ? '1' : '0';
+            env.TESTME_SUCCESS = allTestsPassed === true ? '1' : '0'
 
             // Add TESTME_KEEP (1 if keepArtifacts is enabled, 0 otherwise)
-            env.TESTME_KEEP = config.execution?.keepArtifacts === true ? '1' : '0';
+            env.TESTME_KEEP = config.execution?.keepArtifacts === true ? '1' : '0'
 
             // Run cleanup in foreground with proper environment
             const cleanupProcess = Bun.spawn([command, ...args], {
                 stdout: stdoutMode,
                 stderr: stderrMode,
                 cwd: config.configDir, // Run in the directory containing testme.json5
-                env
-            });
+                env,
+            })
 
             // Set up timeout
-            let timeoutId: Timer | undefined;
-            let timedOut = false;
+            let timeoutId: Timer | undefined
+            let timedOut = false
 
             if (timeout > 0) {
                 timeoutId = setTimeout(() => {
-                    timedOut = true;
-                    cleanupProcess.kill();
-                }, timeout);
+                    timedOut = true
+                    cleanupProcess.kill()
+                }, timeout)
             }
 
-            const result = await cleanupProcess.exited;
+            const result = await cleanupProcess.exited
 
             if (timeoutId) {
-                clearTimeout(timeoutId);
+                clearTimeout(timeoutId)
             }
 
             if (timedOut) {
-                console.log(`✗ Cleanup command timed out after ${timeout}ms`);
+                console.log(`✗ Cleanup command timed out after ${timeout}ms`)
             } else if (result === 0) {
-                console.log(`✓ Cleanup completed successfully: ${displayPath}`);
+                console.log(`✓ Cleanup completed successfully: ${displayPath}`)
             } else {
-                const stderr = await new Response(cleanupProcess.stderr).text();
-                console.warn(
-                    `✗ Cleanup completed with exit code ${result}: ${stderr}`
-                );
+                const stderr = await new Response(cleanupProcess.stderr).text()
+                console.warn(`✗ Cleanup completed with exit code ${result}: ${stderr}`)
             }
         } catch (error) {
-            console.error(`✗ Cleanup failed: ${error}`);
+            console.error(`✗ Cleanup failed: ${error}`)
         }
     }
 
@@ -744,27 +742,27 @@ export class ServiceManager {
      */
     async killSetup(config?: TestConfig): Promise<void> {
         if (!this.setupProcess || !this.isSetupRunning) {
-            return;
+            return
         }
 
         try {
             // Get shutdown timeout from config (convert seconds to milliseconds, default to 5)
-            const shutdownTimeout = ((config?.services?.shutdownTimeout ?? 5) * 1000);
+            const shutdownTimeout = (config?.services?.shutdownTimeout ?? 5) * 1000
 
             // Kill the process using platform-appropriate method
             if (this.setupProcess.pid) {
-                await ProcessManager.killProcess(this.setupProcess.pid, true, shutdownTimeout);
+                await ProcessManager.killProcess(this.setupProcess.pid, true, shutdownTimeout)
             } else {
                 // Fallback: just kill the main process
-                this.setupProcess.kill();
+                this.setupProcess.kill()
             }
 
-            this.isSetupRunning = false;
-            this.setupProcess = null;
+            this.isSetupRunning = false
+            this.setupProcess = null
         } catch (error) {
-            console.warn(`✗ Error stopping setup service: ${error}`);
-            this.isSetupRunning = false;
-            this.setupProcess = null;
+            console.warn(`✗ Error stopping setup service: ${error}`)
+            this.isSetupRunning = false
+            this.setupProcess = null
         }
     }
 
@@ -774,11 +772,7 @@ export class ServiceManager {
      * @returns true if setup process is running
      */
     isSetupServiceRunning(): boolean {
-        return (
-            this.isSetupRunning &&
-            this.setupProcess &&
-            !this.setupProcess.killed
-        );
+        return this.isSetupRunning && this.setupProcess && !this.setupProcess.killed
     }
 
     /*
@@ -791,49 +785,49 @@ export class ServiceManager {
     private parseCommand(commandString: string, cwd?: string, isBackgroundService: boolean = false): string[] {
         // Simple parsing - split on spaces (doesn't handle quoted arguments)
         // For more complex parsing, could use a proper shell parser
-        const parts = commandString.trim().split(/\s+/);
+        const parts = commandString.trim().split(/\s+/)
 
         if (parts.length > 0) {
-            const command = parts[0];
-            let resolvedCommand = command;
+            const command = parts[0]
+            let resolvedCommand = command
 
             // If it's already absolute, use as-is
             if (isAbsolute(command)) {
-                resolvedCommand = command;
+                resolvedCommand = command
             }
             // If it starts with ./ or .\, resolve it to an absolute path
             else if (command.startsWith('./') || command.startsWith('.\\')) {
-                const relativePath = command.slice(2);
+                const relativePath = command.slice(2)
                 if (cwd) {
-                    resolvedCommand = join(cwd, relativePath);
+                    resolvedCommand = join(cwd, relativePath)
                 } else {
-                    resolvedCommand = join(process.cwd(), relativePath);
+                    resolvedCommand = join(process.cwd(), relativePath)
                 }
             }
             // If it doesn't contain path separators, it's a command in PATH - leave as-is
             else if (!command.includes('/') && !command.includes('\\')) {
                 // Command in PATH, use as-is
-                resolvedCommand = command;
+                resolvedCommand = command
             }
             // Otherwise it's a relative path without ./ prefix - resolve it
             else {
                 if (cwd) {
-                    resolvedCommand = join(cwd, command);
+                    resolvedCommand = join(cwd, command)
                 } else {
-                    resolvedCommand = join(process.cwd(), command);
+                    resolvedCommand = join(process.cwd(), command)
                 }
             }
 
             // On Windows, batch files need to be executed via cmd.exe
-            const ext = resolvedCommand.toLowerCase().slice(resolvedCommand.lastIndexOf('.'));
+            const ext = resolvedCommand.toLowerCase().slice(resolvedCommand.lastIndexOf('.'))
             if (PlatformDetector.isWindows() && (ext === '.bat' || ext === '.cmd')) {
                 // For background services, don't use /c as it waits for completion
                 // Just use cmd.exe to execute the batch file
                 if (isBackgroundService) {
-                    return ['cmd.exe', '/c', resolvedCommand, ...parts.slice(1)];
+                    return ['cmd.exe', '/c', resolvedCommand, ...parts.slice(1)]
                 }
                 // For foreground, use cmd.exe /c to execute and return
-                return ['cmd.exe', '/c', resolvedCommand, ...parts.slice(1)];
+                return ['cmd.exe', '/c', resolvedCommand, ...parts.slice(1)]
             }
 
             // JavaScript/TypeScript files need to be executed via bun
@@ -841,22 +835,25 @@ export class ServiceManager {
             // So we need to explicitly use 'bun' command
             if (ext === '.js' || ext === '.ts') {
                 // Check if we're running from a compiled binary (process.execPath ends with our binary name)
-                const isBunCompiled = process.execPath.includes('/tm') || process.execPath.includes('\\tm.exe') || process.execPath.includes('\\tm');
-                const bunExecutable = isBunCompiled ? 'bun' : process.execPath;
-                return [bunExecutable, resolvedCommand, ...parts.slice(1)];
+                const isBunCompiled =
+                    process.execPath.includes('/tm') ||
+                    process.execPath.includes('\\tm.exe') ||
+                    process.execPath.includes('\\tm')
+                const bunExecutable = isBunCompiled ? 'bun' : process.execPath
+                return [bunExecutable, resolvedCommand, ...parts.slice(1)]
             }
 
             // Shell scripts need to be executed via bash
             // On Windows: bash from Git for Windows
             // On Unix: bash to handle scripts without shebang or without execute permissions
             if (ext === '.sh') {
-                return ['bash', resolvedCommand, ...parts.slice(1)];
+                return ['bash', resolvedCommand, ...parts.slice(1)]
             }
 
-            parts[0] = resolvedCommand;
+            parts[0] = resolvedCommand
         }
 
-        return parts;
+        return parts
     }
 
     /*
@@ -864,23 +861,23 @@ export class ServiceManager {
      */
     private registerCleanupHandlers(): void {
         const cleanup = async () => {
-            await this.killSetup();
-        };
+            await this.killSetup()
+        }
 
         // Handle various exit scenarios
-        process.on("SIGINT", cleanup); // Ctrl+C
-        process.on("SIGTERM", cleanup); // Termination signal
-        process.on("exit", cleanup); // Normal exit
-        process.on("uncaughtException", async (error) => {
-            console.error("Uncaught exception:", error);
-            await cleanup();
-            process.exit(1);
-        });
-        process.on("unhandledRejection", async (reason) => {
-            console.error("Unhandled rejection:", reason);
-            await cleanup();
-            process.exit(1);
-        });
+        process.on('SIGINT', cleanup) // Ctrl+C
+        process.on('SIGTERM', cleanup) // Termination signal
+        process.on('exit', cleanup) // Normal exit
+        process.on('uncaughtException', async (error) => {
+            console.error('Uncaught exception:', error)
+            await cleanup()
+            process.exit(1)
+        })
+        process.on('unhandledRejection', async (reason) => {
+            console.error('Unhandled rejection:', reason)
+            await cleanup()
+            process.exit(1)
+        })
     }
 
     /*
@@ -892,21 +889,21 @@ export class ServiceManager {
     private getDisplayPath(command: string, config: TestConfig): string {
         // If it's just a command name without path separators, return as-is
         if (!command.includes('/') && !command.includes('\\')) {
-            return command;
+            return command
         }
 
         // Get the full path by combining with config directory
-        const fullPath = config.configDir ? `${config.configDir}/${command}` : command;
-        const relativePath = relative(this.invocationDir, fullPath);
+        const fullPath = config.configDir ? `${config.configDir}/${command}` : command
+        const relativePath = relative(this.invocationDir, fullPath)
 
         // Always prefer showing the relative path from invocation directory for context
         // This makes it clear which directory's service script is running
         // Only fall back to command if the relative path is absurdly long
         if (!relativePath.startsWith('../../../..')) {
-            return relativePath;
+            return relativePath
         }
 
-        return command;
+        return command
     }
 
     /*
@@ -916,94 +913,100 @@ export class ServiceManager {
      */
     private async getServiceEnvironment(config: TestConfig): Promise<Record<string, string>> {
         // Start with process environment, then add environment script variables
-        const env = { ...process.env, ...this.environmentVars };
+        const env = {...process.env, ...this.environmentVars}
 
         // On Windows, ensure System32 is first in PATH to prevent Unix commands from shadowing Windows commands
         if (PlatformDetector.isWindows()) {
-            const system32 = 'C:\\Windows\\System32';
-            const currentPath = process.env.PATH || '';
+            const system32 = 'C:\\Windows\\System32'
+            const currentPath = process.env.PATH || ''
             // Remove System32 if it exists elsewhere in PATH, then add it at the beginning
-            const pathParts = currentPath.split(delimiter).filter(p => p.toLowerCase() !== system32.toLowerCase());
-            env.PATH = `${system32}${delimiter}.${delimiter}${pathParts.join(delimiter)}`;
+            const pathParts = currentPath.split(delimiter).filter((p) => p.toLowerCase() !== system32.toLowerCase())
+            env.PATH = `${system32}${delimiter}.${delimiter}${pathParts.join(delimiter)}`
         } else {
             // Add local directory to PATH for service scripts
-            env.PATH = `.${delimiter}${process.env.PATH}`;
+            env.PATH = `.${delimiter}${process.env.PATH}`
         }
 
         // Create and export special variables for all service scripts
-        const baseDir = config.configDir || process.cwd();
+        const baseDir = config.configDir || process.cwd()
 
         // Determine current platform
-        const platform = process.platform === 'darwin' ? 'macosx' :
-                       process.platform === 'win32' ? 'windows' : 'linux';
+        const platform = process.platform === 'darwin' ? 'macosx' : process.platform === 'win32' ? 'windows' : 'linux'
 
         // Create special variables for expansion (PLATFORM, PROFILE, etc.)
         const specialVars = GlobExpansion.createSpecialVariables(
-            baseDir,  // executableDir
-            baseDir,  // testDir
-            config.configDir,  // configDir
-            undefined,  // compiler (not relevant for services)
-            config.profile  // profile from config
-        );
+            baseDir, // executableDir
+            baseDir, // testDir
+            config.configDir, // configDir
+            undefined, // compiler (not relevant for services)
+            config.profile // profile from config
+        )
 
         // Export special variables as environment variables for service scripts
-        if (specialVars.PLATFORM !== undefined) env.TESTME_PLATFORM = specialVars.PLATFORM;
-        if (specialVars.PROFILE !== undefined) env.TESTME_PROFILE = specialVars.PROFILE;
-        if (specialVars.OS !== undefined) env.TESTME_OS = specialVars.OS;
-        if (specialVars.ARCH !== undefined) env.TESTME_ARCH = specialVars.ARCH;
-        if (specialVars.CC !== undefined) env.TESTME_CC = specialVars.CC;
+        if (specialVars.PLATFORM !== undefined) env.TESTME_PLATFORM = specialVars.PLATFORM
+        if (specialVars.PROFILE !== undefined) env.TESTME_PROFILE = specialVars.PROFILE
+        if (specialVars.OS !== undefined) env.TESTME_OS = specialVars.OS
+        if (specialVars.ARCH !== undefined) env.TESTME_ARCH = specialVars.ARCH
+        if (specialVars.CC !== undefined) env.TESTME_CC = specialVars.CC
         // Use '.' for empty relative paths (when in the same directory)
-        if (specialVars.TESTDIR !== undefined) env.TESTME_TESTDIR = specialVars.TESTDIR || '.';
-        if (specialVars.CONFIGDIR !== undefined) env.TESTME_CONFIGDIR = specialVars.CONFIGDIR || '.';
+        if (specialVars.TESTDIR !== undefined) env.TESTME_TESTDIR = specialVars.TESTDIR || '.'
+        if (specialVars.CONFIGDIR !== undefined) env.TESTME_CONFIGDIR = specialVars.CONFIGDIR || '.'
 
         // Add environment variables from configuration with expansion
         // Support both 'environment' (new) and 'env' (legacy) keys
-        const configEnv = config.environment || config.env;
+        const configEnv = config.environment || config.env
         if (configEnv) {
             // First, process default environment variables if present
-            const defaultEnv = configEnv.default;
+            const defaultEnv = configEnv.default
             if (defaultEnv && typeof defaultEnv === 'object') {
                 for (const [key, value] of Object.entries(defaultEnv)) {
                     if (value === null || value === undefined) {
-                        continue;
+                        continue
                     }
                     // Convert to string if not already (handles numbers, booleans, etc.)
-                    const stringValue = typeof value === 'string' ? value : String(value);
+                    const stringValue = typeof value === 'string' ? value : String(value)
                     // Expand ${...} references in environment variable values
-                    const expandedValue = await GlobExpansion.expandSingle(stringValue, baseDir, specialVars);
-                    env[key] = expandedValue;
+                    const expandedValue = await GlobExpansion.expandSingle(stringValue, baseDir, specialVars)
+                    env[key] = expandedValue
                 }
             }
 
             // Then, process base environment variables (exclude platform and default keys)
             for (const [key, value] of Object.entries(configEnv)) {
                 // Skip platform-specific keys, default key, and null/undefined values
-                if (key === 'windows' || key === 'macosx' || key === 'linux' || key === 'default' || value === null || value === undefined) {
-                    continue;
+                if (
+                    key === 'windows' ||
+                    key === 'macosx' ||
+                    key === 'linux' ||
+                    key === 'default' ||
+                    value === null ||
+                    value === undefined
+                ) {
+                    continue
                 }
                 // Convert to string if not already (handles numbers, booleans, etc.)
-                const stringValue = typeof value === 'string' ? value : String(value);
+                const stringValue = typeof value === 'string' ? value : String(value)
                 // Expand ${...} references in environment variable values
-                const expandedValue = await GlobExpansion.expandSingle(stringValue, baseDir, specialVars);
-                env[key] = expandedValue;
+                const expandedValue = await GlobExpansion.expandSingle(stringValue, baseDir, specialVars)
+                env[key] = expandedValue
             }
 
             // Finally, merge platform-specific environment variables (these override defaults)
-            const platformEnv = configEnv[platform];
+            const platformEnv = configEnv[platform]
             if (platformEnv) {
                 for (const [key, value] of Object.entries(platformEnv)) {
                     if (value === null || value === undefined) {
-                        continue;
+                        continue
                     }
                     // Convert to string if not already (handles numbers, booleans, etc.)
-                    const stringValue = typeof value === 'string' ? value : String(value);
+                    const stringValue = typeof value === 'string' ? value : String(value)
                     // Expand ${...} references in environment variable values
-                    const expandedValue = await GlobExpansion.expandSingle(stringValue, baseDir, specialVars);
-                    env[key] = expandedValue;
+                    const expandedValue = await GlobExpansion.expandSingle(stringValue, baseDir, specialVars)
+                    env[key] = expandedValue
                 }
             }
         }
 
-        return env;
+        return env
     }
 }

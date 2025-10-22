@@ -71,7 +71,11 @@ const objects = [{a: 1}, {b: 2}, {c: 3}]
 expect(objects).toContainEqual({b: 2})
 expect(objects).not.toContainEqual({d: 4})
 
-const nested = [[1, 2], [3, 4], [5, 6]]
+const nested = [
+    [1, 2],
+    [3, 4],
+    [5, 6],
+]
 expect(nested).toContainEqual([3, 4])
 expect(nested).not.toContainEqual([4, 3]) //  Order matters
 

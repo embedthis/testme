@@ -1,33 +1,33 @@
-import { PlatformDetector } from "./detector.ts";
-import type { CompilerInfo } from "./detector.ts";
-import { PermissionManager } from "./permissions.ts";
-import os from "os";
+import {PlatformDetector} from './detector.ts'
+import type {CompilerInfo} from './detector.ts'
+import {PermissionManager} from './permissions.ts'
+import os from 'os'
 
 export enum CompilerType {
-    GCC = "gcc",
-    Clang = "clang",
-    MSVC = "msvc",
-    MinGW = "mingw",
-    Unknown = "unknown"
+    GCC = 'gcc',
+    Clang = 'clang',
+    MSVC = 'msvc',
+    MinGW = 'mingw',
+    Unknown = 'unknown',
 }
 
 export interface CompilerConfig {
-    compiler: string;
-    type: CompilerType;
-    flags: string[];
-    libraries?: string[];
+    compiler: string
+    type: CompilerType
+    flags: string[]
+    libraries?: string[]
     env?: {
-        PATH?: string;
-        INCLUDE?: string;
-        LIB?: string;
-    };
+        PATH?: string
+        INCLUDE?: string
+        LIB?: string
+    }
 }
 
 export interface CompileResult {
-    success: boolean;
-    outputPath: string;
-    stderr: string;
-    stdout: string;
+    success: boolean
+    outputPath: string
+    stderr: string
+    stdout: string
 }
 
 /*
@@ -40,34 +40,34 @@ export class CompilerManager {
      @returns Promise resolving to compiler information
      */
     static async detectBestCompiler(): Promise<CompilerInfo | null> {
-        const compilers = await PlatformDetector.detectCompilers();
+        const compilers = await PlatformDetector.detectCompilers()
 
         if (compilers.length === 0) {
-            return null;
+            return null
         }
 
         // Priority order differs by platform
         if (PlatformDetector.isWindows()) {
             // Windows: prefer MSVC > MinGW > Clang
-            const msvc = compilers.find(c => c.type === "msvc");
-            if (msvc) return msvc;
+            const msvc = compilers.find((c) => c.type === 'msvc')
+            if (msvc) return msvc
 
-            const mingw = compilers.find(c => c.type === "mingw");
-            if (mingw) return mingw;
+            const mingw = compilers.find((c) => c.type === 'mingw')
+            if (mingw) return mingw
 
-            const clang = compilers.find(c => c.type === "clang");
-            if (clang) return clang;
+            const clang = compilers.find((c) => c.type === 'clang')
+            if (clang) return clang
         } else {
             // Unix: prefer GCC > Clang
-            const gcc = compilers.find(c => c.type === "gcc");
-            if (gcc) return gcc;
+            const gcc = compilers.find((c) => c.type === 'gcc')
+            if (gcc) return gcc
 
-            const clang = compilers.find(c => c.type === "clang");
-            if (clang) return clang;
+            const clang = compilers.find((c) => c.type === 'clang')
+            if (clang) return clang
         }
 
         // Return first available as fallback
-        return compilers[0];
+        return compilers[0]
     }
 
     /*
@@ -76,59 +76,59 @@ export class CompilerManager {
      @returns Compiler configuration with appropriate defaults
      */
     static async getDefaultCompilerConfig(compilerName?: string): Promise<CompilerConfig> {
-        let compiler = compilerName;
-        let type = CompilerType.Unknown;
-        let env;
+        let compiler = compilerName
+        let type = CompilerType.Unknown
+        let env
 
         // Treat 'default' as auto-detect (same as undefined/null)
         if (!compiler || compiler === 'default') {
-            const detected = await this.detectBestCompiler();
+            const detected = await this.detectBestCompiler()
             if (detected) {
-                compiler = detected.path;
-                type = this.mapCompilerType(detected.type);
-                env = detected.env;
+                compiler = detected.path
+                type = this.mapCompilerType(detected.type)
+                env = detected.env
             } else if (PlatformDetector.isWindows()) {
-                compiler = "cl.exe";
-                type = CompilerType.MSVC;
+                compiler = 'cl.exe'
+                type = CompilerType.MSVC
             } else {
-                compiler = "gcc";
-                type = CompilerType.GCC;
+                compiler = 'gcc'
+                type = CompilerType.GCC
             }
         } else if (compiler === 'msvc' || compiler === 'gcc' || compiler === 'clang' || compiler === 'mingw') {
             // Handle compiler type names - detect and use actual compiler
-            const detected = await this.detectBestCompiler();
+            const detected = await this.detectBestCompiler()
             if (detected && detected.type === compiler) {
-                compiler = detected.path;
-                type = this.mapCompilerType(detected.type);
-                env = detected.env;
+                compiler = detected.path
+                type = this.mapCompilerType(detected.type)
+                env = detected.env
             } else {
                 // Requested compiler not found, fall back to defaults
                 if (compiler === 'msvc') {
-                    compiler = "cl.exe";
-                    type = CompilerType.MSVC;
+                    compiler = 'cl.exe'
+                    type = CompilerType.MSVC
                 } else if (compiler === 'gcc') {
-                    compiler = "gcc";
-                    type = CompilerType.GCC;
+                    compiler = 'gcc'
+                    type = CompilerType.GCC
                 } else if (compiler === 'clang') {
-                    compiler = "clang";
-                    type = CompilerType.Clang;
+                    compiler = 'clang'
+                    type = CompilerType.Clang
                 } else if (compiler === 'mingw') {
-                    compiler = "gcc";
-                    type = CompilerType.MinGW;
+                    compiler = 'gcc'
+                    type = CompilerType.MinGW
                 }
             }
         } else {
-            type = this.detectCompilerType(compiler);
+            type = this.detectCompilerType(compiler)
         }
 
-        const flags = this.getDefaultFlags(type);
+        const flags = this.getDefaultFlags(type)
 
         return {
             compiler,
             type,
             flags,
-            env
-        };
+            env,
+        }
     }
 
     /*
@@ -137,19 +137,19 @@ export class CompilerManager {
      @returns Compiler type
      */
     private static detectCompilerType(compiler: string): CompilerType {
-        const lower = compiler.toLowerCase();
+        const lower = compiler.toLowerCase()
 
-        if (lower.includes("cl.exe") || lower.includes("cl ")) {
-            return CompilerType.MSVC;
-        } else if (lower.includes("gcc")) {
-            return CompilerType.GCC;
-        } else if (lower.includes("clang")) {
-            return CompilerType.Clang;
-        } else if (lower.includes("mingw")) {
-            return CompilerType.MinGW;
+        if (lower.includes('cl.exe') || lower.includes('cl ')) {
+            return CompilerType.MSVC
+        } else if (lower.includes('gcc')) {
+            return CompilerType.GCC
+        } else if (lower.includes('clang')) {
+            return CompilerType.Clang
+        } else if (lower.includes('mingw')) {
+            return CompilerType.MinGW
         }
 
-        return CompilerType.Unknown;
+        return CompilerType.Unknown
     }
 
     /*
@@ -159,16 +159,16 @@ export class CompilerManager {
      */
     private static mapCompilerType(type: string): CompilerType {
         switch (type) {
-            case "gcc":
-                return CompilerType.GCC;
-            case "clang":
-                return CompilerType.Clang;
-            case "msvc":
-                return CompilerType.MSVC;
-            case "mingw":
-                return CompilerType.MinGW;
+            case 'gcc':
+                return CompilerType.GCC
+            case 'clang':
+                return CompilerType.Clang
+            case 'msvc':
+                return CompilerType.MSVC
+            case 'mingw':
+                return CompilerType.MinGW
             default:
-                return CompilerType.Unknown;
+                return CompilerType.Unknown
         }
     }
 
@@ -179,62 +179,62 @@ export class CompilerManager {
      @returns Array of default flags
      */
     private static getDefaultFlags(type: CompilerType): string[] {
-        const homeDir = os.homedir();
+        const homeDir = os.homedir()
 
         switch (type) {
             case CompilerType.MSVC:
                 return [
-                    "/std:c11",     // C11 standard
-                    "/W4",          // Warning level 4 (high)
-                    "/Od",          // Disable optimizations (for debugging)
-                    "/Zi",          // Generate debug info
-                    "/FS",          // Force synchronous PDB writes (for parallel builds)
-                    "/nologo",      // Suppress startup banner
-                    `/I${homeDir}\\.local\\include` // Include ~/.local
-                ];
+                    '/std:c11', // C11 standard
+                    '/W4', // Warning level 4 (high)
+                    '/Od', // Disable optimizations (for debugging)
+                    '/Zi', // Generate debug info
+                    '/FS', // Force synchronous PDB writes (for parallel builds)
+                    '/nologo', // Suppress startup banner
+                    `/I${homeDir}\\.local\\include`, // Include ~/.local
+                ]
             case CompilerType.GCC:
             case CompilerType.MinGW:
                 // Note: No -std flag by default to allow POSIX extensions (strdup, etc.)
                 // and modern features. Users can specify -std=c99, -std=c11, etc. in testme.json5
                 const gccFlags = [
-                    "-Wall",            // Enable all warnings
-                    "-Wextra",          // Enable extra warnings
-                    "-Wno-unused-parameter", // Disable unused parameter warnings
-                    "-Wno-strict-prototypes", // Disable strict prototype warnings
-                    "-O0",              // No optimization (for debugging)
-                    "-g",               // Generate debug info
-                    "-I.",              // Include current directory
+                    '-Wall', // Enable all warnings
+                    '-Wextra', // Enable extra warnings
+                    '-Wno-unused-parameter', // Disable unused parameter warnings
+                    '-Wno-strict-prototypes', // Disable strict prototype warnings
+                    '-O0', // No optimization (for debugging)
+                    '-g', // Generate debug info
+                    '-I.', // Include current directory
                     `-I${homeDir}/.local/include`, // Include ~/.local
                     `-L${homeDir}/.local/lib`, // Library path ~/.local
-                ];
+                ]
                 // Add Homebrew paths only on macOS
                 if (PlatformDetector.isMacOS()) {
-                    gccFlags.push("-I/opt/homebrew/include"); // Include Homebrew (macOS)
-                    gccFlags.push("-L/opt/homebrew/lib");     // Library path Homebrew (macOS)
+                    gccFlags.push('-I/opt/homebrew/include') // Include Homebrew (macOS)
+                    gccFlags.push('-L/opt/homebrew/lib') // Library path Homebrew (macOS)
                 }
-                return gccFlags;
+                return gccFlags
             case CompilerType.Clang:
                 // Note: No -std flag by default to allow POSIX extensions (strdup, etc.)
                 // and modern features. Users can specify -std=c99, -std=c11, etc. in testme.json5
                 const clangFlags = [
-                    "-Wall",            // Enable all warnings
-                    "-Wextra",          // Enable extra warnings
-                    "-Wno-unused-parameter", // Disable unused parameter warnings
-                    "-O0",              // No optimization (for debugging)
-                    "-g",               // Generate debug info
-                    "-I.",              // Include current directory
+                    '-Wall', // Enable all warnings
+                    '-Wextra', // Enable extra warnings
+                    '-Wno-unused-parameter', // Disable unused parameter warnings
+                    '-O0', // No optimization (for debugging)
+                    '-g', // Generate debug info
+                    '-I.', // Include current directory
                     `-I${homeDir}/.local/include`, // Include ~/.local
                     `-L${homeDir}/.local/lib`, // Library path ~/.local
-                ];
+                ]
                 // Add Homebrew paths only on macOS
                 if (PlatformDetector.isMacOS()) {
-                    clangFlags.push("-I/opt/homebrew/include"); // Include Homebrew (macOS)
-                    clangFlags.push("-L/opt/homebrew/lib");     // Library path Homebrew (macOS)
+                    clangFlags.push('-I/opt/homebrew/include') // Include Homebrew (macOS)
+                    clangFlags.push('-L/opt/homebrew/lib') // Library path Homebrew (macOS)
                 }
-                return clangFlags;
+                return clangFlags
             default:
                 // Minimal flags for unknown compilers - no -std restriction
-                return ["-Wall"];
+                return ['-Wall']
         }
     }
 
@@ -245,16 +245,16 @@ export class CompilerManager {
      @returns Array of flags with normalized rpath values
      */
     static normalizePlatformRpaths(flags: string[]): string[] {
-        return flags.map(flag => {
+        return flags.map((flag) => {
             if (flag.includes('-rpath,')) {
                 if (PlatformDetector.isMacOS()) {
-                    return flag.replace(/\$ORIGIN/g, '@executable_path');
+                    return flag.replace(/\$ORIGIN/g, '@executable_path')
                 } else if (PlatformDetector.isLinux()) {
-                    return flag.replace(/@executable_path/g, '$ORIGIN').replace(/@loader_path/g, '$ORIGIN');
+                    return flag.replace(/@executable_path/g, '$ORIGIN').replace(/@loader_path/g, '$ORIGIN')
                 }
             }
-            return flag;
-        });
+            return flag
+        })
     }
 
     /*
@@ -267,91 +267,93 @@ export class CompilerManager {
     static translateFlags(flags: string[], fromType: CompilerType, toType: CompilerType): string[] {
         // If same type or unknown, return as-is
         if (fromType === toType || toType === CompilerType.Unknown) {
-            return flags;
+            return flags
         }
 
         // Translate from GCC/MinGW/Clang to MSVC
         if (toType === CompilerType.MSVC) {
-            return flags.map(flag => {
+            return flags.map((flag) => {
                 // Warning flags
-                if (flag === "-Wall") return "/W4";
-                if (flag === "-Wextra") return "/W4";
-                if (flag === "-Werror") return "/WX";
+                if (flag === '-Wall') return '/W4'
+                if (flag === '-Wextra') return '/W4'
+                if (flag === '-Werror') return '/WX'
 
                 // Standard flags
-                if (flag === "-std=c99") return "/std:c11";
-                if (flag === "-std=c11") return "/std:c11";
-                if (flag === "-std=c17") return "/std:c17";
+                if (flag === '-std=c99') return '/std:c11'
+                if (flag === '-std=c11') return '/std:c11'
+                if (flag === '-std=c17') return '/std:c17'
 
                 // Optimization flags
-                if (flag === "-O0") return "/Od";
-                if (flag === "-O1" || flag === "-O2") return "/O2";
-                if (flag === "-O3") return "/Ox";
+                if (flag === '-O0') return '/Od'
+                if (flag === '-O1' || flag === '-O2') return '/O2'
+                if (flag === '-O3') return '/Ox'
 
                 // Debug flags
-                if (flag === "-g") return "/Zi";
+                if (flag === '-g') return '/Zi'
 
                 // Include paths: -I/path -> /I/path
-                if (flag.startsWith("-I")) {
-                    return "/I" + flag.substring(2);
+                if (flag.startsWith('-I')) {
+                    return '/I' + flag.substring(2)
                 }
 
                 // Library paths: -L/path -> /LIBPATH:/path
-                if (flag.startsWith("-L")) {
-                    return "/LIBPATH:" + flag.substring(2);
+                if (flag.startsWith('-L')) {
+                    return '/LIBPATH:' + flag.substring(2)
                 }
 
                 // Defines: -DFOO -> /DFOO
-                if (flag.startsWith("-D")) {
-                    return "/D" + flag.substring(2);
+                if (flag.startsWith('-D')) {
+                    return '/D' + flag.substring(2)
                 }
 
                 // Unknown flags - keep as-is
-                return flag;
-            });
+                return flag
+            })
         }
 
         // Translate from MSVC to GCC/MinGW/Clang
-        if (fromType === CompilerType.MSVC &&
-            (toType === CompilerType.GCC || toType === CompilerType.MinGW || toType === CompilerType.Clang)) {
-            return flags.map(flag => {
+        if (
+            fromType === CompilerType.MSVC &&
+            (toType === CompilerType.GCC || toType === CompilerType.MinGW || toType === CompilerType.Clang)
+        ) {
+            return flags.map((flag) => {
                 // Warning flags
-                if (flag === "/W4") return "-Wall";
-                if (flag === "/WX") return "-Werror";
+                if (flag === '/W4') return '-Wall'
+                if (flag === '/WX') return '-Werror'
 
                 // Standard flags
-                if (flag === "/std:c11") return "-std=c11";
-                if (flag === "/std:c17") return "-std=c17";
+                if (flag === '/std:c11') return '-std=c11'
+                if (flag === '/std:c17') return '-std=c17'
 
                 // Optimization flags
-                if (flag === "/Od") return "-O0";
-                if (flag === "/O2") return "-O2";
-                if (flag === "/Ox") return "-O3";
+                if (flag === '/Od') return '-O0'
+                if (flag === '/O2') return '-O2'
+                if (flag === '/Ox') return '-O3'
 
                 // Debug flags
-                if (flag === "/Zi") return "-g";
+                if (flag === '/Zi') return '-g'
 
                 // Include paths: /I/path -> -I/path
-                if (flag.startsWith("/I")) {
-                    return "-I" + flag.substring(2);
+                if (flag.startsWith('/I')) {
+                    return '-I' + flag.substring(2)
                 }
 
                 // Library paths: /LIBPATH:/path -> -L/path
-                if (flag.startsWith("/LIBPATH:")) {
-                    return "-L" + flag.substring(9);
+                if (flag.startsWith('/LIBPATH:')) {
+                    return '-L' + flag.substring(9)
                 }
 
                 // Defines: /DFOO -> -DFOO
-                if (flag.startsWith("/D")) {
-                    return "-D" + flag.substring(2);
+                if (flag.startsWith('/D')) {
+                    return '-D' + flag.substring(2)
                 }
 
                 // Unknown flags - keep as-is
-                return flag;
-            });
+                return flag
+            })
         }
 
-        return flags;
+        return flags
     }
 
     /*
@@ -368,94 +370,94 @@ export class CompilerManager {
         config: CompilerConfig,
         workingDir?: string
     ): Promise<CompileResult> {
-        const args: string[] = [];
+        const args: string[] = []
 
         // Add platform-appropriate binary extension
-        const finalOutputPath = PermissionManager.addBinaryExtension(outputPath);
+        const finalOutputPath = PermissionManager.addBinaryExtension(outputPath)
 
         // Build compiler arguments based on compiler type
         if (config.type === CompilerType.MSVC) {
             // MSVC syntax: cl.exe [flags] /Fe:output.exe input.c /link [linker flags] [libraries]
-            args.push(...config.flags);
-            args.push(`/Fe:${finalOutputPath}`);
-            args.push(sourcePath);
+            args.push(...config.flags)
+            args.push(`/Fe:${finalOutputPath}`)
+            args.push(sourcePath)
 
             // Add linker options
-            const homeDir = os.homedir();
-            args.push("/link");
-            args.push(`/LIBPATH:${homeDir}\\.local\\lib`);
+            const homeDir = os.homedir()
+            args.push('/link')
+            args.push(`/LIBPATH:${homeDir}\\.local\\lib`)
 
             if (config.libraries && config.libraries.length > 0) {
-                config.libraries.forEach(lib => {
-                    args.push(lib.endsWith(".lib") ? lib : `${lib}.lib`);
-                });
+                config.libraries.forEach((lib) => {
+                    args.push(lib.endsWith('.lib') ? lib : `${lib}.lib`)
+                })
             }
         } else {
             // GCC/Clang/MinGW syntax: gcc [flags] -o output input.c [libraries]
-            args.push(...config.flags);
-            args.push("-o", finalOutputPath);
-            args.push(sourcePath);
+            args.push(...config.flags)
+            args.push('-o', finalOutputPath)
+            args.push(sourcePath)
 
             if (config.libraries && config.libraries.length > 0) {
-                config.libraries.forEach(lib => {
-                    if (lib.startsWith("-l")) {
-                        args.push(lib);
+                config.libraries.forEach((lib) => {
+                    if (lib.startsWith('-l')) {
+                        args.push(lib)
                     } else {
-                        args.push(`-l${lib}`);
+                        args.push(`-l${lib}`)
                     }
-                });
+                })
             }
         }
 
         try {
-            let proc;
+            let proc
 
             // For MSVC on Windows, we need to set up the Visual Studio environment
             if (config.type === CompilerType.MSVC && PlatformDetector.isWindows() && config.env) {
                 // Build environment with MSVC paths
-                const env = { ...process.env };
+                const env = {...process.env}
 
                 if (config.env.PATH) {
-                    env.PATH = `${config.env.PATH};${process.env.PATH}`;
+                    env.PATH = `${config.env.PATH};${process.env.PATH}`
                 }
                 if (config.env.INCLUDE) {
-                    env.INCLUDE = config.env.INCLUDE;
+                    env.INCLUDE = config.env.INCLUDE
                 }
                 if (config.env.LIB) {
-                    env.LIB = config.env.LIB;
+                    env.LIB = config.env.LIB
                 }
 
                 proc = Bun.spawn([config.compiler, ...args], {
                     cwd: workingDir,
-                    stdout: "pipe",
-                    stderr: "pipe",
-                    env
-                });
+                    stdout: 'pipe',
+                    stderr: 'pipe',
+                    env,
+                })
             } else {
                 proc = Bun.spawn([config.compiler, ...args], {
                     cwd: workingDir,
-                    stdout: "pipe",
-                    stderr: "pipe"
-                });
+                    stdout: 'pipe',
+                    stderr: 'pipe',
+                })
             }
 
-            const exitCode = await proc.exited;
-            const stdout = await new Response(proc.stdout).text();
-            const stderr = await new Response(proc.stderr).text();
+            const exitCode = await proc.exited
+            const stdout = await new Response(proc.stdout).text()
+            const stderr = await new Response(proc.stderr).text()
 
             return {
                 success: exitCode === 0,
                 outputPath: finalOutputPath,
                 stdout,
-                stderr
-            };
+                stderr,
+            }
         } catch (error) {
             return {
                 success: false,
                 outputPath: finalOutputPath,
-                stdout: "",
-                stderr: `Compilation failed: ${error}`
-            };
+                stdout: '',
+                stderr: `Compilation failed: ${error}`,
+            }
         }
     }
 
@@ -469,24 +471,24 @@ export class CompilerManager {
         if (compilerType === CompilerType.MSVC) {
             // MSVC uses .lib files directly - just add .lib extension if not present
             // Do NOT strip "lib" prefix - Windows library files keep their exact names
-            return libraries.map(lib => {
-                if (lib.endsWith(".lib")) {
-                    return lib;
+            return libraries.map((lib) => {
+                if (lib.endsWith('.lib')) {
+                    return lib
                 } else {
-                    return lib + ".lib";
+                    return lib + '.lib'
                 }
-            });
+            })
         } else {
             // GCC/Clang use -l flag and strip "lib" prefix if present
-            return libraries.map(lib => {
-                if (lib.startsWith("-l")) {
-                    return lib;
-                } else if (lib.startsWith("lib")) {
-                    return `-l${lib.slice(3)}`;
+            return libraries.map((lib) => {
+                if (lib.startsWith('-l')) {
+                    return lib
+                } else if (lib.startsWith('lib')) {
+                    return `-l${lib.slice(3)}`
                 } else {
-                    return `-l${lib}`;
+                    return `-l${lib}`
                 }
-            });
+            })
         }
     }
 }

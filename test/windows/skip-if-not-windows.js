@@ -6,9 +6,9 @@
 
 if (process.platform === 'win32') {
     // Running on Windows - run the tests
-    process.exit(0);
+    process.exit(0)
 }
 
 // Not on Windows - skip these tests
-console.log("Skipping Windows-specific tests (not running on Windows)");
-process.exit(1);
+console.log('Skipping Windows-specific tests (not running on Windows)')
+process.exit(1)
