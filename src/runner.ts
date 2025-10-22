@@ -36,6 +36,7 @@ import { ConfigManager } from './config.ts';
  */
 export class TestRunner {
   private artifactManager: ArtifactManager;
+  private shouldStopCallback: (() => boolean) | null = null;
 
   /*
    Creates a new TestRunner instance
@@ -43,6 +44,14 @@ export class TestRunner {
    */
   constructor() {
     this.artifactManager = new ArtifactManager();
+  }
+
+  /*
+   Sets a callback function to check if execution should stop (e.g., Ctrl+C pressed)
+   @param callback Function that returns true if execution should stop
+   */
+  setShouldStopCallback(callback: () => boolean): void {
+    this.shouldStopCallback = callback;
   }
 
   /*
@@ -83,6 +92,11 @@ export class TestRunner {
     const results: TestResult[] = [];
 
     for (let i = 0; i < testSuite.tests.length; i++) {
+      // Check if we should stop (Ctrl+C pressed)
+      if (this.shouldStopCallback && this.shouldStopCallback()) {
+        break;
+      }
+
       const testFile = testSuite.tests[i];
 
       // Handle step mode prompting
@@ -117,6 +131,11 @@ export class TestRunner {
       if (!this.isQuietMode(testSuite.config)) {
         reporter.reportProgress(result);
       }
+
+      // Stop immediately if test failed and stopOnFailure is enabled
+      if (testSuite.config.execution?.stopOnFailure && result.status === TestStatus.Failed) {
+        break;
+      }
     }
 
     return results;
@@ -143,11 +162,19 @@ export class TestRunner {
     const results: TestResult[] = [];
     const testsQueue = [...testSuite.tests];
     const activeWorkers: Promise<void>[] = [];
+    let shouldStop = false; // Shared flag to signal workers to stop
 
     // Worker function that processes tests from the queue
     // Each worker runs in a loop, continuously pulling tests until queue is empty
     const worker = async () => {
-      while (testsQueue.length > 0) {
+      while (testsQueue.length > 0 && !shouldStop) {
+        // Check if we should stop (Ctrl+C pressed)
+        if (this.shouldStopCallback && this.shouldStopCallback()) {
+          shouldStop = true;
+          testsQueue.length = 0;
+          break;
+        }
+
         const testFile = testsQueue.shift();
         if (!testFile) break;
 
@@ -161,6 +188,12 @@ export class TestRunner {
 
         if (!this.isQuietMode(testSuite.config)) {
           reporter.reportProgress(result);
+        }
+
+        // Stop all workers if test failed and stopOnFailure is enabled
+        if (testSuite.config.execution?.stopOnFailure && result.status === TestStatus.Failed) {
+          shouldStop = true;
+          testsQueue.length = 0; // Clear queue to stop other workers
         }
       }
     };

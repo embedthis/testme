@@ -123,6 +123,13 @@ export class TestReporter {
     }
 
     console.log(`Total:    ${stats.total}`);
+
+    // Show assertion counts if any tests had assertions
+    if (stats.filesWithAssertions > 0) {
+      const totalAssertions = stats.assertionsPassed + stats.assertionsFailed;
+      console.log(`Assertions: ${stats.assertionsPassed}/${totalAssertions} passed`);
+    }
+
     console.log(`Duration: ${this.formatDuration(stats.totalDuration)}`);
     if (elapsedTime !== undefined) {
       console.log(`Elapsed:  ${this.formatDuration(elapsedTime)}`);
@@ -282,6 +289,13 @@ export class TestReporter {
             break;
         }
 
+        // Accumulate assertion counts
+        if (result.assertions) {
+          stats.assertionsPassed += result.assertions.passed;
+          stats.assertionsFailed += result.assertions.failed;
+          stats.filesWithAssertions++;
+        }
+
         return stats;
       },
       {
@@ -290,7 +304,10 @@ export class TestReporter {
         failed: 0,
         errors: 0,
         skipped: 0,
-        totalDuration: 0
+        totalDuration: 0,
+        assertionsPassed: 0,
+        assertionsFailed: 0,
+        filesWithAssertions: 0,
       }
     );
   }

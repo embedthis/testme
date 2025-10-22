@@ -367,7 +367,7 @@ static void tReport(int success, const char *loc, const char *expected, const ch
                                 char *_s = (char*) (s); \
                                 char *_p = (char*) (p); \
                                 tReportString(((_s) == NULL && (_p) == NULL) || \
-                                ((_s) != NULL && (_p) != NULL && strcmp((char*) _s, (char*) _p) == 0), TM_LOC, p, s, __VA_ARGS__); \
+                                ((_s) != NULL && (_p) != NULL && strcmp((char*) _s, (char*) _p) == 0), TM_LOC, s, p, __VA_ARGS__); \
                             } else
 
 /**

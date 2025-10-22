@@ -27,6 +27,7 @@ export class CliParser {
             init: false,
             continue: false,
             noServices: false,
+            stop: false,
         };
 
         let i = 0;
@@ -188,6 +189,11 @@ export class CliParser {
                     i++;
                     break;
 
+                case "--stop":
+                    options.stop = true;
+                    i++;
+                    break;
+
                 default:
                     if (arg.startsWith("-")) {
                         throw new Error(`Unknown option: ${arg}`);
@@ -241,6 +247,7 @@ OPTIONS:
     -q, --quiet            Run silently with no output, only exit codes
     -s, --show             Display test configuration and environment variables
         --step             Run tests one at a time with prompts (forces serial mode)
+        --stop             Stop immediately when a test fails (fast-fail mode)
     -v, --verbose          Enable verbose mode with detailed output and TESTME_VERBOSE
     -V, --version          Show version information
     -w, --workers <NUMBER> Number of parallel workers (overrides config)
@@ -263,6 +270,7 @@ EXAMPLES:
     tm -v "integration*"       # Run integration tests with verbose output
     tm --keep "*.tst.c"        # Run C tests and keep build artifacts
     tm --step                  # Run tests one at a time with prompts
+    tm --stop                  # Stop immediately when first test fails
     tm --depth 5               # Run tests with depth requirement <= 5
     tm --debug math            # Debug math.tst.c with GDB/Xcode
     tm -s "*.tst.c"            # Display test configuration and environment

@@ -9,13 +9,14 @@ export class ProcessManager {
      Kills a process and its children using platform-appropriate method
      @param pid Process ID to kill
      @param graceful Whether to attempt graceful termination first
+     @param shutdownTimeout Time to wait for graceful shutdown in milliseconds (default: 0)
      @returns Promise that resolves when process is killed
      */
-    static async killProcess(pid: number, graceful: boolean = true): Promise<void> {
+    static async killProcess(pid: number, graceful: boolean = true, shutdownTimeout: number = 0): Promise<void> {
         if (PlatformDetector.isWindows()) {
-            return this.killProcessWindows(pid, graceful);
+            return this.killProcessWindows(pid, graceful, shutdownTimeout);
         } else {
-            return this.killProcessUnix(pid, graceful);
+            return this.killProcessUnix(pid, graceful, shutdownTimeout);
         }
     }
 
@@ -23,12 +24,13 @@ export class ProcessManager {
      Kills a process on Windows using taskkill
      @param pid Process ID to kill
      @param graceful Whether to attempt graceful termination first
+     @param shutdownTimeout Time to wait for graceful shutdown in milliseconds (default: 0)
      @returns Promise that resolves when process is killed
      */
-    private static async killProcessWindows(pid: number, graceful: boolean): Promise<void> {
+    private static async killProcessWindows(pid: number, graceful: boolean, shutdownTimeout: number = 0): Promise<void> {
         try {
             if (graceful) {
-                // Try graceful termination first
+                // Always try graceful termination first
                 const gracefulKill = Bun.spawn(["taskkill", "/PID", pid.toString(), "/T"], {
                     stdout: "pipe",
                     stderr: "pipe"
@@ -36,8 +38,25 @@ export class ProcessManager {
 
                 await gracefulKill.exited;
 
-                // Wait a moment for graceful shutdown
-                await new Promise(resolve => setTimeout(resolve, 2000));
+                // Poll for process exit with configurable timeout
+                // Even with shutdownTimeout=0, do at least one check to give signal handlers a chance
+                const pollInterval = 100; // ms
+                const maxPolls = shutdownTimeout > 0 ? Math.ceil(shutdownTimeout / pollInterval) : 1;
+
+                for (let i = 0; i < maxPolls; i++) {
+                    // Check if process is still running
+                    const stillRunning = await this.isProcessRunning(pid);
+                    if (!stillRunning) {
+                        // Process exited gracefully - no need to force kill
+                        return;
+                    }
+
+                    // Wait before next poll (or before force kill)
+                    await new Promise(resolve => setTimeout(resolve, pollInterval));
+                }
+
+                // If we get here, process didn't exit within timeout
+                // Fall through to force kill
             }
 
             // Force kill if still needed
@@ -58,10 +77,10 @@ export class ProcessManager {
      @param graceful Whether to attempt graceful termination first
      @returns Promise that resolves when process is killed
      */
-    private static async killProcessUnix(pid: number, graceful: boolean): Promise<void> {
+    private static async killProcessUnix(pid: number, graceful: boolean, shutdownTimeout: number = 0): Promise<void> {
         try {
             if (graceful) {
-                // Try SIGTERM first
+                // Always try SIGTERM first for graceful shutdown
                 const termKill = Bun.spawn(["kill", "-TERM", pid.toString()], {
                     stdout: "pipe",
                     stderr: "pipe"
@@ -69,11 +88,28 @@ export class ProcessManager {
 
                 await termKill.exited;
 
-                // Wait a moment for graceful shutdown
-                await new Promise(resolve => setTimeout(resolve, 2000));
+                // Poll for process exit with configurable timeout
+                // Even with shutdownTimeout=0, do at least one check to give signal handlers a chance
+                const pollInterval = 100; // ms
+                const maxPolls = shutdownTimeout > 0 ? Math.ceil(shutdownTimeout / pollInterval) : 1;
+
+                for (let i = 0; i < maxPolls; i++) {
+                    // Check if process is still running
+                    const stillRunning = await this.isProcessRunning(pid);
+                    if (!stillRunning) {
+                        // Process exited gracefully - no need to SIGKILL
+                        return;
+                    }
+
+                    // Wait before next poll (or before SIGKILL)
+                    await new Promise(resolve => setTimeout(resolve, pollInterval));
+                }
+
+                // If we get here, process didn't exit within timeout
+                // Fall through to SIGKILL
             }
 
-            // Force kill with SIGKILL
+            // Force kill with SIGKILL (only if process still running)
             const forceKill = Bun.spawn(["kill", "-KILL", pid.toString()], {
                 stdout: "pipe",
                 stderr: "pipe"

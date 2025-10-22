@@ -1,0 +1,25 @@
+{
+    // Parent config with relative paths
+    compiler: {
+        c: {
+            gcc: {
+                flags: [
+                    '-I../../src',
+                    '-L../../dist',
+                ],
+                libraries: ['testlib'],
+            },
+            msvc: {
+                flags: [
+                    '/I../../src',
+                    '/LIBPATH:../../dist',
+                ],
+                libraries: ['testlib.lib'],
+            },
+        },
+    },
+    environment: {
+        TEST_PATH: '../../dist',
+        PATH: '../../dist:${PATH}',
+    },
+}

@@ -1,5 +1,5 @@
 import type { TestConfig } from './types.ts';
-import { join, dirname } from 'path';
+import { join, dirname, resolve, isAbsolute } from 'path';
 import { readdir, stat } from 'fs/promises';
 import JSON5 from 'json5';
 import { ErrorMessages } from './utils/error-messages.ts';
@@ -185,6 +185,177 @@ export class ConfigManager {
     }
 
     /**
+     * Resolves relative paths in a configuration to absolute paths
+     *
+     * @param config - Configuration to resolve paths in
+     * @param configDir - Directory containing the config file
+     * @returns Configuration with resolved absolute paths
+     *
+     * @internal
+     * @remarks
+     * This function resolves relative paths in:
+     * - Compiler flags (-I, -L, /I, /LIBPATH:, -Wl,-rpath)
+     * - Environment variable values (PATH-like and other paths)
+     *
+     * Only resolves paths that start with ./ or ../
+     * Absolute paths and paths without ./ or ../ are left unchanged
+     */
+    private static resolveConfigPaths(config: Partial<TestConfig>, configDir: string): Partial<TestConfig> {
+        const resolved = { ...config };
+
+        // Resolve compiler paths
+        if (resolved.compiler?.c) {
+            const c = resolved.compiler.c;
+
+            // Resolve GCC paths
+            if (c.gcc) {
+                c.gcc.flags = this.resolvePathsInFlags(c.gcc.flags || [], configDir);
+                if (c.gcc.macosx?.flags) {
+                    c.gcc.macosx.flags = this.resolvePathsInFlags(c.gcc.macosx.flags, configDir);
+                }
+                if (c.gcc.linux?.flags) {
+                    c.gcc.linux.flags = this.resolvePathsInFlags(c.gcc.linux.flags, configDir);
+                }
+                if (c.gcc.windows?.flags) {
+                    c.gcc.windows.flags = this.resolvePathsInFlags(c.gcc.windows.flags, configDir);
+                }
+            }
+
+            // Resolve Clang paths
+            if (c.clang) {
+                c.clang.flags = this.resolvePathsInFlags(c.clang.flags || [], configDir);
+                if (c.clang.macosx?.flags) {
+                    c.clang.macosx.flags = this.resolvePathsInFlags(c.clang.macosx.flags, configDir);
+                }
+                if (c.clang.linux?.flags) {
+                    c.clang.linux.flags = this.resolvePathsInFlags(c.clang.linux.flags, configDir);
+                }
+                if (c.clang.windows?.flags) {
+                    c.clang.windows.flags = this.resolvePathsInFlags(c.clang.windows.flags, configDir);
+                }
+            }
+
+            // Resolve MSVC paths
+            if (c.msvc) {
+                c.msvc.flags = this.resolvePathsInFlags(c.msvc.flags || [], configDir);
+                if (c.msvc.windows?.flags) {
+                    c.msvc.windows.flags = this.resolvePathsInFlags(c.msvc.windows.flags, configDir);
+                }
+            }
+        }
+
+        // Resolve environment variable paths
+        const env = resolved.environment || resolved.env;
+        if (env) {
+            // Resolve base environment variables
+            for (const [key, value] of Object.entries(env)) {
+                // Skip platform-specific keys and default key
+                if (key === 'windows' || key === 'macosx' || key === 'linux' || key === 'default') {
+                    continue;
+                }
+                if (typeof value === 'string') {
+                    env[key] = this.resolvePathsInEnvValue(value, configDir);
+                }
+            }
+
+            // Resolve default section
+            if (env.default && typeof env.default === 'object') {
+                for (const [key, value] of Object.entries(env.default)) {
+                    if (typeof value === 'string') {
+                        env.default[key] = this.resolvePathsInEnvValue(value, configDir);
+                    }
+                }
+            }
+
+            // Resolve platform-specific environment variables
+            for (const platform of ['windows', 'macosx', 'linux'] as const) {
+                const platformEnv = env[platform];
+                if (platformEnv && typeof platformEnv === 'object') {
+                    for (const [key, value] of Object.entries(platformEnv)) {
+                        if (typeof value === 'string') {
+                            platformEnv[key] = this.resolvePathsInEnvValue(value, configDir);
+                        }
+                    }
+                }
+            }
+        }
+
+        return resolved;
+    }
+
+    /**
+     * Resolves relative paths in compiler flags
+     */
+    private static resolvePathsInFlags(flags: string[], configDir: string): string[] {
+        return flags.map(flag => {
+            // -I../include → -I/absolute/path/include
+            if (flag.startsWith('-I') && flag.length > 2) {
+                const path = flag.substring(2);
+                if (path.startsWith('./') || path.startsWith('../')) {
+                    return '-I' + resolve(configDir, path);
+                }
+            }
+            // -L../lib → -L/absolute/path/lib
+            else if (flag.startsWith('-L') && flag.length > 2) {
+                const path = flag.substring(2);
+                if (path.startsWith('./') || path.startsWith('../')) {
+                    return '-L' + resolve(configDir, path);
+                }
+            }
+            // /I../../include → /I/absolute/path/include
+            else if (flag.startsWith('/I') && flag.length > 2) {
+                const path = flag.substring(2);
+                if (path.startsWith('./') || path.startsWith('../') || path.startsWith('.\\') || path.startsWith('..\\')) {
+                    return '/I' + resolve(configDir, path);
+                }
+            }
+            // /LIBPATH:../../lib → /LIBPATH:/absolute/path/lib
+            else if (flag.startsWith('/LIBPATH:')) {
+                const path = flag.substring(9);
+                if (path.startsWith('./') || path.startsWith('../') || path.startsWith('.\\') || path.startsWith('..\\')) {
+                    return '/LIBPATH:' + resolve(configDir, path);
+                }
+            }
+            // -Wl,-rpath,@executable_path/${CONFIGDIR}/../../build/bin
+            // Don't resolve rpath as it may contain special variables
+            // These will be resolved later during execution
+
+            return flag;
+        });
+    }
+
+    /**
+     * Resolves relative paths in environment variable values
+     */
+    private static resolvePathsInEnvValue(value: string, configDir: string): string {
+        // PATH-like variables with : or ; separators
+        if (value.includes(':') || value.includes(';')) {
+            const separator = value.includes(';') ? ';' : ':';
+            const parts = value.split(separator);
+            return parts.map(part => {
+                part = part.trim();
+                // Resolve relative paths
+                if (part.startsWith('./') || part.startsWith('../') || part.startsWith('.\\') || part.startsWith('..\\')) {
+                    // Don't resolve if it contains ${...} variables - those will be expanded later
+                    if (!part.includes('${')) {
+                        return resolve(configDir, part);
+                    }
+                }
+                return part;
+            }).join(separator);
+        }
+        // Single path value
+        else if (value.startsWith('./') || value.startsWith('../') || value.startsWith('.\\') || value.startsWith('..\\')) {
+            // Don't resolve if it contains ${...} variables - those will be expanded later
+            if (!value.includes('${')) {
+                return resolve(configDir, value);
+            }
+        }
+
+        return value;
+    }
+
+    /**
      * Loads parent configuration from parent directory
      *
      * @param currentConfigDir - Directory containing current config file
@@ -207,30 +378,23 @@ export class ConfigManager {
         // Search for config in parent directory and above
         const { config: parentConfig, configDir: parentConfigDir } = await this.findConfigFile(parentDir);
 
-        if (!parentConfig) {
+        if (!parentConfig || !parentConfigDir) {
             return null;
         }
 
-        // Normalize env paths in parent config before inheritance (but skip special variable expansion)
-        // This converts relative paths like ../build to absolute paths based on parent's configDir
-        // Support both 'environment' (new) and 'env' (legacy) keys
-        const parentEnv = parentConfig.environment || parentConfig.env;
-        if (parentEnv && parentConfigDir) {
-            // We can't fully normalize yet because special variables haven't been expanded
-            // So we mark the config with its source directory for later resolution
-            // Store the source configDir for env resolution
-            (parentConfig as any)._envConfigDir = parentConfigDir;
-        }
+        // Resolve relative paths in parent config to absolute paths
+        // This allows child configs to inherit without path depth issues
+        const resolvedParentConfig = this.resolveConfigPaths(parentConfig, parentConfigDir);
 
         // If parent config also has inherit, recursively load its parent
-        if (parentConfig.inherit !== undefined && parentConfig.inherit !== false) {
-            const grandparentConfig = parentConfigDir ? await this.loadParentConfig(parentConfigDir) : null;
+        if (resolvedParentConfig.inherit !== undefined && resolvedParentConfig.inherit !== false) {
+            const grandparentConfig = await this.loadParentConfig(parentConfigDir);
             if (grandparentConfig) {
-                return this.mergeInheritedConfig(parentConfig, grandparentConfig);
+                return this.mergeInheritedConfig(resolvedParentConfig, grandparentConfig);
             }
         }
 
-        return parentConfig;
+        return resolvedParentConfig;
     }
 
     /**

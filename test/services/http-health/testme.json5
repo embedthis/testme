@@ -1,0 +1,10 @@
+{
+    services: {
+        setup: 'bun server.js',
+        healthCheck: {
+            url: 'http://localhost:8899/health',
+            timeout: 10
+        },
+        shutdownTimeout: 2
+    }
+}

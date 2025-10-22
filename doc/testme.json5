@@ -32,10 +32,17 @@
         Inheritance is recursive - parent configs can also inherit from their parents.
         Child settings always override parent settings (deep merge for objects like environment and compiler).
 
+        Path Resolution:
+        - Relative paths in parent configs (../../build, ../src) are resolved to absolute paths before inheritance
+        - This allows child configs at any depth to inherit paths without adjustment
+        - Example: Parent has '-I../../build/inc', child inherits '-I/absolute/path/build/inc'
+        - Works for compiler flags (-I, -L, /I, /LIBPATH:) and environment variables
+        - Paths with ${...} variables are not resolved (expanded later during execution)
+
         Example use cases:
-        - Project root has common compiler flags and env vars
-        - Subdirectory inherits and adds module-specific settings
-        - Test directory inherits but overrides timeout for slow tests
+        - Project root has common compiler flags and env vars with ../../build paths
+        - Subdirectories at any depth can inherit without changing paths
+        - Test directory inherits and adds module-specific settings
      */
     // inherit: true,
     // inherit: ['environment', 'compiler', 'debug'],
@@ -200,17 +207,76 @@
 
     // Service management for test setup/teardown
     services: {
-        cleanup: '', // Script to run after all tests complete for cleanup
-        environment: '', // Script to emit environment variables (key=value lines)
-        prep: '', // Script to run once before all tests begin (waits for completion)
-        setup: '', // Script to start background service during test execution, runs before tests
         skip: '', // Script to check if tests should be skipped (0=run, non-zero=skip)
-        cleanupTimeout: 10, // Cleanup timeout in seconds
+        environment: '', // Script to emit environment variables (key=value lines)
+        globalPrep: '', // Script to run once before all test groups (global setup)
+        prep: '', // Script to run once before tests in this group begin (waits for completion)
+        setup: '', // Script to start background service during test execution
+        cleanup: '', // Script to run after tests in this group complete
+        globalCleanup: '', // Script to run once after all test groups (global teardown)
+
+        /*
+            Health check configuration to verify service readiness
+            If configured, TestMe will actively poll the service instead of using a fixed setupDelay.
+            This provides faster test execution and more reliable service startup detection.
+
+            Type defaults to 'http' if not specified, allowing simple configuration:
+            healthCheck: { url: 'http://localhost:8080/health' }
+
+            Types:
+            - http: HTTP/HTTPS health check (most common)
+            - tcp: TCP port check (for databases, message queues)
+            - script: Custom script-based check (using existing tools)
+            - file: File existence check (for ready markers)
+
+            Examples:
+
+            HTTP health check (web server):
+            healthCheck: {
+                type: 'http',                       // Optional: defaults to http
+                url: 'http://localhost:3000/health',
+                expectedStatus: 200,                // Optional: defaults to 200
+                expectedBody: 'OK',                 // Optional: substring match in response
+                interval: 100,                      // Optional: poll interval in ms (default: 100)
+                timeout: 30                         // Optional: max wait in seconds (default: 30)
+            }
+
+            TCP port check (PostgreSQL):
+            healthCheck: {
+                type: 'tcp',
+                host: 'localhost',
+                port: 5432,
+                timeout: 60
+            }
+
+            Script-based check (Redis):
+            healthCheck: {
+                type: 'script',
+                command: 'redis-cli ping',
+                expectedExit: 0,                    // Optional: defaults to 0
+                timeout: 10
+            }
+
+            File existence check (custom service):
+            healthCheck: {
+                type: 'file',
+                path: '/tmp/daemon.ready',
+                timeout: 30
+            }
+        */
+        // healthCheck: {
+        //     url: 'http://localhost:8080/health'
+        // },
+
+        skipTimeout: 30, // Skip script timeout in seconds
         environmentTimeout: 30, // Environment script timeout in seconds
+        globalPrepTimeout: 30, // Global prep timeout in seconds
         prepTimeout: 30, // Prep timeout in seconds
         setupTimeout: 30, // Setup timeout in seconds
-        skipTimeout: 30, // Skip script timeout in seconds
-        delay: 0, // Delay in seconds after setup before running tests
+        cleanupTimeout: 10, // Cleanup timeout in seconds
+        globalCleanupTimeout: 10, // Global cleanup timeout in seconds
+        setupDelay: 1, // Delay in seconds after setup starts before running tests (default: 1, ignored if healthCheck configured)
+        shutdownTimeout: 5, // Wait time in seconds for graceful shutdown before SIGKILL (default: 5)
     },
 
     /*

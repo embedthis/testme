@@ -8,6 +8,7 @@ import { TestStatus } from "../types.ts";
 import { GlobExpansion } from "../utils/glob-expansion.ts";
 import { ErrorMessages } from "../utils/error-messages.ts";
 import { PlatformDetector } from "../platform/detector.ts";
+import { countAssertions } from "../utils/assertion-counter.ts";
 import { resolve } from "path";
 
 /*
@@ -411,6 +412,9 @@ Original error: ${error}`;
         error?: string,
         exitCode?: number
     ): TestResult {
+        // Count assertions in output (✓ and ✗ symbols from test macros)
+        const assertions = countAssertions(output);
+
         return {
             file,
             status,
@@ -418,6 +422,7 @@ Original error: ${error}`;
             output,
             error,
             exitCode,
+            assertions: assertions || undefined,
         };
     }
 

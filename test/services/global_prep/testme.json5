@@ -1,0 +1,40 @@
+{
+    /*
+        Test for globalPrep feature
+
+        This configuration demonstrates:
+        - globalPrep runs once before all test groups
+        - prep runs per configuration group
+        - Global prep creates a marker file that tests verify
+     */
+    enable: 'manual',
+
+    services: {
+        skip: './skip.sh',
+        globalPrep: './global-prep.sh',
+        globalPrepTimeout: 10,
+        cleanup: './cleanup.sh',
+        globalCleanup: './global-cleanup.sh',
+        globalCleanupTimeout: 10,
+    },
+
+    environment: {
+        GLOBAL_PREP_MARKER: '${./.testme/global-prep-ran.txt}',
+    },
+
+    execution: {
+        timeout: 10,
+        parallel: false,
+    },
+
+    output: {
+        verbose: false,
+        format: 'simple',
+        colors: true,
+    },
+
+    patterns: {
+        include: ['**/*.tst.sh', '**/*.tst.js'],
+        exclude: ['**/node_modules/**', '**/.testme/**'],
+    },
+}

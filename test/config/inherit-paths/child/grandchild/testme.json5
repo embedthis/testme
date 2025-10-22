@@ -1,0 +1,6 @@
+{
+    // Grandchild config - also inherits from parent
+    // Parent paths (from ../../ in root) should still work here
+    // because they were resolved to absolute paths
+    inherit: ['compiler', 'environment'],
+}

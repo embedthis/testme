@@ -1,0 +1,31 @@
+{
+    /*
+        Subdirectory configuration with its own prep script
+
+        This demonstrates:
+        - Global prep runs before this group's prep
+        - Each group has its own prep but shares the global prep
+     */
+    enable: 'manual',
+
+    services: {
+        prep: './subdir-prep.sh',
+        prepTimeout: 10,
+    },
+
+    execution: {
+        timeout: 10,
+        parallel: false,
+    },
+
+    output: {
+        verbose: false,
+        format: 'simple',
+        colors: true,
+    },
+
+    patterns: {
+        include: ['**/*.tst.sh'],
+        exclude: ['**/node_modules/**', '**/.testme/**'],
+    },
+}

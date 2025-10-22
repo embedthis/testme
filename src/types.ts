@@ -22,6 +22,10 @@ export type TestResult = {
   output: string;
   error?: string;
   exitCode?: number;
+  assertions?: {
+    passed: number;
+    failed: number;
+  };
 }
 
 /*
@@ -117,6 +121,7 @@ export type ExecutionConfig = {
   debugMode?: boolean;
   showCommands?: boolean;
   iterations?: number;
+  stopOnFailure?: boolean; // Stop testing as soon as a test fails
 }
 
 /*
@@ -156,16 +161,37 @@ export type PatternConfig = {
 export type ServiceConfig = {
   skip?: string;
   environment?: string; // Script to emit environment variables (runs before prep)
+  globalPrep?: string; // Script to run once before all test groups (runs with root config)
   prep?: string;
   setup?: string;
   cleanup?: string;
+  globalCleanup?: string; // Script to run once after all test groups (runs with root config)
   skipTimeout?: number; // Skip script timeout in seconds
   environmentTimeout?: number; // Environment script timeout in seconds
+  globalPrepTimeout?: number; // Global prep timeout in seconds
   prepTimeout?: number; // Prep timeout in seconds
   setupTimeout?: number; // Setup timeout in seconds
   cleanupTimeout?: number; // Cleanup timeout in seconds
-  delay?: number; // Delay in seconds after setup before running tests
+  globalCleanupTimeout?: number; // Global cleanup timeout in seconds
+  delay?: number; // DEPRECATED: Use setupDelay instead (kept for backward compatibility)
+  setupDelay?: number; // Delay in seconds after setup before running tests (default: 1)
+  shutdownTimeout?: number; // Wait time in seconds for graceful shutdown before SIGKILL (default: 5)
+  healthCheck?: HealthCheckConfig; // Health check configuration to verify service readiness
 }
+
+/*
+ Health check configuration for verifying service readiness
+ */
+export type HealthCheckConfig = {
+  type?: 'http' | 'tcp' | 'script' | 'file'; // Health check type (default: http)
+  interval?: number; // Poll interval in milliseconds (default: 100)
+  timeout?: number; // Maximum wait time in seconds (default: 30)
+} & (
+  | { type?: 'http'; url: string; expectedStatus?: number; expectedBody?: string }
+  | { type: 'tcp'; host: string; port: number }
+  | { type: 'script'; command: string; expectedExit?: number }
+  | { type: 'file'; path: string }
+)
 
 /*
  Configuration for environment variables to set during test execution
@@ -214,6 +240,7 @@ export type CliOptions = {
   continue: boolean;
   noServices: boolean;
   iterations?: number;
+  stop: boolean;
 }
 
 /*

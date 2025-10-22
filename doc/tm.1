@@ -469,7 +469,12 @@ Configure skip, environment, prep, setup and cleanup commands:
         prepTimeout: 30,                  // Timeout in seconds
         setupTimeout: 30,                 // Timeout in seconds
         cleanupTimeout: 10,               // Timeout in seconds
-        delay: 3                          // Wait 3 seconds after setup before tests
+        setupDelay: 1,                    // Wait 1 second after setup before tests (ignored if healthCheck set)
+        shutdownTimeout: 5,               // Wait 5 seconds for graceful shutdown before SIGKILL
+        healthCheck: {                    // Optional: actively monitor service readiness
+            url: "http://localhost:8080/health",  // HTTP health check (type defaults to 'http')
+            timeout: 30                   // Max wait time in seconds
+        }
     }
 }
 .fi
@@ -478,7 +483,24 @@ The skip command runs first to determine if tests should be executed. Exit code 
 
 The environment command runs after skip and emits environment variables as key=value lines on stdout. Each line should be in the format KEY=VALUE. These variables are merged with the environment configuration and made available to prep, setup, cleanup, and all tests. This is useful for dynamically detecting build artifacts, reading configuration from external sources, or computing values based on system state.
 
-The prep command runs once before all tests begin and waits for completion. The setup command starts a background service that runs during test execution. The \fBdelay\fR field specifies seconds to wait after the setup service starts before beginning test execution, allowing time for service initialization. The cleanup command runs after all tests complete to clean up resources.
+The prep command runs once before all tests begin and waits for completion. The setup command starts a background service that runs during test execution.
+
+.B Health Checks:
+If \fBhealthCheck\fR is configured, TestMe actively polls the service to verify it's ready instead of using a fixed delay. This provides faster test execution (tests start immediately when service is ready) and more reliable testing (won't start tests before service is ready). Supports four check types:
+.RS
+.IP \(bu 2
+\fBHTTP/HTTPS\fR: Checks endpoint status and optional response body (type: 'http', requires url)
+.IP \(bu 2
+\fBTCP\fR: Verifies port is accepting connections (type: 'tcp', requires host and port)
+.IP \(bu 2
+\fBScript\fR: Executes custom health check command (type: 'script', requires command)
+.IP \(bu 2
+\fBFile\fR: Checks for existence of ready marker file (type: 'file', requires path)
+.RE
+
+If no health check is configured, \fBsetupDelay\fR (default: 1 second) is used to wait after the setup service starts before beginning test execution. The cleanup command runs after all tests complete to clean up resources.
+
+The \fBshutdownTimeout\fR (default: 5 seconds) controls graceful shutdown behavior. After sending SIGTERM (Unix) or graceful taskkill (Windows), TestMe polls every 100ms to check if the process exited. If the process exits gracefully within the timeout, SIGKILL is skipped. If still running after the timeout, SIGKILL is sent to force termination.
 
 .SS Environment Variables
 Configure environment variables available to all tests during execution. Supports platform-specific overrides via \fBwindows\fR, \fBmacosx\fR, and \fBlinux\fR keys:

@@ -85,17 +85,36 @@ Each test type (Shell, PowerShell, Batch, C, JS, TS, Python, Go, ES) implements 
 
 #### Service Management System
 
--   `ServiceManager` handles skip, environment, prep, setup, and cleanup scripts
+-   `ServiceManager` handles globalPrep, skip, environment, prep, setup, cleanup, and globalCleanup scripts
+-   **Global Prep** runs once before all test groups (project-wide setup)
 -   Skip scripts determine if tests should run (exit 0=run, non-zero=skip)
 -   Environment scripts emit key=value lines to set environment variables
--   Prep runs once before tests (foreground)
+-   **Prep** runs once per configuration group (group-specific setup)
 -   Setup starts background service for tests
--   Cleanup runs after all tests complete
+-   **Cleanup** runs once per configuration group (group-specific teardown)
+-   **Global Cleanup** runs once after all test groups (project-wide teardown)
+
+**Service Execution Order:**
+```
+1. Global Prep (once, before all test groups)
+2. For each configuration group:
+   a. Skip → b. Environment → c. Prep → d. Setup → e. Tests → f. Cleanup
+3. Global Cleanup (once, after all test groups)
+```
 
 #### Configuration Hierarchy
 
 -   `ConfigManager.findConfig()` walks up directory tree looking for `testme.json5`
 -   User config is merged with defaults using spread operator pattern
+-   **Configuration Inheritance** (`inherit` field):
+    -   `inherit: true` - Inherit all keys from parent config
+    -   `inherit: ['compiler', 'environment']` - Inherit only specified keys
+    -   **Path Resolution**: Relative paths in parent configs are resolved to absolute paths before inheritance
+        -   Parent's `../../build/inc` becomes `/absolute/path/build/inc` in child
+        -   Works for compiler flags (`-I`, `-L`, `/I`, `/LIBPATH:`) and environment variables
+        -   Paths with `${...}` variables are not resolved (expanded later)
+    -   This allows children at any depth to inherit paths without adjustment
+    -   Child settings override parent settings (deep merge for objects)
 -   Configuration affects:
     -   Test control (enable, depth requirements)
     -   Compilation (C flags, Ejscript modules)
@@ -308,12 +327,19 @@ The configuration file uses this hierarchy:
 
 **Service Lifecycle:**
 
--   Skip → Environment → Prep → Setup → Tests → Cleanup
+-   Global Prep (once) → For each group: Skip → Environment → Prep → Setup → Tests → Cleanup → Global Cleanup (once)
+-   Global Prep: runs once before all test groups (project-wide setup)
 -   Skip: exit 0=run, non-zero=skip (can output message)
 -   Environment: emits key=value lines to set environment variables for services and tests
--   Prep: runs once, waits for completion
+-   Prep: runs once per configuration group, waits for completion
 -   Setup: background service during tests
--   Cleanup: runs after all tests (kills setup if running)
+    -   `setupDelay` (default: 1 second): delay after setup starts before running tests
+    -   `shutdownTimeout` (default: 5 seconds): maximum wait for graceful shutdown before force-kill
+        -   Polls every 100ms to check if process exited after SIGTERM/graceful taskkill
+        -   Skips force-kill if process exits gracefully within timeout
+        -   Default of 5 seconds provides optimal behavior: fast if service exits quickly, patient if it needs time
+-   Cleanup: runs once per configuration group after tests (kills setup if running)
+-   Global Cleanup: runs once after all test groups (project-wide teardown)
 
 **Platform-Specific Tests:**
 
@@ -454,12 +480,20 @@ The `GlobExpansion` utility (`utils/glob-expansion.ts`) handles `${...}` pattern
 
 ### Service Management
 
-Services are managed per configuration group:
+Services are managed at two levels:
 
--   Each config directory gets its own service lifecycle
+-   **Global services**: Run once before/after all test groups (globalPrep, globalCleanup)
+-   **Group services**: Each config directory gets its own service lifecycle (skip, environment, prep, setup, cleanup)
 -   Setup processes run in background and are killed on exit or during cleanup
 -   Skip scripts can output messages (stdout/stderr) that are displayed in verbose mode
--   Service timeouts and delays are configurable in seconds (skip, prep, setup, cleanup, delay)
+-   **Health checks**: Active monitoring of service readiness (HTTP, TCP, script, file-based)
+    -   When configured, TestMe polls the service instead of using fixed setupDelay
+    -   Provides faster test execution and more reliable service startup detection
+    -   Supports 4 types: HTTP/HTTPS, TCP, Script, File existence
+    -   Falls back to setupDelay if not configured
+-   Service timeouts are configurable in seconds:
+    -   Timeouts: globalPrepTimeout, skipTimeout, environmentTimeout, prepTimeout, setupTimeout, cleanupTimeout, globalCleanupTimeout
+    -   Delays: setupDelay (default: 1s, ignored if healthCheck configured), shutdownTimeout (default: 5s)
 
 ## Installation and Distribution
 

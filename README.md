@@ -53,6 +53,7 @@ TestMe is under very active development at this time and may be a little unstabl
 -   **Hierarchical Configuration**: `testme.json5` files with tree traversal lookup
 -   **Environment Variables**: Dynamic environment setup with glob expansion support
 -   **Test Control**: Skip scripts, depth requirements, and enable/disable flags
+-   **Service Health Checks**: Active monitoring of service readiness (HTTP, TCP, script, file-based)
 -   **Multiple Output Formats**: Simple, detailed, and JSON reporting
 -   **Integrated Debugging**: Multi-language debug support with platform-specific debuggers
     -   C: GDB, LLDB, Xcode, Visual Studio, VS Code, Cursor
@@ -1092,15 +1093,112 @@ On macOS/Linux, the effective patterns would be:
 
 #### Service Settings
 
+Service scripts execute in a specific order to manage test environment lifecycle:
+
+**Global Services (run once before/after all test groups):**
+
+-   `services.globalPrep` - Command to run once before any test groups are processed (waits for completion)
+    -   Runs with root configuration environment
+    -   Use for project-wide setup: building shared libraries, starting databases, etc.
+    -   If global prep fails, all test execution is aborted
+-   `services.globalPrepTimeout` - Global prep timeout in seconds (default: 30)
+-   `services.globalCleanup` - Command to run once after all test groups complete (waits for completion)
+    -   Runs with root configuration environment
+    -   Use for project-wide teardown: cleaning shared resources, stopping databases, etc.
+    -   Receives `TESTME_SUCCESS` (1 if all tests passed) and `TESTME_KEEP` (1 if keepArtifacts enabled)
+    -   Errors logged but don't fail the test run
+-   `services.globalCleanupTimeout` - Global cleanup timeout in seconds (default: 10)
+
+**Per-Group Services (run for each configuration group):**
+
 -   `services.skip` - Script to check if tests should run (exit 0=run, non-zero=skip)
--   `services.prep` - Command to run once before all tests begin (waits for completion)
+-   `services.environment` - Script to emit environment variables as key=value lines
+-   `services.prep` - Command to run once before tests in this group begin (waits for completion)
+    -   Runs with the configuration group's environment
+    -   Use for group-specific setup: compiling test fixtures, etc.
 -   `services.setup` - Command to start background service during test execution
--   `services.cleanup` - Command to run after all tests complete for cleanup
+-   `services.cleanup` - Command to run after all tests in this group complete
+    -   Runs with the configuration group's environment
+    -   Use for group-specific teardown: cleaning test fixtures, etc.
 -   `services.skipTimeout` - Skip script timeout in seconds (default: 30)
+-   `services.environmentTimeout` - Environment script timeout in seconds (default: 30)
 -   `services.prepTimeout` - Prep command timeout in seconds (default: 30)
 -   `services.setupTimeout` - Setup command timeout in seconds (default: 30)
 -   `services.cleanupTimeout` - Cleanup command timeout in seconds (default: 10)
--   `services.delay` - Delay after setup before running tests in seconds (default: 0)
+-   `services.setupDelay` - Delay after setup starts before running tests in seconds (default: 1)
+    -   Replaces deprecated `services.delay` field
+    -   Allows services time to initialize before tests begin
+    -   **Note**: If `healthCheck` is configured, setupDelay is ignored in favor of active health checking
+-   `services.healthCheck` - Configuration for actively monitoring service readiness (optional)
+    -   When configured, TestMe polls the service instead of using a fixed setupDelay
+    -   Provides faster test execution (starts tests as soon as service is ready)
+    -   More reliable than arbitrary delays (won't start tests before service is ready)
+    -   Supports four health check types:
+        -   **HTTP/HTTPS**: Checks endpoint status and optional response body
+            ```json5
+            healthCheck: {
+                type: 'http',                  // Optional: defaults to 'http'
+                url: 'http://localhost:3000/health',
+                expectedStatus: 200,           // Optional: defaults to 200
+                expectedBody: 'OK',            // Optional: substring match
+                interval: 100,                 // Optional: poll interval in ms (default: 100)
+                timeout: 30                    // Optional: max wait in seconds (default: 30)
+            }
+            ```
+        -   **TCP**: Verifies port is accepting connections
+            ```json5
+            healthCheck: {
+                type: 'tcp',
+                host: 'localhost',
+                port: 5432,
+                timeout: 60
+            }
+            ```
+        -   **Script**: Executes custom health check command
+            ```json5
+            healthCheck: {
+                type: 'script',
+                command: 'redis-cli ping',
+                expectedExit: 0,               // Optional: defaults to 0
+                timeout: 10
+            }
+            ```
+        -   **File**: Checks for existence of ready marker file
+            ```json5
+            healthCheck: {
+                type: 'file',
+                path: '/tmp/daemon.ready',
+                timeout: 30
+            }
+            ```
+    -   Common settings (all types):
+        -   `interval` - Poll interval in milliseconds (default: 100)
+        -   `timeout` - Maximum wait time in seconds (default: 30)
+    -   Example use cases:
+        -   Web servers: HTTP check on `/health` endpoint
+        -   Databases: TCP port check (PostgreSQL, MySQL, Redis)
+        -   Message queues: TCP or script-based check
+        -   Custom services: File marker or script validation
+-   `services.shutdownTimeout` - Maximum wait time for graceful shutdown before SIGKILL in seconds (default: 5)
+    -   After sending SIGTERM (Unix) or graceful taskkill (Windows), polls every 100ms to check if process exited
+    -   If process exits gracefully within shutdownTimeout, SIGKILL is skipped (no unnecessary force-kill)
+    -   If process still running after shutdownTimeout, sends SIGKILL (Unix) or taskkill /F (Windows) to force termination
+    -   Default of 5 seconds allows most services to clean up gracefully without unnecessary waiting
+    -   Set to 0 to immediately force-kill without any wait time
+    -   Useful for services that need time to clean up resources (databases, file handles, network connections)
+
+**Execution Order:**
+```
+1. Global Prep (once)
+2. For each configuration group:
+   a. Skip
+   b. Environment
+   c. Prep
+   d. Setup
+   e. Tests execute
+   f. Cleanup
+3. Global Cleanup (once)
+```
 
 #### Environment Variables
 

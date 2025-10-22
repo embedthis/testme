@@ -115,15 +115,22 @@
 
     // Service management for test setup/teardown
     services: {
-        cleanup: '', // Script to run after all tests complete for cleanup
-        prep: '', // Script to run once before all tests begin (waits for completion)
-        setup: '', // Script to start background service during test execution, runs before tests
         skip: '', // Script to check if tests should be skipped (0=run, non-zero=skip)
-        cleanupTimeout: 10, // Cleanup timeout in seconds
+        environment: '', // Script to emit environment variables (key=value lines)
+        globalPrep: '', // Script to run once before all test groups (global setup)
+        prep: '', // Script to run once before tests in this group begin (waits for completion)
+        setup: '', // Script to start background service during test execution
+        cleanup: '', // Script to run after tests in this group complete
+        globalCleanup: '', // Script to run once after all test groups (global teardown)
+        skipTimeout: 30, // Skip script timeout in seconds
+        environmentTimeout: 30, // Environment script timeout in seconds
+        globalPrepTimeout: 30, // Global prep timeout in seconds
         prepTimeout: 30, // Prep timeout in seconds
         setupTimeout: 30, // Setup timeout in seconds
-        skipTimeout: 30, // Skip script timeout in seconds
-        delay: 0, // Delay in seconds after setup before running tests
+        cleanupTimeout: 10, // Cleanup timeout in seconds
+        globalCleanupTimeout: 10, // Global cleanup timeout in seconds
+        setupDelay: 1, // Delay in seconds after setup starts before running tests (default: 1)
+        shutdownTimeout: 0, // Wait time in seconds for graceful shutdown before SIGKILL (default: 0)
     },
 
     // Environment variables to set for test execution

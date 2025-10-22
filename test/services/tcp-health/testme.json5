@@ -1,0 +1,12 @@
+{
+    services: {
+        setup: 'bun server.js',
+        healthCheck: {
+            type: 'tcp',
+            host: 'localhost',
+            port: 8898,
+            timeout: 10
+        },
+        shutdownTimeout: 2
+    }
+}
