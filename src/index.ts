@@ -256,7 +256,8 @@ try {
 
 class TestMeApp {
     private runner: TestRunner;
-    private serviceManager: ServiceManager | null = null;
+    private serviceManagers: Map<string, ServiceManager> = new Map();
+    private globalServiceManager: ServiceManager | null = null;
     private shouldStop: boolean = false;
     private interruptCount: number = 0;
 
@@ -286,11 +287,18 @@ class TestMeApp {
         });
     }
 
-    private getServiceManager(invocationDir: string): ServiceManager {
-        if (!this.serviceManager) {
-            this.serviceManager = new ServiceManager(invocationDir);
+    private getServiceManager(configDir: string): ServiceManager {
+        if (!this.serviceManagers.has(configDir)) {
+            this.serviceManagers.set(configDir, new ServiceManager(configDir));
         }
-        return this.serviceManager;
+        return this.serviceManagers.get(configDir)!;
+    }
+
+    private getGlobalServiceManager(invocationDir: string): ServiceManager {
+        if (!this.globalServiceManager) {
+            this.globalServiceManager = new ServiceManager(invocationDir);
+        }
+        return this.globalServiceManager;
     }
 
     /*
@@ -410,7 +418,7 @@ class TestMeApp {
 
         // Run global prep once before all test groups (if configured)
         if (!options.noServices && baseConfig.services?.globalPrep) {
-            await this.getServiceManager(rootDir).runGlobalPrep(baseConfig);
+            await this.getGlobalServiceManager(rootDir).runGlobalPrep(baseConfig);
         }
 
         let allResults: any[] = [];
@@ -479,7 +487,7 @@ class TestMeApp {
 
             // Check if tests should be skipped via skip script
             if (!options.noServices && mergedConfig.services?.skip) {
-                const skipResult = await this.getServiceManager(rootDir).runSkip(mergedConfig);
+                const skipResult = await this.getServiceManager(configDir).runSkip(mergedConfig);
                 if (skipResult.shouldSkip) {
                     if (mergedConfig.output?.verbose) {
                         console.log(`\n⏭️  Skipping tests in: ${relative(rootDir, configDir) || '.'} - ${skipResult.message || 'Skip script returned non-zero'}`);
@@ -513,7 +521,7 @@ class TestMeApp {
                 // Run services for this configuration group
                 // Environment script runs first and its variables are merged into the config
                 if (!options.noServices && mergedConfig.services?.environment) {
-                    const envVars = await this.getServiceManager(rootDir).runEnvironment(mergedConfig);
+                    const envVars = await this.getServiceManager(configDir).runEnvironment(mergedConfig);
                     // Merge environment variables from script into config
                     if (Object.keys(envVars).length > 0) {
                         mergedConfig = {
@@ -527,11 +535,11 @@ class TestMeApp {
                 }
 
                 if (!options.noServices && mergedConfig.services?.prep) {
-                    await this.getServiceManager(rootDir).runPrep(mergedConfig);
+                    await this.getServiceManager(configDir).runPrep(mergedConfig);
                 }
 
                 if (!options.noServices && mergedConfig.services?.setup) {
-                    await this.getServiceManager(rootDir).runSetup(mergedConfig);
+                    await this.getServiceManager(configDir).runSetup(mergedConfig);
                 }
 
                 // Execute tests in this group
@@ -547,7 +555,7 @@ class TestMeApp {
                 // Cleanup for this configuration group
                 if (!options.noServices && mergedConfig.services?.cleanup) {
                     const allTestsPassed = groupExitCode === 0;
-                    await this.getServiceManager(rootDir).runCleanup(mergedConfig, allTestsPassed);
+                    await this.getServiceManager(configDir).runCleanup(mergedConfig, allTestsPassed);
                 }
             }
         }
@@ -555,7 +563,7 @@ class TestMeApp {
         // Run global cleanup once after all test groups (if configured)
         if (!options.noServices && baseConfig.services?.globalCleanup) {
             const allTestsPassed = totalExitCode === 0;
-            await this.getServiceManager(rootDir).runGlobalCleanup(baseConfig, allTestsPassed);
+            await this.getGlobalServiceManager(rootDir).runGlobalCleanup(baseConfig, allTestsPassed);
         }
 
         // Report final results
@@ -885,10 +893,22 @@ class TestMeApp {
             );
         } catch (error) {
             // Only run cleanup if parsing completed and services were potentially started
-            if (parsingComplete && options && !options.noServices && config?.services?.cleanup && this.serviceManager) {
+            if (parsingComplete && options && !options.noServices && this.serviceManagers.size > 0) {
                 try {
                     // If we're in the error handler, tests did not pass
-                    await this.serviceManager.runCleanup(config, false);
+                    // Cleanup all service managers that were created
+                    for (const [configDir, serviceManager] of this.serviceManagers) {
+                        try {
+                            const groupConfig = await ConfigManager.findConfig(configDir);
+                            if (groupConfig.services?.cleanup) {
+                                await serviceManager.runCleanup(groupConfig, false);
+                            }
+                        } catch (cleanupError) {
+                            if (!isQuiet) {
+                                console.error(`❌ Cleanup failed for ${configDir}:`, cleanupError);
+                            }
+                        }
+                    }
                 } catch (cleanupError) {
                     if (!isQuiet) {
                         console.error("❌ Cleanup failed:", cleanupError);

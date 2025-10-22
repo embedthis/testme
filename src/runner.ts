@@ -316,15 +316,30 @@ export class TestRunner {
           console.log(`🚫 Tests disabled in: ${configDir === options.rootDir ? '.' : configDir.replace(options.rootDir + '/', '')}`);
         }
       } else if (groupConfig.enable === 'manual') {
-        // Manual tests are only listed if CLI pattern exactly matches this config directory
+        // Manual tests are only listed if CLI pattern explicitly targets this config directory or specific tests
         const relativeConfigDir = configDir === options.rootDir ? '.' : configDir.replace(options.rootDir + '/', '');
         const isExplicitlyTargeted = cliPatterns && cliPatterns.length > 0 &&
           cliPatterns.some(p => {
             if (p.includes('*') || p.includes('?')) return false;
-            // Pattern must exactly match the config directory
+
+            // Check if pattern matches the config directory
             const normalizedPattern = p.replace(/\/$/, '');
             const normalizedConfigDir = relativeConfigDir.replace(/\/$/, '');
-            return normalizedPattern === normalizedConfigDir;
+            if (normalizedPattern === normalizedConfigDir) return true;
+
+            // Check if pattern matches any test in this group (by base name or full path)
+            return groupTests.some(test => {
+              const baseName = test.name.replace(/\.tst\.(c|js|ts|sh|ps1|bat|cmd|py|go|es)$/, '');
+              if (baseName === p) return true;
+              if (test.name === p) return true;
+
+              const relativePath = test.path.startsWith(options.rootDir)
+                ? test.path.slice(options.rootDir.length).replace(/^[\/\\]/, '')
+                : test.path;
+              const normalizedRelativePath = relativePath.replace(/\\/g, '/');
+              const normalizedP = p.replace(/\\/g, '/');
+              return normalizedRelativePath === normalizedP;
+            });
           });
 
         if (isExplicitlyTargeted) {
