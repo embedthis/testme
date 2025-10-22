@@ -6,6 +6,7 @@
 -   [Architecture](#architecture)
 -   [Design Patterns](#design-patterns)
 -   [Implementation Details](#implementation-details)
+    -   [Signal Handling and Process Management](#signal-handling-and-process-management)
     -   [Test Discovery Process](#test-discovery-process)
     -   [C Test Compilation Pipeline](#c-test-compilation-pipeline)
     -   [Integrated Debugging Support](#integrated-debugging-support)
@@ -285,6 +286,85 @@ const handler = this.createFreshHandler(testFile)
 | `services.ts`             | Background service management | Setup/cleanup process lifecycle                       |
 
 ## Implementation Details
+
+### Signal Handling and Process Management
+
+TestMe implements robust signal handling for graceful shutdown and process management:
+
+#### Ctrl+C (SIGINT) Handling
+
+**Architecture** ([src/index.ts](../../src/index.ts)):
+-   **Signal Handler Setup**: `setupSignalHandlers()` registers SIGINT handler in TestMeApp constructor
+-   **shouldStop Flag**: Shared boolean flag tracked by TestMeApp instance
+-   **Callback Mechanism**: TestRunner receives callback `() => this.shouldStop` to check stop state
+-   **Interrupt Counting**: Tracks number of Ctrl+C presses for progressive response
+
+**Behavior**:
+1. **First Ctrl+C**: Graceful shutdown
+   - Sets `shouldStop = true`
+   - Prints: "⚠️  Interrupt received. Stopping tests and cleaning up..."
+   - Current test completes if running
+   - No new tests start
+   - Cleanup scripts execute
+   - Exits with appropriate code
+2. **Second Ctrl+C**: Force quit
+   - Prints: "🛑 Force quit. Exiting immediately."
+   - Exits immediately with code 130 (128 + SIGINT signal 2)
+
+**Stop Check Points**:
+-   Before processing each configuration group ([src/index.ts:420](../../src/index.ts#L420))
+-   At start of each test iteration in sequential mode ([src/runner.ts:95](../../src/runner.ts#L95))
+-   In worker loop for parallel execution ([src/runner.ts:171](../../src/runner.ts#L171))
+
+#### Service Process Termination
+
+**Graceful Shutdown with Polling** ([src/platform/process.ts](../../src/platform/process.ts)):
+
+1. **Signal Flow**:
+   - **Unix**: SIGTERM (15) → poll for exit → SIGKILL (9) if still running
+   - **Windows**: `taskkill /PID` → poll for exit → `taskkill /F /PID` if still running
+
+2. **Polling Mechanism**:
+   - Check every 100ms if process exited
+   - If process exits gracefully, skip force-kill
+   - Continue polling up to `shutdownTimeout` seconds (default: 5)
+
+3. **Default Behavior** (`shutdownTimeout=5`):
+   - Optimal: fast if service exits quickly (100ms), patient if it needs time (up to 5s)
+   - User can override: set to 0 for immediate force-kill, or higher for slower services
+
+4. **Implementation Details**:
+   ```typescript
+   // Always send SIGTERM first when graceful=true
+   if (graceful) {
+       await sendSIGTERM();
+
+       // Poll for process exit with configurable timeout
+       const pollInterval = 100; // ms
+       const maxPolls = shutdownTimeout > 0 ? Math.ceil(shutdownTimeout / pollInterval) : 1;
+
+       for (let i = 0; i < maxPolls; i++) {
+           if (!isProcessRunning()) {
+               return; // Process exited gracefully - no SIGKILL needed
+           }
+           await sleep(pollInterval);
+       }
+   }
+   // Only send SIGKILL if still running
+   await sendSIGKILL();
+   ```
+
+#### Fast-Fail Mode (--stop)
+
+**Purpose**: Stop test execution immediately when any test fails
+
+**Implementation**:
+-   CLI flag `--stop` sets `config.execution.stopOnFailure = true`
+-   **Sequential Mode**: `break` statement stops loop on first failure
+-   **Parallel Mode**: Sets shared `shouldStop` flag and clears test queue
+-   Workers check flag and stop pulling new tests
+
+**Usage**: `tm --stop` or `tm --stop "*.tst.c"`
 
 ### Test Discovery Process
 
@@ -1235,40 +1315,103 @@ The `enable` field controls test execution with three modes:
     -   Resource-intensive integration tests
     -   Tests that should only run on-demand
 
-### Service Initialization Delay
+### Service Health Checks
 
-The `services.delay` field provides time for setup services to initialize:
+TestMe supports active health checking to verify service readiness instead of relying on arbitrary delays. This provides faster and more reliable test execution.
 
 ```json5
 {
     services: {
-        setup: './start-database.sh',
-        delay: 3000, // Wait 3 seconds after setup before running tests
-        cleanup: './stop-database.sh',
+        setup: './start-web-server.sh',
+        healthCheck: {
+            url: 'http://localhost:8080/health',  // Type defaults to 'http'
+            timeout: 30
+        },
+        cleanup: './stop-web-server.sh',
     },
 }
 ```
 
+**Health Check Types:**
+
+1. **HTTP/HTTPS** - Checks endpoint status and optional response body
+    ```json5
+    healthCheck: {
+        type: 'http',                  // Optional: defaults to 'http'
+        url: 'http://localhost:3000/health',
+        expectedStatus: 200,           // Optional: defaults to 200
+        expectedBody: 'OK',            // Optional: substring match
+        interval: 100,                 // Optional: poll interval in ms (default: 100)
+        timeout: 30                    // Optional: max wait in seconds (default: 30)
+    }
+    ```
+
+2. **TCP** - Verifies port is accepting connections
+    ```json5
+    healthCheck: {
+        type: 'tcp',
+        host: 'localhost',
+        port: 5432,
+        timeout: 60
+    }
+    ```
+
+3. **Script** - Executes custom health check command
+    ```json5
+    healthCheck: {
+        type: 'script',
+        command: 'redis-cli ping',
+        expectedExit: 0,               // Optional: defaults to 0
+        timeout: 10
+    }
+    ```
+
+4. **File** - Checks for existence of ready marker file
+    ```json5
+    healthCheck: {
+        type: 'file',
+        path: '/tmp/daemon.ready',
+        timeout: 30
+    }
+    ```
+
 **Behavior:**
 
--   **Default**: No delay (`delay: 0`)
--   **Timing**: Delay applied after setup service starts successfully
--   **Verbose output**: Shows "⏳ Waiting {delay}ms for setup service to initialize..."
--   **Service lifecycle**: Skip → Environment → Prep → Setup → Verify running → Delay → Tests → Cleanup
+-   **Polling**: Checks service health every `interval` milliseconds (default: 100ms)
+-   **Timeout**: Maximum wait time in seconds (default: 30s)
+-   **Service lifecycle**: Skip → Environment → Prep → Setup → **Health Check** → Tests → Cleanup
+-   **Verbose output**: Shows health check type, elapsed time, and attempt count
+-   **Failure handling**: If health check times out, setup service is killed and error is thrown
+
+**Fallback to setupDelay:**
+
+If no health check is configured, TestMe falls back to `setupDelay` (default: 1 second):
+
+```json5
+{
+    services: {
+        setup: './start-service.sh',
+        setupDelay: 3,  // Wait 3 seconds after setup before tests
+        cleanup: './stop-service.sh',
+    },
+}
+```
 
 **Use Cases:**
 
--   Database startup and connection establishment
--   Web server initialization and port binding
--   Service mesh or container orchestration startup
--   Hardware initialization delays
+-   **Web servers**: HTTP check on `/health` or `/ready` endpoint
+-   **Databases**: TCP port check (PostgreSQL, MySQL, MongoDB)
+-   **Message queues**: TCP or script-based check (Redis, RabbitMQ)
+-   **Custom services**: File marker or script validation
 
-**Implementation Details:**
+**Implementation:**
 
--   Delay occurs after the standard 1-second startup verification
--   Services that fail to start will not trigger the delay
--   Delay is per-configuration group, not global
--   Multiple directories can have different delay settings
+-   Location: `src/services/health-check.ts` - `HealthCheckManager` class
+-   Integration: `src/services.ts` - `runSetup()` method
+-   HTTP checks use `fetch()` API with 5-second request timeout
+-   TCP checks use `Bun.connect()` to verify connection
+-   Script checks use `Bun.spawn()` and verify exit code
+-   File checks use `Bun.file().exists()`
 
 ### Service Script Execution
 

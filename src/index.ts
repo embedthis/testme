@@ -110,10 +110,13 @@ async function handleInit(): Promise<void> {
     services: {
         skip: '',           // Script to check if tests should be skipped
         environment: '',    // Script to emit environment variables (key=value lines)
-        prep: '',           // Script to run once before all tests
+        globalPrep: '',     // Script to run once before all test groups (global setup)
+        prep: '',           // Script to run once before tests in this group
         setup: '',          // Background service to start before tests
-        cleanup: '',        // Script to run after all tests
-        delay: 0,           // Delay in ms after setup before running tests
+        cleanup: '',        // Script to run after tests in this group
+        globalCleanup: '',  // Script to run once after all test groups (global teardown)
+        setupDelay: 1,      // Delay in seconds after setup starts before running tests (default: 1)
+        shutdownTimeout: 5, // Wait time in seconds for graceful shutdown before SIGKILL (default: 5)
     },
 
     // Environment variables for test execution
@@ -254,9 +257,33 @@ try {
 class TestMeApp {
     private runner: TestRunner;
     private serviceManager: ServiceManager | null = null;
+    private shouldStop: boolean = false;
+    private interruptCount: number = 0;
 
     constructor() {
         this.runner = new TestRunner();
+        this.setupSignalHandlers();
+        // Set callback for runner to check if execution should stop
+        this.runner.setShouldStopCallback(() => this.shouldStop);
+    }
+
+    /*
+     Sets up signal handlers for graceful shutdown on Ctrl+C
+     */
+    private setupSignalHandlers(): void {
+        process.on('SIGINT', () => {
+            this.interruptCount++;
+
+            if (this.interruptCount === 1) {
+                // First Ctrl+C: stop gracefully
+                console.log('\n\n⚠️  Interrupt received. Stopping tests and cleaning up...');
+                this.shouldStop = true;
+            } else {
+                // Second Ctrl+C: force exit immediately
+                console.log('\n\n🛑 Force quit. Exiting immediately.');
+                process.exit(130); // 128 + SIGINT(2)
+            }
+        });
     }
 
     private getServiceManager(invocationDir: string): ServiceManager {
@@ -381,11 +408,21 @@ class TestMeApp {
 
         console.log(`\nDiscovered ${filteredTests.length} test(s) in ${testGroups.size} configuration group(s)`);
 
+        // Run global prep once before all test groups (if configured)
+        if (!options.noServices && baseConfig.services?.globalPrep) {
+            await this.getServiceManager(rootDir).runGlobalPrep(baseConfig);
+        }
+
         let allResults: any[] = [];
         let totalExitCode = 0;
 
         // Execute each configuration group
         for (const [configDir, tests] of testGroups) {
+            // Check if we should stop (Ctrl+C pressed)
+            if (this.shouldStop) {
+                break;
+            }
+
             // Get configuration for this group
             const groupConfig = await ConfigManager.findConfig(configDir);
 
@@ -515,6 +552,12 @@ class TestMeApp {
             }
         }
 
+        // Run global cleanup once after all test groups (if configured)
+        if (!options.noServices && baseConfig.services?.globalCleanup) {
+            const allTestsPassed = totalExitCode === 0;
+            await this.getServiceManager(rootDir).runGlobalCleanup(baseConfig, allTestsPassed);
+        }
+
         // Report final results
         if (!this.isQuietMode(baseConfig)) {
             this.runner.reportFinalResults(allResults, baseConfig, rootDir);
@@ -584,6 +627,15 @@ class TestMeApp {
                 timeout: mergedConfig.execution?.timeout ?? 30000,
                 parallel: false,
                 stepMode: true,
+            };
+        }
+
+        if (options.stop) {
+            mergedConfig.execution = {
+                ...mergedConfig.execution,
+                timeout: mergedConfig.execution?.timeout ?? 30000,
+                parallel: mergedConfig.execution?.parallel ?? true,
+                stopOnFailure: true,
             };
         }
 
@@ -856,9 +908,17 @@ class TestMeApp {
         if (error instanceof Error) {
             console.error(`❌ Error: ${error.message}`);
 
-            // Only show stack trace if explicitly enabled via DEBUG env or in development mode
-            // Don't show stack for CLI parsing errors (showStack=false)
-            if (showStack && (process.env.DEBUG || process.env.NODE_ENV === "development")) {
+            // Check if this is a service-related error (prep, setup, cleanup, etc.)
+            const isServiceError = error.message.includes('Failed to run') ||
+                                   error.message.includes('Failed to start') ||
+                                   error.message.includes('script failed') ||
+                                   error.message.includes('script timed out');
+
+            // Only show stack trace if:
+            // 1. Not a service error (those are user-facing), AND
+            // 2. showStack=true (parsing completed), AND
+            // 3. DEBUG is set or in development mode
+            if (!isServiceError && showStack && (process.env.DEBUG || process.env.NODE_ENV === "development")) {
                 console.error("Stack trace:", error.stack);
             }
         } else {
@@ -878,7 +938,12 @@ async function main() {
 // Only run if this file is being executed directly
 if (import.meta.main) {
     main().catch((error) => {
-        console.error("💥 Fatal error:", error);
+        // Use simplified error output - just the message, no stack trace
+        if (error instanceof Error) {
+            console.error(`💥 Fatal error: ${error.message}`);
+        } else {
+            console.error("💥 Fatal error:", error);
+        }
         process.exit(1);
     });
 }

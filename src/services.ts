@@ -3,6 +3,7 @@ import { relative, delimiter, isAbsolute, join } from "path";
 import { GlobExpansion } from "./utils/glob-expansion.ts";
 import { ProcessManager } from "./platform/process.ts";
 import { PlatformDetector } from "./platform/detector.ts";
+import { HealthCheckManager } from "./services/health-check.ts";
 
 /**
  * Manages setup and cleanup services for test execution
@@ -142,7 +143,9 @@ export class ServiceManager {
                 return { shouldSkip: true, message };
             }
         } catch (error) {
-            throw new Error(`Failed to run skip script: ${error}`);
+            // Extract just the message to avoid nested error wrapping
+            const message = error instanceof Error ? error.message : String(error);
+            throw new Error(`Failed to run skip script: ${message}`);
         }
     }
 
@@ -240,7 +243,82 @@ export class ServiceManager {
                 throw new Error(`Environment script failed with exit code ${result}: ${stderr}`);
             }
         } catch (error) {
-            throw new Error(`Failed to run environment script: ${error}`);
+            // Extract just the message to avoid nested error wrapping
+            const message = error instanceof Error ? error.message : String(error);
+            throw new Error(`Failed to run environment script: ${message}`);
+        }
+    }
+
+    /**
+     * Runs the global prep command once before all test groups
+     *
+     * @param config - Test configuration containing service settings
+     * @throws Error if global prep command fails or times out
+     *
+     * @remarks
+     * Global prep script runs once before any test groups execute and waits for completion.
+     * Runs in the invocation directory (root) with the root configuration environment.
+     * Use for global setup operations that need to happen before all tests (e.g., building shared libraries).
+     */
+    async runGlobalPrep(config: TestConfig): Promise<void> {
+        const globalPrepCommand = config.services?.globalPrep;
+        if (!globalPrepCommand) {
+            return;
+        }
+
+        const timeout = (config.services?.globalPrepTimeout || 30) * 1000;
+
+        const displayPath = this.getDisplayPath(globalPrepCommand, config);
+        if (config.output?.verbose) {
+            console.log(`Running global prep: ${displayPath}`);
+        }
+
+        try {
+            // Parse command and arguments
+            const [command, ...args] = this.parseCommand(globalPrepCommand, config.configDir);
+
+            // In verbose mode, inherit stdout/stderr to show service output
+            // Otherwise pipe it so we can capture on errors
+            const stdoutMode = config.output?.verbose ? "inherit" : "pipe";
+            const stderrMode = config.output?.verbose ? "inherit" : "pipe";
+
+            // Run global prep in foreground with proper environment
+            const globalPrepProcess = Bun.spawn([command, ...args], {
+                stdout: stdoutMode,
+                stderr: stderrMode,
+                cwd: config.configDir, // Run in the directory containing testme.json5
+                env: await this.getServiceEnvironment(config)
+            });
+
+            // Set up timeout
+            let timeoutId: Timer | undefined;
+            let timedOut = false;
+
+            if (timeout > 0) {
+                timeoutId = setTimeout(() => {
+                    timedOut = true;
+                    globalPrepProcess.kill();
+                }, timeout);
+            }
+
+            const result = await globalPrepProcess.exited;
+
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+            }
+
+            if (timedOut) {
+                throw new Error(`Global prep script timed out after ${timeout}ms`);
+            } else if (result === 0) {
+                console.log("✓ Global prep completed successfully");
+            } else {
+                const stderr = await new Response(globalPrepProcess.stderr).text();
+                throw new Error(`Global prep script failed with exit code ${result}: ${stderr}`);
+            }
+        } catch (error) {
+            // Extract just the message to avoid nested error wrapping
+            const message = error instanceof Error ? error.message : String(error);
+            throw new Error(`Failed to run global prep script: ${message}`);
         }
     }
 
@@ -263,7 +341,9 @@ export class ServiceManager {
         const timeout = (config.services?.prepTimeout || 30) * 1000;
 
         const displayPath = this.getDisplayPath(prepCommand, config);
-        console.log(`Running prep script: ${displayPath}`);
+        if (config.output?.verbose) {
+            console.log(`Running prep script: ${displayPath}`);
+        }
 
         try {
             // Parse command and arguments
@@ -308,7 +388,9 @@ export class ServiceManager {
                 throw new Error(`Prep script failed with exit code ${result}: ${stderr}`);
             }
         } catch (error) {
-            throw new Error(`Failed to run prep script: ${error}`);
+            // Extract just the message to avoid nested error wrapping
+            const message = error instanceof Error ? error.message : String(error);
+            throw new Error(`Failed to run prep script: ${message}`);
         }
     }
 
@@ -321,7 +403,7 @@ export class ServiceManager {
      * @remarks
      * Setup script runs in the background during test execution.
      * Automatically killed when tests complete or process exits.
-     * Supports optional delay after startup before tests begin.
+     * Supports health checks to verify service readiness or falls back to setupDelay.
      */
     async runSetup(config: TestConfig): Promise<void> {
         const setupCommand = config.services?.setup;
@@ -332,7 +414,9 @@ export class ServiceManager {
         const timeout = (config.services?.setupTimeout || 30) * 1000;
 
         const displayPath = this.getDisplayPath(setupCommand, config);
-        console.log(`Starting setup service: ${displayPath}`);
+        if (config.output?.verbose) {
+            console.log(`Starting setup service: ${displayPath}`);
+        }
 
         try {
             // Parse command and arguments
@@ -368,8 +452,30 @@ export class ServiceManager {
                 }, timeout);
             }
 
-            // Wait for the process to start (give it a moment to initialize)
-            await new Promise((resolve) => setTimeout(resolve, 1000));
+            // Wait for service to be ready using health check or delay
+            if (config.services?.healthCheck) {
+                // Use health check to verify service is ready
+                const healthCheckManager = new HealthCheckManager();
+                try {
+                    await healthCheckManager.waitForHealthy(config.services.healthCheck, config.output?.verbose);
+                } catch (error) {
+                    // Health check failed - kill the setup process
+                    await this.killSetup(config);
+                    throw error;
+                }
+            } else {
+                // Fall back to setupDelay if no health check configured
+                // Use setupDelay if configured, fall back to legacy 'delay', default to 1 second
+                const initialDelay = (config.services?.setupDelay !== undefined
+                    ? config.services.setupDelay
+                    : config.services?.delay !== undefined
+                    ? config.services.delay
+                    : 1) * 1000;
+
+                if (initialDelay > 0) {
+                    await new Promise((resolve) => setTimeout(resolve, initialDelay));
+                }
+            }
 
             // Check if process is still running by checking if exited promise is still pending
             const exitPromise = this.setupProcess.exited;
@@ -383,23 +489,12 @@ export class ServiceManager {
                 }
 
                 if (!timedOut) {
-                    console.log("✓ Setup service started successfully");
+                    if (config.output?.verbose) {
+                        console.log("✓ Setup service started successfully");
+                    }
 
                     // Note: Setup service output is not displayed in real-time to avoid cluttering test output.
                     // Output will be shown if the service fails or exits unexpectedly.
-
-                    // Apply configured delay after setup starts
-                    const delay = (config.services?.delay || 0) * 1000;
-                    if (delay > 0) {
-                        if (config.output?.verbose) {
-                            console.log(`Waiting ${delay / 1000}s for setup service to initialize...`);
-                        }
-                        await new Promise((resolve) => setTimeout(resolve, delay));
-
-                        if (config.output?.verbose) {
-                            console.log("✓ Setup initialization delay completed");
-                        }
-                    }
 
                     // Set up cleanup on process exit
                     this.registerCleanupHandlers();
@@ -460,7 +555,94 @@ export class ServiceManager {
         } catch (error) {
             this.isSetupRunning = false;
             this.setupProcess = null;
-            throw new Error(`Failed to start setup service: ${error}`);
+            // Extract just the message to avoid nested error wrapping
+            const message = error instanceof Error ? error.message : String(error);
+            throw new Error(`Failed to start setup service: ${message}`);
+        }
+    }
+
+    /**
+     * Runs the global cleanup command once after all test groups
+     *
+     * @param config - Test configuration containing service settings
+     * @param allTestsPassed - Optional boolean indicating if all tests passed
+     *
+     * @remarks
+     * Global cleanup script runs once after all test groups complete.
+     * Runs in the invocation directory (root) with the root configuration environment.
+     * Use for global teardown operations (stopping databases, cleaning shared resources, etc.).
+     * Errors in cleanup are logged but don't fail the test run.
+     * Sets TESTME_SUCCESS=1 if allTestsPassed is true, 0 otherwise.
+     * Sets TESTME_KEEP=1 if keepArtifacts is enabled, 0 otherwise.
+     */
+    async runGlobalCleanup(config: TestConfig, allTestsPassed?: boolean): Promise<void> {
+        const globalCleanupCommand = config.services?.globalCleanup;
+        if (!globalCleanupCommand) {
+            return;
+        }
+
+        const timeout = (config.services?.globalCleanupTimeout || 10) * 1000;
+
+        const displayPath = this.getDisplayPath(globalCleanupCommand, config);
+        if (config.output?.verbose) {
+            console.log(`Running global cleanup: ${displayPath}`);
+        }
+
+        try {
+            // Parse command and arguments
+            const [command, ...args] = this.parseCommand(globalCleanupCommand, config.configDir);
+
+            // In verbose mode, inherit stdout/stderr to show service output
+            // Otherwise pipe it so we can capture on errors
+            const stdoutMode = config.output?.verbose ? "inherit" : "pipe";
+            const stderrMode = config.output?.verbose ? "inherit" : "pipe";
+
+            // Get service environment and add cleanup-specific variables
+            const env = await this.getServiceEnvironment(config);
+
+            // Add TESTME_SUCCESS (1 if all tests passed, 0 otherwise)
+            env.TESTME_SUCCESS = allTestsPassed === true ? '1' : '0';
+
+            // Add TESTME_KEEP (1 if keepArtifacts is enabled, 0 otherwise)
+            env.TESTME_KEEP = config.execution?.keepArtifacts === true ? '1' : '0';
+
+            // Run global cleanup in foreground with proper environment
+            const globalCleanupProcess = Bun.spawn([command, ...args], {
+                stdout: stdoutMode,
+                stderr: stderrMode,
+                cwd: config.configDir, // Run in the directory containing testme.json5
+                env
+            });
+
+            // Set up timeout
+            let timeoutId: Timer | undefined;
+            let timedOut = false;
+
+            if (timeout > 0) {
+                timeoutId = setTimeout(() => {
+                    timedOut = true;
+                    globalCleanupProcess.kill();
+                }, timeout);
+            }
+
+            const result = await globalCleanupProcess.exited;
+
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+            }
+
+            if (timedOut) {
+                console.log(`✗ Global cleanup command timed out after ${timeout}ms`);
+            } else if (result === 0) {
+                console.log("✓ Global cleanup completed successfully");
+            } else {
+                const stderr = await new Response(globalCleanupProcess.stderr).text();
+                console.warn(
+                    `✗ Global cleanup completed with exit code ${result}: ${stderr}`
+                );
+            }
+        } catch (error) {
+            console.error(`✗ Global cleanup failed: ${error}`);
         }
     }
 
@@ -484,12 +666,14 @@ export class ServiceManager {
         }
 
         // First kill the setup process if it's running
-        await this.killSetup();
+        await this.killSetup(config);
 
         const timeout = (config.services?.cleanupTimeout || 10) * 1000;
 
         const displayPath = this.getDisplayPath(cleanupCommand, config);
-        console.log(`Running cleanup: ${displayPath}`);
+        if (config.output?.verbose) {
+            console.log(`Running cleanup: ${displayPath}`);
+        }
 
         try {
             // Parse command and arguments
@@ -556,15 +740,18 @@ export class ServiceManager {
      * Uses platform-appropriate process killing (kills entire process tree on Unix).
      * Safe to call multiple times - idempotent operation.
      */
-    async killSetup(): Promise<void> {
+    async killSetup(config?: TestConfig): Promise<void> {
         if (!this.setupProcess || !this.isSetupRunning) {
             return;
         }
 
         try {
+            // Get shutdown timeout from config (convert seconds to milliseconds, default to 5)
+            const shutdownTimeout = ((config?.services?.shutdownTimeout ?? 5) * 1000);
+
             // Kill the process using platform-appropriate method
             if (this.setupProcess.pid) {
-                await ProcessManager.killProcess(this.setupProcess.pid, true);
+                await ProcessManager.killProcess(this.setupProcess.pid, true, shutdownTimeout);
             } else {
                 // Fallback: just kill the main process
                 this.setupProcess.kill();

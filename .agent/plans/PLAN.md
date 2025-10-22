@@ -4,11 +4,31 @@
 
 TestMe is a production-ready, cross-platform multi-language test runner with native support for Windows, macOS, and Linux. Core features are complete and well-documented.
 
-**Version**: 0.8.19
-**Last Updated**: 2025-10-19
+**Version**: 0.8.22
+**Last Updated**: 2025-10-22
 
 ## Recently Completed
 
+-   ✅ Service health check implementation (2025-10-22)
+    -   Implemented active service health checking to replace arbitrary delays
+    -   Created HealthCheckManager class with 4 check types: HTTP, TCP, Script, File
+    -   HTTP/HTTPS checks verify endpoint status and optional response body
+    -   TCP checks verify port is accepting connections
+    -   Script checks execute custom commands and verify exit codes
+    -   File checks verify existence of ready marker files
+    -   Type defaults to 'http' for simplified configuration
+    -   Falls back to setupDelay if not configured (backward compatible)
+    -   Comprehensive documentation in README, man page, DESIGN.md, CLAUDE.md
+    -   Configuration examples in doc/testme.json5
+    -   Test coverage: HTTP and TCP health check tests both passing
+    -   Benefits: Faster test execution, more reliable service startup
+-   ✅ Service shutdown improvements and Ctrl+C handling (2025-10-21)
+    -   Fixed shutdownTimeout default behavior - now sends SIGTERM first even with timeout=0
+    -   Changed default shutdownTimeout from 0 to 5 seconds for optimal behavior
+    -   Implemented polling mechanism (100ms intervals) to detect graceful process exit
+    -   Added `--stop` command line option for fast-fail behavior
+    -   Implemented proper Ctrl+C (SIGINT) signal handling for graceful shutdown
+    -   First Ctrl+C stops tests gracefully, second Ctrl+C forces immediate exit
 -   ✅ Jest/Vitest API compatibility (2025-10-18)
     -   Complete describe/test/it API for organizing tests
     -   beforeAll/afterAll lifecycle hooks
@@ -116,6 +136,30 @@ Add validation for testme.json5:
 -   [ ] Validate required fields and types
 -   [ ] Warn about unknown/deprecated fields
 -   [ ] Suggest corrections for common typos
+
+### 3. Service Health Checks
+
+**Priority**: Medium
+**Effort**: Medium
+**Status**: Proposed
+
+Replace arbitrary `setupDelay` with active health checking to start tests as soon as services are ready. See detailed plan: [HEALTHCHECK.md](HEALTHCHECK.md)
+
+**Phase 1** (HTTP + TCP):
+-   [ ] Create HealthCheckManager with polling loop
+-   [ ] Implement HTTP health check (status + body matching)
+-   [ ] Implement TCP port health check
+-   [ ] Integrate with ServiceManager
+-   [ ] Update configuration system
+
+**Phase 2** (Advanced):
+-   [ ] Implement script-based health checks
+-   [ ] Implement file/socket existence checks
+
+**Benefits**:
+-   Faster test execution (no unnecessary waiting)
+-   More reliable tests (services confirmed ready)
+-   Backward compatible (falls back to setupDelay)
 
 ## Medium-term Goals (Next Month)
 

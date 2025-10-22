@@ -1,5 +1,103 @@
 # TestMe Changelog
 
+## 2025-10-22
+
+### Service Health Check Implementation
+
+-   **DEV**: Implemented active service health checking to replace arbitrary delays
+    -   **Feature**: Poll services to verify readiness instead of using fixed `setupDelay`
+    -   **Benefits**:
+        -   Faster test execution: Tests start immediately when service is ready
+        -   More reliable: Won't start tests before service is ready
+        -   Flexible: Supports many different service types
+        -   Backward compatible: Falls back to `setupDelay` if not configured
+    -   **Health Check Types**:
+        -   **HTTP/HTTPS**: Checks endpoint status and optional response body (most common)
+        -   **TCP**: Verifies port is accepting connections (databases, message queues)
+        -   **Script**: Executes custom health check command (redis-cli, custom tools)
+        -   **File**: Checks for existence of ready marker file
+    -   **Configuration**:
+        -   Type defaults to `'http'` for simplified configuration
+        -   Example: `healthCheck: { url: 'http://localhost:8080/health' }`
+        -   Configurable polling interval (default: 100ms) and timeout (default: 30s)
+    -   **Implementation**:
+        -   Created `HealthCheckManager` class in [src/services/health-check.ts](../../src/services/health-check.ts)
+        -   Added `HealthCheckConfig` type to [src/types.ts](../../src/types.ts) as discriminated union
+        -   Integrated into `ServiceManager.runSetup()` in [src/services.ts](../../src/services.ts)
+        -   Added comprehensive documentation to README.md, man page, DESIGN.md, CLAUDE.md
+        -   Added configuration examples to [doc/testme.json5](../../doc/testme.json5)
+    -   **Testing**:
+        -   Created HTTP health check test: [test/services/http-health/](../../test/services/http-health/)
+        -   Created TCP health check test: [test/services/tcp-health/](../../test/services/tcp-health/)
+        -   Both tests demonstrate fast service detection (0.01-0.10s)
+    -   **Files Modified**:
+        -   [src/services/health-check.ts](../../src/services/health-check.ts) - New HealthCheckManager class
+        -   [src/types.ts](../../src/types.ts) - HealthCheckConfig type definition
+        -   [src/services.ts](../../src/services.ts) - Integration with runSetup()
+        -   [README.md](../../README.md) - Documentation and examples
+        -   [doc/tm.1](../../doc/tm.1) - Man page updates
+        -   [doc/testme.json5](../../doc/testme.json5) - Configuration examples
+        -   [.agent/designs/DESIGN.md](../designs/DESIGN.md) - Design documentation
+        -   [CLAUDE.md](../../CLAUDE.md) - Project instructions
+
+## 2025-10-21
+
+### Service Shutdown Improvements and Ctrl+C Handling
+
+-   **FIX**: Fixed `shutdownTimeout` default behavior for graceful service shutdown
+    -   **Problem**: When `shutdownTimeout=0` (previous default), SIGTERM was skipped and only SIGKILL was sent, preventing signal handlers from executing
+    -   **Solution**: Always send SIGTERM first when `graceful=true`, then poll for process exit
+    -   **Polling Mechanism**: Check every 100ms if process exited gracefully
+        -   With `shutdownTimeout=0`: Send SIGTERM → wait 100ms → SIGKILL if still running
+        -   With `shutdownTimeout>0`: Send SIGTERM → poll every 100ms up to timeout → SIGKILL if still running
+        -   If process exits gracefully during polling, SIGKILL is skipped entirely
+    -   **New Default**: Changed from 0 to 5 seconds for optimal behavior (fast if service exits quickly, patient if it needs time)
+    -   **Files Modified**:
+        -   [src/platform/process.ts](../../src/platform/process.ts) - Fixed Unix and Windows process killing logic
+        -   [src/services.ts](../../src/services.ts) - Changed default from 0 to 5 seconds
+        -   Documentation updated in README.md, CLAUDE.md, man page, example configs
+
+-   **DEV**: Added `--stop` command line option for fast-fail behavior
+    -   **Feature**: Stop test execution immediately when any test fails
+    -   **Implementation**:
+        -   Added `stop: boolean` to CliOptions type
+        -   Added `stopOnFailure?: boolean` to ExecutionConfig type
+        -   Sequential mode: `break` statement stops loop on first failure
+        -   Parallel mode: Shared `shouldStop` flag and queue clearing ensures all workers stop
+    -   **Usage**: `tm --stop` or `tm --stop "*.tst.c"`
+    -   **Files Modified**:
+        -   [src/types.ts](../../src/types.ts) - Type definitions
+        -   [src/cli.ts](../../src/cli.ts) - CLI parser and help text
+        -   [src/index.ts](../../src/index.ts) - Config merging in `applyCliOverrides()`
+        -   [src/runner.ts](../../src/runner.ts) - Stop checks in sequential and parallel execution
+
+-   **DEV**: Implemented proper Ctrl+C (SIGINT) signal handling
+    -   **Problem**: Ctrl+C was only stopping the current test but TestMe continued running remaining tests
+    -   **Solution**: Graceful shutdown on first Ctrl+C, forced exit on second
+    -   **Implementation**:
+        -   Added `setupSignalHandlers()` to TestMeApp class
+        -   First Ctrl+C: Sets `shouldStop` flag, prints warning, completes current test, runs cleanup, exits
+        -   Second Ctrl+C: Forces immediate exit with code 130
+        -   Callback mechanism: TestRunner checks `shouldStop` via callback before each test
+    -   **Stop Points**:
+        -   Before processing each configuration group
+        -   At start of each test iteration (sequential mode)
+        -   In worker loop (parallel mode)
+    -   **Cleanup**: Existing cleanup handlers in ServiceManager ensure setup services are killed
+    -   **Files Modified**:
+        -   [src/index.ts](../../src/index.ts) - Signal handler setup and shouldStop checks
+        -   [src/runner.ts](../../src/runner.ts) - Callback mechanism and execution checks
+
+### Health Check Feature Planning
+
+-   **PLAN**: Created comprehensive plan for health check feature to replace arbitrary `setupDelay`
+    -   **Proposal**: Active health checking to start tests as soon as services are ready
+    -   **Types**: HTTP/HTTPS, TCP port, script-based, file/socket existence
+    -   **Benefits**: Faster test execution, more reliable tests, backward compatible
+    -   **Status**: Documented in [.agent/plans/HEALTHCHECK.md](../plans/HEALTHCHECK.md)
+    -   **Priority**: Medium
+    -   **Estimated Effort**: 9-13 hours (Phase 1: HTTP+TCP 4-6h, Phase 2: Script+File 2-3h, Phase 3: Docs+Tests 3-4h)
+
 ## 2025-10-19
 
 ### Documentation Cleanup and Organization
