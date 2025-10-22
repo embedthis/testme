@@ -8,15 +8,22 @@
     The inherited paths should be absolute and point to test/dist
 */
 
-import { resolve } from 'path';
+import { resolve, sep } from 'path';
 
 // Expected absolute paths - parent's ../../dist resolves to test/dist
 // Test directory structure: /Users/mob/c/testme/test/config/inherit-paths/child/grandchild
 // Parent is at: /Users/mob/c/testme/test/config/inherit-paths
 // Parent's ../../dist resolves to: /Users/mob/c/testme/test/dist
-const testRootDir = process.cwd().split('/test/config/inherit-paths')[0];
-const expectedDistDir = resolve(testRootDir, 'test/dist');
-const expectedSrcDir = resolve(testRootDir, 'test/src');
+
+// Use platform-specific path separator for splitting
+const pathSeparator = `${sep}test${sep}config${sep}inherit-paths`;
+const parts = process.cwd().split(pathSeparator);
+if (parts.length === 0 || !parts[0]) {
+    console.error('Failed to determine test root directory from:', process.cwd());
+    process.exit(1);
+}
+const testRootDir = parts[0];
+const expectedDistDir = resolve(testRootDir, 'test', 'dist');
 
 // Check compiler flags
 const compilerFlags = process.env.TESTME_COMPILER_FLAGS || '';
