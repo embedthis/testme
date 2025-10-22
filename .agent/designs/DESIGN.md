@@ -886,6 +886,20 @@ TestMe implements a hierarchical configuration system that supports nested `test
 -   **Configuration merging**: Test-specific configurations are merged with global settings, with test-specific values taking precedence
 -   **CLI preservation**: Command-line arguments override both test-specific and project-wide configuration values
 
+**Root Configuration Discovery (for Global Services):**
+
+Global services (`globalPrep` and `globalCleanup`) use a different discovery mechanism to find the top-most configuration:
+
+-   **Algorithm**:
+    1. Search up from current working directory (cwd) for `testme.json5`
+    2. If found, use the **top-most** (highest in directory tree) configuration
+    3. If not found in cwd or parents, search common subdirectories: `test/`, `tests/`, `spec/`, `src/`
+    4. Use the first configuration found in subdirectories
+
+-   **Purpose**: Allows running `tm` from project root directory while global services execute from test subdirectory configuration
+-   **Example**: Running `tm basic` from `/project/` will find and use `/project/test/testme.json5` for globalPrep
+-   **Implementation**: [ConfigManager.findRootConfig()](../../src/config.ts:187-269)
+
 **Configuration Inheritance:**
 
 TestMe supports explicit inheritance from parent configurations using the `inherit` field:
@@ -1123,17 +1137,22 @@ type TestConfig = {
         }
     }
     services?: {
+        globalPrep?: string // Global prep command (runs once before all test groups, from root config)
+        globalCleanup?: string // Global cleanup command (runs once after all test groups, from root config)
         skip?: string // Script to check if tests should run (0=run, non-zero=skip)
         environment?: string // Script to emit environment variables (key=value lines)
         prep?: string // Prep command
         setup?: string // Setup command
         cleanup?: string // Cleanup command
-        skipTimeout?: number // Skip timeout (ms)
-        environmentTimeout?: number // Environment script timeout (ms)
-        prepTimeout?: number // Prep timeout (ms)
-        setupTimeout?: number // Setup timeout (ms)
-        cleanupTimeout?: number // Cleanup timeout (ms)
-        delay?: number // Delay after setup before running tests (ms)
+        globalPrepTimeout?: number // Global prep timeout (seconds, default: 30)
+        globalCleanupTimeout?: number // Global cleanup timeout (seconds, default: 10)
+        skipTimeout?: number // Skip timeout (seconds, default: 30)
+        environmentTimeout?: number // Environment script timeout (seconds, default: 30)
+        prepTimeout?: number // Prep timeout (seconds, default: 30)
+        setupTimeout?: number // Setup timeout (seconds, default: 30)
+        cleanupTimeout?: number // Cleanup timeout (seconds, default: 10)
+        setupDelay?: number // Delay after setup before running tests (seconds, default: 1)
+        shutdownTimeout?: number // Wait time for graceful shutdown before SIGKILL (seconds, default: 5)
     }
     environment?: {
         [key: string]: string // Environment variables with ${...} expansion (replaces deprecated 'env')

@@ -87,19 +87,22 @@ Each test type (Shell, PowerShell, Batch, C, JS, TS, Python, Go, ES) implements 
 
 -   `ServiceManager` handles globalPrep, skip, environment, prep, setup, cleanup, and globalCleanup scripts
 -   **Global Prep** runs once before all test groups (project-wide setup)
+    -   Uses the **root (top-most) testme.json5** found by searching up from cwd and common subdirectories (test, tests, spec, src)
+    -   This allows running `tm` from project root while globalPrep executes from test/ subdirectory config
 -   Skip scripts determine if tests should run (exit 0=run, non-zero=skip)
 -   Environment scripts emit key=value lines to set environment variables
 -   **Prep** runs once per configuration group (group-specific setup)
 -   Setup starts background service for tests
 -   **Cleanup** runs once per configuration group (group-specific teardown)
 -   **Global Cleanup** runs once after all test groups (project-wide teardown)
+    -   Uses the same **root configuration** as globalPrep
 
 **Service Execution Order:**
 ```
-1. Global Prep (once, before all test groups)
+1. Global Prep (once, before all test groups - from root config)
 2. For each configuration group:
    a. Skip → b. Environment → c. Prep → d. Setup → e. Tests → f. Cleanup
-3. Global Cleanup (once, after all test groups)
+3. Global Cleanup (once, after all test groups - from root config)
 ```
 
 #### Configuration Hierarchy
