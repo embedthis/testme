@@ -345,7 +345,7 @@ export class ConfigManager {
             if (env.default && typeof env.default === 'object') {
                 for (const [key, value] of Object.entries(env.default)) {
                     if (typeof value === 'string') {
-                        env.default[key] = this.resolvePathsInEnvValue(value, configDir)
+                        ;(env.default as any)[key] = this.resolvePathsInEnvValue(value, configDir)
                     }
                 }
             }

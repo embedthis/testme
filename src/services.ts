@@ -917,7 +917,13 @@ export class ServiceManager {
         const env: Record<string, string> = {}
         for (const [key, value] of Object.entries(process.env)) {
             if (value !== undefined) {
-                env[key] = value
+                // On Windows, normalize PATH to uppercase to avoid case-sensitivity issues
+                // Windows env vars are case-insensitive but JS objects are case-sensitive
+                if (PlatformDetector.isWindows() && key.toUpperCase() === 'PATH') {
+                    env.PATH = value
+                } else {
+                    env[key] = value
+                }
             }
         }
         // Add environment script variables
@@ -936,7 +942,8 @@ export class ServiceManager {
         }
 
         // Create and export special variables for all service scripts
-        const baseDir = config.configDir || process.cwd()
+        // Use _envConfigDir if available (for inherited env vars), otherwise use configDir
+        const baseDir = (config as any)._envConfigDir || config.configDir || process.cwd()
 
         // Determine current platform
         const platform = process.platform === 'darwin' ? 'macosx' : process.platform === 'win32' ? 'windows' : 'linux'
