@@ -2,6 +2,43 @@
 
 ## 2025-10-22
 
+### Root Configuration Discovery for Global Services
+
+-   **DEV**: Changed global service configuration discovery to use shallowest config from discovered tests
+    -   **Problem**: Previously searched up from cwd then arbitrarily checked subdirectories (test/, tests/, spec/, src/)
+    -   **Solution**: Now discovers tests first, walks up from each test directory, selects config with fewest directory levels
+    -   **Algorithm**:
+        1. Discover all tests in directory tree
+        2. Collect unique test directories
+        3. Walk up from each directory to find all testme.json5 files
+        4. Calculate depth (number of directory levels) for each config
+        5. Return config with shallowest depth (closest to filesystem root)
+    -   **Example**: Tests in `/project/xxxx/test/unit/` → uses `/project/xxxx/testme.json5` (3 levels vs 5 levels)
+    -   **Impact**: Ensures globalPrep/globalCleanup run from actual test root, not arbitrary subdirectories
+    -   **Files Modified**:
+        -   [src/config.ts](../../src/config.ts:187-266) - `findRootConfig()` now takes test directories array
+        -   [src/index.ts](../../src/index.ts:414-428) - Extract test directories and pass to findRootConfig()
+        -   [CLAUDE.md](../../CLAUDE.md), [README.md](../../README.md), [.agent/designs/DESIGN.md](../designs/DESIGN.md) - Updated documentation
+
+### Health Check Configuration Backward Compatibility
+
+-   **FIX**: Added support for multiple health check field name variants
+    -   **Problem**: Code expected `healthCheck` (camelCase) but some configs used `healthcheck` or `health`
+    -   **Impact**: Health check was ignored, falling back to `setupDelay=0`, causing tests to run before service ready
+    -   **Solution**: Now accepts all three variants for backward compatibility:
+        -   `healthCheck` (camelCase - preferred/documented)
+        -   `healthcheck` (lowercase - legacy)
+        -   `health` (short form - convenient)
+    -   **Implementation**: Check for all variants with preference order in [src/services.ts](../../src/services.ts:457)
+    -   **Example Issue**: Config with `"healthcheck": {"url": "..."}` was ignored → connection failures
+
+### Windows Path Separator Fix
+
+-   **FIX**: Fixed Windows path separator issue in inherit-paths test
+    -   **Problem**: Test used hardcoded forward slashes to split paths, failed on Windows with backslashes
+    -   **Solution**: Use Node.js `path.sep` for platform-specific path separator handling
+    -   **Files Modified**: [test/config/inherit-paths/child/grandchild/test-paths.tst.ts](../../test/config/inherit-paths/child/grandchild/test-paths.tst.ts)
+
 ### Service Health Check Implementation
 
 -   **DEV**: Implemented active service health checking to replace arbitrary delays

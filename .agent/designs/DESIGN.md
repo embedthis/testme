@@ -1344,7 +1344,7 @@ TestMe supports active health checking to verify service readiness instead of re
 {
     services: {
         setup: './start-web-server.sh',
-        healthCheck: {
+        healthCheck: {  // Also accepts: healthcheck, health (for backward compatibility)
             url: 'http://localhost:8080/health',  // Type defaults to 'http'
             timeout: 30
         },
@@ -1352,6 +1352,15 @@ TestMe supports active health checking to verify service readiness instead of re
     },
 }
 ```
+
+**Configuration Field Variants:**
+
+For backward compatibility, TestMe accepts multiple field names for health check configuration:
+- `healthCheck` (camelCase - preferred and documented)
+- `healthcheck` (lowercase - legacy support)
+- `health` (short form - convenience)
+
+All three variants work identically. The code checks for `healthCheck` first, then falls back to the other variants if not found.
 
 **Health Check Types:**
 
