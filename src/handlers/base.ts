@@ -94,7 +94,7 @@ export abstract class BaseTestHandler implements TestHandler {
             env: spawnEnv,
             stdout: "pipe",
             stderr: "pipe",
-            stdin: "ignore",
+            stdin: PlatformDetector.isWindows() ? "pipe" : "ignore",
         });
 
         let timeoutId: Timer | undefined;
