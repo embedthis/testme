@@ -389,6 +389,10 @@ class TestMeApp {
         baseConfig: TestConfig,
         options: any
     ): Promise<number> {
+        // Load the root (top-most) configuration for global services
+        // This ensures globalPrep/globalCleanup run from the project root config
+        const rootConfig = await ConfigManager.findRootConfig(rootDir);
+
         // Discover all tests in the directory tree using config patterns
         // This ensures we find all potential test files based on their extensions
         const allTests = await TestDiscovery.discoverTests({
@@ -416,9 +420,9 @@ class TestMeApp {
 
         console.log(`\nDiscovered ${filteredTests.length} test(s) in ${testGroups.size} configuration group(s)`);
 
-        // Run global prep once before all test groups (if configured)
-        if (!options.noServices && baseConfig.services?.globalPrep) {
-            await this.getGlobalServiceManager(rootDir).runGlobalPrep(baseConfig);
+        // Run global prep once before all test groups (if configured in root config)
+        if (!options.noServices && rootConfig.services?.globalPrep) {
+            await this.getGlobalServiceManager(rootConfig.configDir || rootDir).runGlobalPrep(rootConfig);
         }
 
         let allResults: any[] = [];
@@ -560,10 +564,10 @@ class TestMeApp {
             }
         }
 
-        // Run global cleanup once after all test groups (if configured)
-        if (!options.noServices && baseConfig.services?.globalCleanup) {
+        // Run global cleanup once after all test groups (if configured in root config)
+        if (!options.noServices && rootConfig.services?.globalCleanup) {
             const allTestsPassed = totalExitCode === 0;
-            await this.getGlobalServiceManager(rootDir).runGlobalCleanup(baseConfig, allTestsPassed);
+            await this.getGlobalServiceManager(rootConfig.configDir || rootDir).runGlobalCleanup(rootConfig, allTestsPassed);
         }
 
         // Report final results

@@ -185,6 +185,90 @@ export class ConfigManager {
     }
 
     /**
+     * Finds the root (top-most) configuration file by recursively searching subdirectories
+     *
+     * @param startDir - Directory to start searching from
+     * @returns Merged configuration from the top-most testme.json5 found
+     *
+     * @remarks
+     * This method finds the top-most testme.json5 file in the directory hierarchy.
+     * This is used for global services (globalPrep, globalCleanup) to ensure they
+     * run from the project root configuration, not a subdirectory config.
+     *
+     * Algorithm:
+     * 1. Check startDir and all parent directories for testme.json5
+     * 2. If not found, recursively search common subdirectories (test, tests, spec, src)
+     * 3. Return the top-most (highest in directory tree) configuration found
+     * 4. If no config found, return default configuration
+     */
+    static async findRootConfig(startDir: string): Promise<TestConfig> {
+        let currentDir = startDir;
+        let rootConfig: Partial<TestConfig> | null = null;
+        let rootConfigDir: string | null = null;
+
+        // First, walk up the directory tree to find any configs in parent directories
+        while (true) {
+            const configPath = join(currentDir, this.CONFIG_FILENAME);
+
+            try {
+                const file = Bun.file(configPath);
+                if (await file.exists()) {
+                    const configText = await file.text();
+                    const config = JSON5.parse(configText) as Partial<TestConfig>;
+                    // Keep updating rootConfig as we find configs higher in the tree
+                    rootConfig = config;
+                    rootConfigDir = currentDir;
+                }
+            } catch (error) {
+                console.error(ErrorMessages.configFileError(configPath, error));
+                // Continue searching in parent directories
+            }
+
+            const parentDir = dirname(currentDir);
+            if (parentDir === currentDir) {
+                // Reached root directory
+                break;
+            }
+            currentDir = parentDir;
+        }
+
+        // If no config found in current or parent directories, search common subdirectories
+        if (!rootConfig) {
+            const commonSubdirs = ['test', 'tests', 'spec', 'src'];
+            for (const subdir of commonSubdirs) {
+                const subdirPath = join(startDir, subdir);
+                const configPath = join(subdirPath, this.CONFIG_FILENAME);
+
+                try {
+                    const file = Bun.file(configPath);
+                    if (await file.exists()) {
+                        const configText = await file.text();
+                        rootConfig = JSON5.parse(configText) as Partial<TestConfig>;
+                        rootConfigDir = subdirPath;
+                        break; // Use the first one found
+                    }
+                } catch (error) {
+                    // Continue searching other subdirectories
+                }
+            }
+        }
+
+        // If we found a root config, merge it with defaults
+        if (rootConfig && rootConfigDir) {
+            // Handle inheritance if specified
+            if (rootConfig.inherit !== undefined && rootConfig.inherit !== false) {
+                const parentConfig = await this.loadParentConfig(rootConfigDir);
+                const inheritedConfig = this.mergeInheritedConfig(rootConfig, parentConfig);
+                return this.mergeWithDefaults(inheritedConfig, rootConfigDir);
+            }
+            return this.mergeWithDefaults(rootConfig, rootConfigDir);
+        }
+
+        // No config found, return defaults with null configDir
+        return this.mergeWithDefaults(null, null);
+    }
+
+    /**
      * Resolves relative paths in a configuration to absolute paths
      *
      * @param config - Configuration to resolve paths in
