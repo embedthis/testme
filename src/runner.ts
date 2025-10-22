@@ -315,6 +315,23 @@ export class TestRunner {
         if (config.output?.verbose) {
           console.log(`🚫 Tests disabled in: ${configDir === options.rootDir ? '.' : configDir.replace(options.rootDir + '/', '')}`);
         }
+      } else if (groupConfig.enable === 'manual') {
+        // Manual tests are only listed if CLI pattern exactly matches this config directory
+        const relativeConfigDir = configDir === options.rootDir ? '.' : configDir.replace(options.rootDir + '/', '');
+        const isExplicitlyTargeted = cliPatterns && cliPatterns.length > 0 &&
+          cliPatterns.some(p => {
+            if (p.includes('*') || p.includes('?')) return false;
+            // Pattern must exactly match the config directory
+            const normalizedPattern = p.replace(/\/$/, '');
+            const normalizedConfigDir = relativeConfigDir.replace(/\/$/, '');
+            return normalizedPattern === normalizedConfigDir;
+          });
+
+        if (isExplicitlyTargeted) {
+          enabledTests.push(...groupTests);
+        } else if (config.output?.verbose) {
+          console.log(`⏭️  Manual tests in: ${relativeConfigDir} (use explicit name to list)`);
+        }
       } else {
         enabledTests.push(...groupTests);
       }

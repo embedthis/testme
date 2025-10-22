@@ -1,4 +1,16 @@
 {
+    /*
+        Example of prep script failure handling
+
+        This test is disabled (enable: false) because the prep script intentionally
+        fails to demonstrate error handling behavior. It serves as documentation
+        for how TestMe handles prep script failures.
+
+        To see the error handling in action, temporarily set enable: true
+        and run: tm test/services/prep-failure
+     */
+    enable: false,
+
     services: {
         prep: './prep.sh',
     },
