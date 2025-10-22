@@ -1,0 +1,6 @@
+{
+    services: {
+        prep: 'bin/prep.sh',
+        cleanup: 'bin/cleanup.sh',
+    },
+}

@@ -310,7 +310,7 @@ export class ServiceManager {
             if (timedOut) {
                 throw new Error(`Global prep script timed out after ${timeout}ms`);
             } else if (result === 0) {
-                console.log("✓ Global prep completed successfully");
+                console.log(`✓ Global prep completed successfully: ${displayPath}`);
             } else {
                 const stderr = await new Response(globalPrepProcess.stderr).text();
                 throw new Error(`Global prep script failed with exit code ${result}: ${stderr}`);
@@ -382,7 +382,7 @@ export class ServiceManager {
             if (timedOut) {
                 throw new Error(`Prep script timed out after ${timeout}ms`);
             } else if (result === 0) {
-                console.log("✓ Prep script completed successfully");
+                console.log(`✓ Prep script completed successfully: ${displayPath}`);
             } else {
                 const stderr = await new Response(prepProcess.stderr).text();
                 throw new Error(`Prep script failed with exit code ${result}: ${stderr}`);
@@ -636,7 +636,7 @@ export class ServiceManager {
             if (timedOut) {
                 console.log(`✗ Global cleanup command timed out after ${timeout}ms`);
             } else if (result === 0) {
-                console.log("✓ Global cleanup completed successfully");
+                console.log(`✓ Global cleanup completed successfully: ${displayPath}`);
             } else {
                 const stderr = await new Response(globalCleanupProcess.stderr).text();
                 console.warn(
@@ -723,7 +723,7 @@ export class ServiceManager {
             if (timedOut) {
                 console.log(`✗ Cleanup command timed out after ${timeout}ms`);
             } else if (result === 0) {
-                console.log("✓ Cleanup completed successfully");
+                console.log(`✓ Cleanup completed successfully: ${displayPath}`);
             } else {
                 const stderr = await new Response(cleanupProcess.stderr).text();
                 console.warn(

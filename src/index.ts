@@ -287,9 +287,9 @@ class TestMeApp {
         });
     }
 
-    private getServiceManager(configDir: string): ServiceManager {
+    private getServiceManager(configDir: string, invocationDir?: string): ServiceManager {
         if (!this.serviceManagers.has(configDir)) {
-            this.serviceManagers.set(configDir, new ServiceManager(configDir));
+            this.serviceManagers.set(configDir, new ServiceManager(invocationDir));
         }
         return this.serviceManagers.get(configDir)!;
     }
@@ -494,7 +494,7 @@ class TestMeApp {
 
             // Check if tests should be skipped via skip script
             if (!options.noServices && mergedConfig.services?.skip) {
-                const skipResult = await this.getServiceManager(configDir).runSkip(mergedConfig);
+                const skipResult = await this.getServiceManager(configDir, rootDir).runSkip(mergedConfig);
                 if (skipResult.shouldSkip) {
                     if (mergedConfig.output?.verbose) {
                         console.log(`\n⏭️  Skipping tests in: ${relative(rootDir, configDir) || '.'} - ${skipResult.message || 'Skip script returned non-zero'}`);
@@ -528,7 +528,7 @@ class TestMeApp {
                 // Run services for this configuration group
                 // Environment script runs first and its variables are merged into the config
                 if (!options.noServices && mergedConfig.services?.environment) {
-                    const envVars = await this.getServiceManager(configDir).runEnvironment(mergedConfig);
+                    const envVars = await this.getServiceManager(configDir, rootDir).runEnvironment(mergedConfig);
                     // Merge environment variables from script into config
                     if (Object.keys(envVars).length > 0) {
                         mergedConfig = {
@@ -542,11 +542,11 @@ class TestMeApp {
                 }
 
                 if (!options.noServices && mergedConfig.services?.prep) {
-                    await this.getServiceManager(configDir).runPrep(mergedConfig);
+                    await this.getServiceManager(configDir, rootDir).runPrep(mergedConfig);
                 }
 
                 if (!options.noServices && mergedConfig.services?.setup) {
-                    await this.getServiceManager(configDir).runSetup(mergedConfig);
+                    await this.getServiceManager(configDir, rootDir).runSetup(mergedConfig);
                 }
 
                 // Execute tests in this group
@@ -562,7 +562,7 @@ class TestMeApp {
                 // Cleanup for this configuration group
                 if (!options.noServices && mergedConfig.services?.cleanup) {
                     const allTestsPassed = groupExitCode === 0;
-                    await this.getServiceManager(configDir).runCleanup(mergedConfig, allTestsPassed);
+                    await this.getServiceManager(configDir, rootDir).runCleanup(mergedConfig, allTestsPassed);
                 }
             }
         }
