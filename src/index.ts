@@ -389,10 +389,6 @@ class TestMeApp {
         baseConfig: TestConfig,
         options: any
     ): Promise<number> {
-        // Load the root (top-most) configuration for global services
-        // This ensures globalPrep/globalCleanup run from the project root config
-        const rootConfig = await ConfigManager.findRootConfig(rootDir);
-
         // Discover all tests in the directory tree using config patterns
         // This ensures we find all potential test files based on their extensions
         const allTests = await TestDiscovery.discoverTests({
@@ -414,6 +410,13 @@ class TestMeApp {
             }
             return 0;
         }
+
+        // Get unique test directories for root config discovery
+        const testDirectories = [...new Set(filteredTests.map(test => test.directory))];
+
+        // Load the root (shallowest) configuration for global services
+        // This finds the closest testme.json5 to the filesystem root from all test directories
+        const rootConfig = await ConfigManager.findRootConfig(testDirectories);
 
         // Group tests by their configuration directory
         const testGroups = await this.groupTestsByConfig(filteredTests);

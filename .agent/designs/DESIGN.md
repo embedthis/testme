@@ -888,17 +888,19 @@ TestMe implements a hierarchical configuration system that supports nested `test
 
 **Root Configuration Discovery (for Global Services):**
 
-Global services (`globalPrep` and `globalCleanup`) use a different discovery mechanism to find the top-most configuration:
+Global services (`globalPrep` and `globalCleanup`) use a different discovery mechanism to find the shallowest configuration:
 
 -   **Algorithm**:
-    1. Search up from current working directory (cwd) for `testme.json5`
-    2. If found, use the **top-most** (highest in directory tree) configuration
-    3. If not found in cwd or parents, search common subdirectories: `test/`, `tests/`, `spec/`, `src/`
-    4. Use the first configuration found in subdirectories
+    1. Discover all tests in the directory tree
+    2. Collect unique test directories
+    3. For each test directory, walk up to find all `testme.json5` files
+    4. Calculate depth (number of directory levels) for each found config
+    5. Return the config with the **shallowest depth** (fewest directory levels, closest to filesystem root)
 
--   **Purpose**: Allows running `tm` from project root directory while global services execute from test subdirectory configuration
--   **Example**: Running `tm basic` from `/project/` will find and use `/project/test/testme.json5` for globalPrep
--   **Implementation**: [ConfigManager.findRootConfig()](../../src/config.ts:187-269)
+-   **Purpose**: Uses the closest-to-root configuration from where tests actually exist
+-   **Example**: Tests in `/project/xxxx/test/unit/` → finds `/project/xxxx/testme.json5` (shallowest)
+-   **Example**: Tests in both `/project/test/unit/` and `/project/test/integration/` with configs at `/project/test/testme.json5` and `/project/test/unit/testme.json5` → uses `/project/test/testme.json5` (shallowest)
+-   **Implementation**: [ConfigManager.findRootConfig()](../../src/config.ts:187-266)
 
 **Configuration Inheritance:**
 

@@ -181,12 +181,12 @@ export class ServiceManager {
             // Pipe stderr in quiet mode, inherit in verbose mode
             const stderrMode = config.output?.verbose ? "inherit" : "pipe";
 
-            // Run environment script in foreground
+            // Run environment script in foreground with config environment
             const envProcess = Bun.spawn([command, ...args], {
                 stdout: "pipe", // Always pipe stdout to capture output
                 stderr: stderrMode,
                 cwd: config.configDir, // Run in the directory containing testme.json5
-                env: { ...process.env } // Use base environment only
+                env: await this.getServiceEnvironment(config) // Include config environment variables
             });
 
             // Set up timeout

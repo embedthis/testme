@@ -185,83 +185,80 @@ export class ConfigManager {
     }
 
     /**
-     * Finds the root (top-most) configuration file by recursively searching subdirectories
+     * Finds the root (shallowest) configuration file from discovered test directories
      *
-     * @param startDir - Directory to start searching from
-     * @returns Merged configuration from the top-most testme.json5 found
+     * @param testDirectories - Array of directories containing discovered tests
+     * @returns Merged configuration from the shallowest testme.json5 found
      *
      * @remarks
-     * This method finds the top-most testme.json5 file in the directory hierarchy.
+     * This method finds the shallowest (closest to filesystem root) testme.json5 file
+     * by walking up from each test directory and finding the top-most config.
      * This is used for global services (globalPrep, globalCleanup) to ensure they
-     * run from the project root configuration, not a subdirectory config.
+     * run from the project root configuration.
      *
      * Algorithm:
-     * 1. Check startDir and all parent directories for testme.json5
-     * 2. If not found, recursively search common subdirectories (test, tests, spec, src)
-     * 3. Return the top-most (highest in directory tree) configuration found
+     * 1. For each test directory, walk up to find all testme.json5 files
+     * 2. Collect all found configs with their directory depths
+     * 3. Return the config with the shallowest depth (fewest directory levels)
      * 4. If no config found, return default configuration
+     *
+     * Example:
+     * - Tests in: /project/test/unit/ and /project/test/integration/
+     * - Configs: /project/test/testme.json5 and /project/test/unit/testme.json5
+     * - Returns: /project/test/testme.json5 (shallowest)
      */
-    static async findRootConfig(startDir: string): Promise<TestConfig> {
-        let currentDir = startDir;
-        let rootConfig: Partial<TestConfig> | null = null;
-        let rootConfigDir: string | null = null;
-
-        // First, walk up the directory tree to find any configs in parent directories
-        while (true) {
-            const configPath = join(currentDir, this.CONFIG_FILENAME);
-
-            try {
-                const file = Bun.file(configPath);
-                if (await file.exists()) {
-                    const configText = await file.text();
-                    const config = JSON5.parse(configText) as Partial<TestConfig>;
-                    // Keep updating rootConfig as we find configs higher in the tree
-                    rootConfig = config;
-                    rootConfigDir = currentDir;
-                }
-            } catch (error) {
-                console.error(ErrorMessages.configFileError(configPath, error));
-                // Continue searching in parent directories
-            }
-
-            const parentDir = dirname(currentDir);
-            if (parentDir === currentDir) {
-                // Reached root directory
-                break;
-            }
-            currentDir = parentDir;
+    static async findRootConfig(testDirectories: string[]): Promise<TestConfig> {
+        if (testDirectories.length === 0) {
+            return this.mergeWithDefaults(null, null);
         }
 
-        // If no config found in current or parent directories, search common subdirectories
-        if (!rootConfig) {
-            const commonSubdirs = ['test', 'tests', 'spec', 'src'];
-            for (const subdir of commonSubdirs) {
-                const subdirPath = join(startDir, subdir);
-                const configPath = join(subdirPath, this.CONFIG_FILENAME);
+        let shallowestConfig: Partial<TestConfig> | null = null;
+        let shallowestConfigDir: string | null = null;
+        let shallowestDepth = Infinity;
+
+        // For each test directory, walk up to find configs
+        for (const testDir of testDirectories) {
+            let currentDir = testDir;
+
+            while (true) {
+                const configPath = join(currentDir, this.CONFIG_FILENAME);
 
                 try {
                     const file = Bun.file(configPath);
                     if (await file.exists()) {
-                        const configText = await file.text();
-                        rootConfig = JSON5.parse(configText) as Partial<TestConfig>;
-                        rootConfigDir = subdirPath;
-                        break; // Use the first one found
+                        // Calculate depth (number of path separators)
+                        const depth = currentDir.split('/').filter(s => s).length;
+
+                        // Keep the shallowest config (fewest directory levels)
+                        if (depth < shallowestDepth) {
+                            const configText = await file.text();
+                            shallowestConfig = JSON5.parse(configText) as Partial<TestConfig>;
+                            shallowestConfigDir = currentDir;
+                            shallowestDepth = depth;
+                        }
                     }
                 } catch (error) {
-                    // Continue searching other subdirectories
+                    console.error(ErrorMessages.configFileError(configPath, error));
                 }
+
+                const parentDir = dirname(currentDir);
+                if (parentDir === currentDir) {
+                    // Reached filesystem root
+                    break;
+                }
+                currentDir = parentDir;
             }
         }
 
         // If we found a root config, merge it with defaults
-        if (rootConfig && rootConfigDir) {
+        if (shallowestConfig && shallowestConfigDir) {
             // Handle inheritance if specified
-            if (rootConfig.inherit !== undefined && rootConfig.inherit !== false) {
-                const parentConfig = await this.loadParentConfig(rootConfigDir);
-                const inheritedConfig = this.mergeInheritedConfig(rootConfig, parentConfig);
-                return this.mergeWithDefaults(inheritedConfig, rootConfigDir);
+            if (shallowestConfig.inherit !== undefined && shallowestConfig.inherit !== false) {
+                const parentConfig = await this.loadParentConfig(shallowestConfigDir);
+                const inheritedConfig = this.mergeInheritedConfig(shallowestConfig, parentConfig);
+                return this.mergeWithDefaults(inheritedConfig, shallowestConfigDir);
             }
-            return this.mergeWithDefaults(rootConfig, rootConfigDir);
+            return this.mergeWithDefaults(shallowestConfig, shallowestConfigDir);
         }
 
         // No config found, return defaults with null configDir

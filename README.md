@@ -1098,15 +1098,16 @@ Service scripts execute in a specific order to manage test environment lifecycle
 **Global Services (run once before/after all test groups):**
 
 -   `services.globalPrep` - Command to run once before any test groups are processed (waits for completion)
-    -   Uses the **root (top-most) testme.json5** configuration found by searching up from cwd and common subdirectories (test, tests, spec, src)
-    -   This allows running `tm` from project root while globalPrep executes from test/ subdirectory config
-    -   Runs with root configuration environment
+    -   Uses the **shallowest (closest to filesystem root) testme.json5** found from all discovered test directories
+    -   Walks up from each test directory and selects the config with fewest directory levels
+    -   Example: Tests in `/project/xxxx/test/unit/` → uses `/project/xxxx/testme.json5` if it exists (shallowest)
+    -   Runs with shallowest configuration environment
     -   Use for project-wide setup: building shared libraries, starting databases, etc.
     -   If global prep fails, all test execution is aborted
 -   `services.globalPrepTimeout` - Global prep timeout in seconds (default: 30)
 -   `services.globalCleanup` - Command to run once after all test groups complete (waits for completion)
-    -   Uses the same **root configuration** as globalPrep
-    -   Runs with root configuration environment
+    -   Uses the same **shallowest configuration** as globalPrep
+    -   Runs with shallowest configuration environment
     -   Use for project-wide teardown: cleaning shared resources, stopping databases, etc.
     -   Receives `TESTME_SUCCESS` (1 if all tests passed) and `TESTME_KEEP` (1 if keepArtifacts enabled)
     -   Errors logged but don't fail the test run
