@@ -2,7 +2,9 @@
 
 ## Current Status
 
-TestMe is a production-ready, cross-platform multi-language test runner with native support for Windows, macOS, and Linux. Core features are complete and well-documented.
+TestMe is a specialized test runner designed for **core infrastructure projects** such as those written in C/C++ and those that require compilation before execution. TestMe discovers, compiles, and executes tests with configurable patterns and parallel execution -- ideal for low-level and performance-critical codebases.
+
+Test files can be written in C, C++, shell scripts, Python, Go or Javascript/Typescript.
 
 **Version**: 0.8.22
 **Last Updated**: 2025-10-22
@@ -146,6 +148,7 @@ Add validation for testme.json5:
 Replace arbitrary `setupDelay` with active health checking to start tests as soon as services are ready. See detailed plan: [HEALTHCHECK.md](HEALTHCHECK.md)
 
 **Phase 1** (HTTP + TCP):
+
 -   [ ] Create HealthCheckManager with polling loop
 -   [ ] Implement HTTP health check (status + body matching)
 -   [ ] Implement TCP port health check
@@ -153,10 +156,12 @@ Replace arbitrary `setupDelay` with active health checking to start tests as soo
 -   [ ] Update configuration system
 
 **Phase 2** (Advanced):
+
 -   [ ] Implement script-based health checks
 -   [ ] Implement file/socket existence checks
 
 **Benefits**:
+
 -   Faster test execution (no unnecessary waiting)
 -   More reliable tests (services confirmed ready)
 -   Backward compatible (falls back to setupDelay)
@@ -270,9 +275,9 @@ Help users create tests:
 -   [ ] Simplify test handler registration
 -   [ ] Improve undefined variable handling consistency
     -   Current behavior is inconsistent:
-        - Special variables: kept as `${VAR}` if undefined
-        - Environment variables: kept as `${VAR}` if undefined
-        - Glob patterns: wrapper removed to `pattern` if no matches
+        -   Special variables: kept as `${VAR}` if undefined
+        -   Environment variables: kept as `${VAR}` if undefined
+        -   Glob patterns: wrapper removed to `pattern` if no matches
     -   Consider options:
         1. Remove undefined variables entirely (treat as empty string)
         2. Warn about undefined variables (log warning but keep)

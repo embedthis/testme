@@ -561,7 +561,7 @@ export class ServiceManager {
             this.setupProcess = null
             // Extract just the message to avoid nested error wrapping
             const message = error instanceof Error ? error.message : String(error)
-            throw new Error(`Failed to start setup service: ${message}`)
+            throw new Error(`Failed to start setup service (${displayPath}): ${message}`)
         }
     }
 
@@ -772,7 +772,7 @@ export class ServiceManager {
      * @returns true if setup process is running
      */
     isSetupServiceRunning(): boolean {
-        return this.isSetupRunning && this.setupProcess && !this.setupProcess.killed
+        return this.isSetupRunning && this.setupProcess !== null && !this.setupProcess.killed
     }
 
     /*
@@ -913,7 +913,15 @@ export class ServiceManager {
      */
     private async getServiceEnvironment(config: TestConfig): Promise<Record<string, string>> {
         // Start with process environment, then add environment script variables
-        const env = {...process.env, ...this.environmentVars}
+        // Filter out undefined values from process.env
+        const env: Record<string, string> = {}
+        for (const [key, value] of Object.entries(process.env)) {
+            if (value !== undefined) {
+                env[key] = value
+            }
+        }
+        // Add environment script variables
+        Object.assign(env, this.environmentVars)
 
         // On Windows, ensure System32 is first in PATH to prevent Unix commands from shadowing Windows commands
         if (PlatformDetector.isWindows()) {
