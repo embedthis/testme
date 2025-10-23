@@ -56,6 +56,8 @@ export class ServiceManager {
     /** @internal */
     private isSetupRunning = false
     /** @internal */
+    private cleanupHasRun = false
+    /** @internal */
     private invocationDir: string
     /** @internal */
     private environmentVars: Record<string, string> = {}
@@ -143,7 +145,8 @@ export class ServiceManager {
                 return {shouldSkip: false}
             } else {
                 // Non-zero exit code means skip tests
-                const message = stdout.trim() || stderr.trim() || `Skip script returned exit code ${result}`
+                const output = this.combineServiceOutput(stdout, stderr)
+                const message = output || `Skip script returned exit code ${result}`
                 return {shouldSkip: true, message}
             }
         } catch (error) {
@@ -249,8 +252,8 @@ export class ServiceManager {
                 return envVars
             } else {
                 // Show both stdout and stderr for better diagnostics
-                const output = stdout.trim() || stderr.trim() || '(no output)'
-                throw new Error(`Environment script failed with exit code ${result}: ${output}`)
+                const output = this.combineServiceOutput(stdout, stderr)
+                throw new Error(`Environment script failed with exit code ${result}${output ? ': ' + output : ''}`)
             }
         } catch (error) {
             // Extract just the message to avoid nested error wrapping
@@ -329,8 +332,8 @@ export class ServiceManager {
                 console.log(`✓ Global prep completed successfully: ${displayPath}`)
             } else {
                 // Show both stdout and stderr for better diagnostics
-                const output = stdout.trim() || stderr.trim() || '(no output)'
-                throw new Error(`Global prep script failed with exit code ${result}: ${output}`)
+                const output = this.combineServiceOutput(stdout, stderr)
+                throw new Error(`Global prep script failed with exit code ${result}${output ? ': ' + output : ''}`)
             }
         } catch (error) {
             // Extract just the message to avoid nested error wrapping
@@ -408,8 +411,8 @@ export class ServiceManager {
                 console.log(`✓ Prep script completed successfully: ${displayPath}`)
             } else {
                 // Show both stdout and stderr for better diagnostics
-                const output = stdout.trim() || stderr.trim() || '(no output)'
-                throw new Error(`Prep script failed with exit code ${result}: ${output}`)
+                const output = this.combineServiceOutput(stdout, stderr)
+                throw new Error(`Prep script failed with exit code ${result}${output ? ': ' + output : ''}`)
             }
         } catch (error) {
             // Extract just the message to avoid nested error wrapping
@@ -671,8 +674,8 @@ export class ServiceManager {
                 console.log(`✓ Global cleanup completed successfully: ${displayPath}`)
             } else {
                 // Show both stdout and stderr for better diagnostics
-                const output = stdout.trim() || stderr.trim() || '(no output)'
-                console.warn(`✗ Global cleanup completed with exit code ${result}: ${output}`)
+                const output = this.combineServiceOutput(stdout, stderr)
+                console.warn(`✗ Global cleanup completed with exit code ${result}${output ? ': ' + output : ''}`)
             }
         } catch (error) {
             console.error(`✗ Global cleanup failed: ${error}`)
@@ -697,6 +700,12 @@ export class ServiceManager {
         if (!cleanupCommand) {
             return
         }
+
+        // Prevent duplicate cleanup execution
+        if (this.cleanupHasRun) {
+            return
+        }
+        this.cleanupHasRun = true
 
         // First kill the setup process if it's running
         await this.killSetup(config)
@@ -763,8 +772,8 @@ export class ServiceManager {
                 console.log(`✓ Cleanup completed successfully: ${displayPath}`)
             } else {
                 // Show both stdout and stderr for better diagnostics
-                const output = stdout.trim() || stderr.trim() || '(no output)'
-                console.warn(`✗ Cleanup completed with exit code ${result}: ${output}`)
+                const output = this.combineServiceOutput(stdout, stderr)
+                console.warn(`✗ Cleanup completed with exit code ${result}${output ? ': ' + output : ''}`)
             }
         } catch (error) {
             console.error(`✗ Cleanup failed: ${error}`)
@@ -1061,5 +1070,26 @@ export class ServiceManager {
         }
 
         return env
+    }
+
+    /**
+     * Combines stdout and stderr for service script error messages
+     * Shows both streams with newline separator if both have content
+     * @param stdout Standard output from service script
+     * @param stderr Standard error from service script
+     * @returns Combined output string, or empty if both are empty
+     */
+    private combineServiceOutput(stdout: string, stderr: string): string {
+        const out = stdout.trim()
+        const err = stderr.trim()
+
+        if (out && err) {
+            return `${out}\n${err}`
+        } else if (out) {
+            return out
+        } else if (err) {
+            return err
+        }
+        return ''
     }
 }
