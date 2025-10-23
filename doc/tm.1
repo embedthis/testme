@@ -18,7 +18,7 @@ By default, TestMe shows test names as they execute and displays a summary of re
 Change to directory before running tests. Useful for running tests from different locations.
 .TP
 .BR \-\-clean
-Clean all .testme artifact directories. Removes compilation outputs and temporary files.
+Clean all .testme artifact directories and exit. Removes all compilation outputs and temporary files from the project tree.
 .TP
 .BR \-c ", " \-\-config " " \fIFILE\fR
 Use specific configuration file instead of searching for testme.json5.
@@ -39,7 +39,7 @@ Show help message with usage information and examples.
 Create testme.json5 configuration file in the current directory with sensible defaults. Exits with error if file already exists.
 .TP
 .BR \-k ", " \-\-keep
-Keep .testme artifact directories after running tests. Useful for debugging compilation issues.
+Keep .testme artifact directories after successful tests. By default, TestMe removes artifacts after passing tests but preserves them for failed tests to aid debugging. This flag prevents cleanup of artifacts from successful tests as well.
 .TP
 .BR \-l ", " \-\-list
 List discovered tests without running them. Shows all test files that would be executed.
@@ -617,6 +617,9 @@ Debug builds include .dSYM directories on macOS for debugging support.
 .TP
 .B Xcode projects
 Debug mode creates Xcode project files for integrated debugging on macOS.
+.TP
+.B Automatic cleanup
+By default, TestMe removes \fB.testme\fR directories after successful test execution. Failed tests always preserve artifacts to aid debugging. Use \fB\-\-keep\fR to prevent cleanup of successful test artifacts, or \fB\-\-clean\fR to remove all artifact directories.
 
 .SH PARALLEL EXECUTION
 TestMe executes tests in parallel by default with configurable concurrency:

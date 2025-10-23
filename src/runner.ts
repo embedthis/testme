@@ -243,8 +243,23 @@ export class TestRunner {
             const result = await handler.execute(testFile, testSpecificConfig)
 
             // Cleanup (if needed)
+            // Only cleanup artifacts on successful tests (unless --keep flag is set)
+            // Failed tests preserve artifacts for debugging
             if (handler.cleanup) {
-                await handler.cleanup(testFile, testSpecificConfig)
+                const shouldCleanup =
+                    result.status === TestStatus.Passed && !testSpecificConfig.execution?.keepArtifacts
+                if (shouldCleanup) {
+                    try {
+                        await handler.cleanup(testFile, testSpecificConfig)
+                    } catch (cleanupError) {
+                        // Log cleanup errors but don't fail the test
+                        // The test passed, so we return success even if cleanup fails
+                        if (!testSpecificConfig.output?.quiet) {
+                            const errorMsg = cleanupError instanceof Error ? cleanupError.message : String(cleanupError)
+                            console.warn(`⚠ Warning: Failed to cleanup artifacts for ${testFile.name}: ${errorMsg}`)
+                        }
+                    }
+                }
             }
 
             return result

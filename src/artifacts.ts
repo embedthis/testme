@@ -1,5 +1,5 @@
 import type {TestFile, ArtifactManager as IArtifactManager, TestConfig} from './types.ts'
-import {join, basename, relative} from 'path'
+import {join, basename, relative, dirname} from 'path'
 import * as path from 'path'
 import {mkdir, rmdir, readdir, unlink, stat} from 'node:fs/promises'
 import {existsSync} from 'node:fs'
@@ -64,6 +64,7 @@ export class ArtifactManager implements IArtifactManager {
 
     /*
      Removes the artifact directory for a test file
+     Also removes the parent .testme directory if it becomes empty
      @param testFile Test file to clean artifact directory for
      @throws Error if directory removal fails
      */
@@ -75,7 +76,17 @@ export class ArtifactManager implements IArtifactManager {
         }
 
         try {
+            // Remove the test's artifact directory
             await this.removeDirectory(artifactDir)
+
+            // Check if parent .testme directory is now empty and remove it
+            const parentDir = dirname(artifactDir)
+            if (basename(parentDir) === '.testme' && existsSync(parentDir)) {
+                const entries = await readdir(parentDir)
+                if (entries.length === 0) {
+                    await rmdir(parentDir)
+                }
+            }
         } catch (error) {
             throw new Error(`Failed to clean artifact directory ${artifactDir}: ${error}`)
         }
@@ -169,6 +180,7 @@ export class ArtifactManager implements IArtifactManager {
 
     /*
      Recursively removes a directory and all its contents
+     Includes retry logic for Windows file locking issues
      @param dirPath Path to directory to remove
      */
     private async removeDirectory(dirPath: string): Promise<void> {
@@ -183,7 +195,9 @@ export class ArtifactManager implements IArtifactManager {
                 if (stats.isDirectory()) {
                     await this.removeDirectory(fullPath)
                 } else {
-                    await unlink(fullPath)
+                    // Windows may lock executables briefly after process exit
+                    // Retry file deletion with exponential backoff
+                    await this.removeFileWithRetry(fullPath)
                 }
             }
 
@@ -195,6 +209,50 @@ export class ArtifactManager implements IArtifactManager {
                 throw error
             }
         }
+    }
+
+    /*
+     Removes a file with retry logic for Windows file locking
+     @param filePath Path to file to remove
+     @param maxRetries Maximum number of retry attempts (default: 10 for better Windows compatibility)
+     @param delayMs Initial delay in milliseconds (default: 100)
+     */
+    private async removeFileWithRetry(filePath: string, maxRetries: number = 10, delayMs: number = 100): Promise<void> {
+        let lastError: any
+
+        for (let attempt = 0; attempt <= maxRetries; attempt++) {
+            try {
+                // Check if file still exists before attempting deletion
+                if (!existsSync(filePath)) {
+                    return // File already deleted, success
+                }
+
+                await unlink(filePath)
+                return // Success
+            } catch (error: any) {
+                lastError = error
+
+                // Only retry on Windows EPERM/EBUSY errors (file locked)
+                if (error.code === 'EPERM' || error.code === 'EBUSY') {
+                    if (attempt < maxRetries) {
+                        // Exponential backoff: 100ms, 200ms, 400ms, 800ms, 1.6s, 3.2s (capped at 2s)
+                        const delay = Math.min(delayMs * Math.pow(2, attempt), 2000)
+                        await new Promise((resolve) => setTimeout(resolve, delay))
+                        continue
+                    }
+                }
+
+                // For ENOENT (file doesn't exist), treat as success
+                if (error.code === 'ENOENT') {
+                    return
+                }
+
+                // For other errors or max retries exceeded, throw
+                throw error
+            }
+        }
+
+        throw lastError
     }
 
     /*

@@ -513,7 +513,11 @@ let flags = [...compilerConfig.flags, ...userFlags]
 6. **Path Resolution**: Convert relative paths to absolute for artifact directory compilation
 7. **Compilation**: Execute compiler with resolved flags and paths from artifact directory
 8. **Execution**: Run compiled binary with working directory set to test directory
-9. **Cleanup**: Remove artifacts unless `--keep` specified
+9. **Cleanup**: Automatic cleanup after successful tests
+    - Removes test's artifact directory
+    - Removes parent `.testme` directory if empty
+    - Skipped if test failed (preserves for debugging)
+    - Skipped if `--keep` flag specified
 
 ```typescript
 // Compilation: Uses artifact directory to avoid conflicts
@@ -1563,7 +1567,10 @@ throw new Error(`Failed to compile ${file.path}: ${error}\nCheck compiler flags 
 ### Memory Management
 
 -   **Process Isolation**: Each test runs in separate Bun.spawn process
--   **Artifact Cleanup**: Automatic cleanup unless `--keep` specified
+-   **Artifact Cleanup**: Automatic cleanup after successful tests (preserves on failure)
+    -   Removes test artifact directory and empty `.testme` parent
+    -   Failed tests keep artifacts for debugging
+    -   `--keep` flag preserves all successful test artifacts
 -   **Stream Handling**: Proper stdout/stderr stream management
 
 ### Bun Runtime Implementation Notes

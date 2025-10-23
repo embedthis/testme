@@ -230,7 +230,7 @@ ARGUMENTS:
 
 OPTIONS:
         --chdir <DIR>      Change to directory before running tests
-        --clean            Clean all .testme artifact directories
+        --clean            Clean all .testme artifact directories and exit
     -c, --config <FILE>    Use specific configuration file
         --continue         Continue running tests even if some fail, always exit with 0
     -d, --debug            Launch debugger (GDB on Linux, Xcode on macOS)
@@ -238,7 +238,7 @@ OPTIONS:
     -h, --help             Show this help message
     -i, --iterations <N>   Set iteration count (exports TESTME_ITERATIONS for tests to use, TestMe does not repeat execution)
         --init             Create testme.json5 configuration file in current directory
-    -k, --keep             Keep .testme artifacts after running tests
+    -k, --keep             Keep .testme artifacts after successful tests (failed tests always keep)
     -l, --list             List discovered tests without running them
     -n, --no-services      Skip all service commands (skip, prep, setup, cleanup)
         --new <NAME>       Create new test file from template (e.g., --new math.c)

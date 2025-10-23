@@ -158,7 +158,10 @@ Effective on macOS: `**/*.tst.c`, `**/*.tst.js`, `**/*.tst.sh`
 
 - Each test gets a `.testme/` directory in the same location as the test file
 - C tests: stores compiled binaries and `compile.log`
-- Artifacts are cleaned up automatically or via `--clean` flag
+- **Automatic cleanup**: Artifacts and empty `.testme` directories are removed after successful tests
+- **Failed tests**: Always preserve artifacts for debugging (`.testme` directory remains)
+- **`--keep` flag**: Prevents cleanup of artifacts after successful tests
+- **`--clean` flag**: Removes all `.testme` directories in the project tree and exits
 
 ### Test Runtime Modules (`src/modules/`)
 

@@ -87,15 +87,14 @@ export class CTestHandler extends BaseTestHandler {
     }
 
     /*
-     Cleans up compilation artifacts after test execution
+     Cleans up compilation artifacts after successful test execution
+     Called only for passed tests unless --keep flag is set
+     Failed tests always preserve artifacts for debugging
      @param file C test file to clean up
-     @param config Test configuration that may specify to keep artifacts
      */
-    override async cleanup(file: TestFile, config?: TestConfig): Promise<void> {
-        // Only clean artifacts if not configured to keep them
-        if (!config?.execution?.keepArtifacts) {
-            await this.artifactManager.cleanArtifactDir(file)
-        }
+    override async cleanup(file: TestFile): Promise<void> {
+        // Clean artifacts (only called for successful tests or when explicitly requested)
+        await this.artifactManager.cleanArtifactDir(file)
     }
 
     /*

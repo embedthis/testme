@@ -18,21 +18,21 @@ Test files can be written in C, C++, shell scripts, Python, Go or Javascript/Typ
 
 TestMe is purpose-built for:
 
--   **Embedded systems** - Cross-platform firmware and IoT device testing
--   **C/C++/Rust projects** - Native compilation with GCC/Clang/MSVC, direct binary execution
--   **Make/CMake-based projects** - Seamless integration with traditional build systems
--   **Core infrastructure** - System-level components, libraries, and low-level tools
--   **Multi-language tests** - Write tests in C, C++, shell scripts, Python, Go or Javascript/Typescript
+- **Embedded systems** - Cross-platform firmware and IoT device testing
+- **C/C++/Rust projects** - Native compilation with GCC/Clang/MSVC, direct binary execution
+- **Make/CMake-based projects** - Seamless integration with traditional build systems
+- **Core infrastructure** - System-level components, libraries, and low-level tools
+- **Multi-language tests** - Write tests in C, C++, shell scripts, Python, Go or Javascript/Typescript
 
 ## ⚠️ When to Consider Alternatives
 
 For cloud-native or application-level projects written in JavaScript/TypeScript, or Python, **[Jest](https://jestjs.io/)** or **[Vitest](https://vitest.dev/)** may be better choices. They provide:
 
--   Superior TypeScript transpilation and module resolution
--   Rich ecosystem of plugins, matchers, and integrations
--   Advanced watch mode with hot module reload
--   Integrated code coverage, snapshot testing, and mocking
--   First-class framework support (React, Vue, Angular, Svelte)
+- Superior TypeScript transpilation and module resolution
+- Rich ecosystem of plugins, matchers, and integrations
+- Advanced watch mode with hot module reload
+- Integrated code coverage, snapshot testing, and mocking
+- First-class framework support (React, Vue, Angular, Svelte)
 
 **TestMe focuses on simplicity and direct execution** for system-level projects.
 
@@ -42,38 +42,38 @@ TestMe is under very active development at this time and may be a little unstabl
 
 ## 🚀 Features
 
--   **Multi-language Support**: Shell (`.tst.sh`), PowerShell (`.tst.ps1`), Batch (`.tst.bat`, `.tst.cmd`), C (`.tst.c`), JavaScript (`.tst.js`), TypeScript (`.tst.ts`), Python (`.tst.py`), and Go (`.tst.go`).
--   **Jest/Vitest-Compatible API**: Use familiar `expect()` syntax alongside traditional test functions for JavaScript/TypeScript tests
--   **Automatic Compilation**: C programs are compiled automatically with platform-appropriate compilers (GCC/Clang/MSVC)
--   **Cross-platform**: Full support for Windows, macOS, and Linux with native test types for each platform
--   **Recursive Discovery**: Finds test files at any depth in directory trees
--   **Pattern Matching**: Filter tests using glob patterns, file names, or directory names
--   **Parallel Execution**: Run tests concurrently for better performance
--   **Artifact Management**: Organized build artifacts in `.testme` directories
--   **Hierarchical Configuration**: `testme.json5` files with tree traversal lookup
--   **Environment Variables**: Dynamic environment setup with glob expansion support
--   **Test Control**: Skip scripts, depth requirements, and enable/disable flags
--   **Service Health Checks**: Active monitoring of service readiness (HTTP, TCP, script, file-based)
--   **Multiple Output Formats**: Simple, detailed, and JSON reporting
--   **Integrated Debugging**: Multi-language debug support with platform-specific debuggers
-    -   C: GDB, LLDB, Xcode, Visual Studio, VS Code, Cursor
-    -   JavaScript/TypeScript: Bun inspector, VS Code, Cursor
-    -   Python: pdb, VS Code, Cursor
-    -   Go: Delve, VS Code, Cursor
+- **Multi-language Support**: Shell (`.tst.sh`), PowerShell (`.tst.ps1`), Batch (`.tst.bat`, `.tst.cmd`), C (`.tst.c`), JavaScript (`.tst.js`), TypeScript (`.tst.ts`), Python (`.tst.py`), and Go (`.tst.go`).
+- **Jest/Vitest-Compatible API**: Use familiar `expect()` syntax alongside traditional test functions for JavaScript/TypeScript tests
+- **Automatic Compilation**: C programs are compiled automatically with platform-appropriate compilers (GCC/Clang/MSVC)
+- **Cross-platform**: Full support for Windows, macOS, and Linux with native test types for each platform
+- **Recursive Discovery**: Finds test files at any depth in directory trees
+- **Pattern Matching**: Filter tests using glob patterns, file names, or directory names
+- **Parallel Execution**: Run tests concurrently for better performance
+- **Artifact Management**: Automatic cleanup of build artifacts after successful tests (preserves on failure)
+- **Hierarchical Configuration**: `testme.json5` files with tree traversal lookup
+- **Environment Variables**: Dynamic environment setup with glob expansion support
+- **Test Control**: Skip scripts, depth requirements, and enable/disable flags
+- **Service Health Checks**: Active monitoring of service readiness (HTTP, TCP, script, file-based)
+- **Multiple Output Formats**: Simple, detailed, and JSON reporting
+- **Integrated Debugging**: Multi-language debug support with platform-specific debuggers
+    - C: GDB, LLDB, Xcode, Visual Studio, VS Code, Cursor
+    - JavaScript/TypeScript: Bun inspector, VS Code, Cursor
+    - Python: pdb, VS Code, Cursor
+    - Go: Delve, VS Code, Cursor
 
 ## 📋 Table of Contents
 
--   [Installation](#installation)
--   [Quick Start](#quick-start)
--   [API Reference](#api-reference)
--   [Usage](#usage)
--   [Test File Types](#test-file-types)
--   [Configuration](#configuration)
--   [Common Use Cases](#common-use-cases)
--   [Output Formats](#output-formats)
--   [Development](#development)
--   [Tips and Best Practices](#tips-and-best-practices)
--   [Publishing](#publishing)
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [API Reference](#api-reference)
+- [Usage](#usage)
+- [Test File Types](#test-file-types)
+- [Configuration](#configuration)
+- [Common Use Cases](#common-use-cases)
+- [Output Formats](#output-formats)
+- [Development](#development)
+- [Tips and Best Practices](#tips-and-best-practices)
+- [Publishing](#publishing)
 
 ## 🔧 Installation
 
@@ -119,9 +119,9 @@ tm --version
 
 **Troubleshooting:** If `tm` command is not found after installation with Bun:
 
--   You may have forgotten the `--trust` flag
--   Run the check script: `node node_modules/@embedthis/testme/bin/check-install.mjs`
--   Or manually install: `cd node_modules/@embedthis/testme && bun bin/install.mjs`
+- You may have forgotten the `--trust` flag
+- Run the check script: `node node_modules/@embedthis/testme/bin/check-install.mjs`
+- Or manually install: `cd node_modules/@embedthis/testme && bun bin/install.mjs`
 
 ### Manual Installation from GitHub
 
@@ -211,10 +211,10 @@ TestMe provides comprehensive testing APIs for C, JavaScript, and TypeScript:
 
 ### Testing API Documentation
 
--   **[README-TESTS.md](README-TESTS.md)** - General test requirements, exit codes, output streams, environment variables
--   **[README-C.md](README-C.md)** - Complete C testing API reference (`testme.h` functions)
--   **[README-JS.md](README-JS.md)** - Complete JavaScript/TypeScript testing API reference
--   **[doc/JEST_API.md](doc/JEST_API.md)** - Jest/Vitest-compatible API examples and migration guide
+- **[README-TESTS.md](README-TESTS.md)** - General test requirements, exit codes, output streams, environment variables
+- **[README-C.md](README-C.md)** - Complete C testing API reference (`testme.h` functions)
+- **[README-JS.md](README-JS.md)** - Complete JavaScript/TypeScript testing API reference
+- **[doc/JEST_API.md](doc/JEST_API.md)** - Jest/Vitest-compatible API examples and migration guide
 
 ### Quick API Overview
 
@@ -344,76 +344,76 @@ int main() {
 
 **Equality Tests:**
 
--   `teqi(a, b, msg)` - Assert two int values are equal
--   `teql(a, b, msg)` - Assert two long values are equal
--   `teqll(a, b, msg)` - Assert two long long values are equal
--   `teqz(a, b, msg)` - Assert two size_t/ssize values are equal
--   `tequ(a, b, msg)` - Assert two unsigned int values are equal
--   `teqp(a, b, msg)` - Assert two pointer values are equal
--   `tmatch(str, pattern, msg)` - Assert string matches exactly
+- `teqi(a, b, msg)` - Assert two int values are equal
+- `teql(a, b, msg)` - Assert two long values are equal
+- `teqll(a, b, msg)` - Assert two long long values are equal
+- `teqz(a, b, msg)` - Assert two size_t/ssize values are equal
+- `tequ(a, b, msg)` - Assert two unsigned int values are equal
+- `teqp(a, b, msg)` - Assert two pointer values are equal
+- `tmatch(str, pattern, msg)` - Assert string matches exactly
 
 **Inequality Tests:**
 
--   `tneqi(a, b, msg)` - Assert two int values are not equal
--   `tneql(a, b, msg)` - Assert two long values are not equal
--   `tneqll(a, b, msg)` - Assert two long long values are not equal
--   `tneqz(a, b, msg)` - Assert two size_t/ssize values are not equal
--   `tnequ(a, b, msg)` - Assert two unsigned int values are not equal
--   `tneqp(a, b, msg)` - Assert two pointer values are not equal
+- `tneqi(a, b, msg)` - Assert two int values are not equal
+- `tneql(a, b, msg)` - Assert two long values are not equal
+- `tneqll(a, b, msg)` - Assert two long long values are not equal
+- `tneqz(a, b, msg)` - Assert two size_t/ssize values are not equal
+- `tnequ(a, b, msg)` - Assert two unsigned int values are not equal
+- `tneqp(a, b, msg)` - Assert two pointer values are not equal
 
 **Comparison Tests (Greater Than):**
 
--   `tgti(a, b, msg)` - Assert a > b (int)
--   `tgtl(a, b, msg)` - Assert a > b (long)
--   `tgtll(a, b, msg)` - Assert a > b (long long)
--   `tgtz(a, b, msg)` - Assert a > b (size_t/ssize)
--   `tgtei(a, b, msg)` - Assert a >= b (int)
--   `tgtel(a, b, msg)` - Assert a >= b (long)
--   `tgtell(a, b, msg)` - Assert a >= b (long long)
--   `tgtez(a, b, msg)` - Assert a >= b (size_t/ssize)
+- `tgti(a, b, msg)` - Assert a > b (int)
+- `tgtl(a, b, msg)` - Assert a > b (long)
+- `tgtll(a, b, msg)` - Assert a > b (long long)
+- `tgtz(a, b, msg)` - Assert a > b (size_t/ssize)
+- `tgtei(a, b, msg)` - Assert a >= b (int)
+- `tgtel(a, b, msg)` - Assert a >= b (long)
+- `tgtell(a, b, msg)` - Assert a >= b (long long)
+- `tgtez(a, b, msg)` - Assert a >= b (size_t/ssize)
 
 **Comparison Tests (Less Than):**
 
--   `tlti(a, b, msg)` - Assert a < b (int)
--   `tltl(a, b, msg)` - Assert a < b (long)
--   `tltll(a, b, msg)` - Assert a < b (long long)
--   `tltz(a, b, msg)` - Assert a < b (size_t/ssize)
--   `tltei(a, b, msg)` - Assert a <= b (int)
--   `tltel(a, b, msg)` - Assert a <= b (long)
--   `tltell(a, b, msg)` - Assert a <= b (long long)
--   `tltez(a, b, msg)` - Assert a <= b (size_t/ssize)
+- `tlti(a, b, msg)` - Assert a < b (int)
+- `tltl(a, b, msg)` - Assert a < b (long)
+- `tltll(a, b, msg)` - Assert a < b (long long)
+- `tltz(a, b, msg)` - Assert a < b (size_t/ssize)
+- `tltei(a, b, msg)` - Assert a <= b (int)
+- `tltel(a, b, msg)` - Assert a <= b (long)
+- `tltell(a, b, msg)` - Assert a <= b (long long)
+- `tltez(a, b, msg)` - Assert a <= b (size_t/ssize)
 
 **Boolean and String Tests:**
 
--   `ttrue(expr, msg)` - Assert expression is true
--   `tfalse(expr, msg)` - Assert expression is false
--   `tcontains(str, substr, msg)` - Assert string contains substring
--   `tnull(ptr, msg)` - Assert pointer is NULL
--   `tnotnull(ptr, msg)` - Assert pointer is not NULL
+- `ttrue(expr, msg)` - Assert expression is true
+- `tfalse(expr, msg)` - Assert expression is false
+- `tcontains(str, substr, msg)` - Assert string contains substring
+- `tnull(ptr, msg)` - Assert pointer is NULL
+- `tnotnull(ptr, msg)` - Assert pointer is not NULL
 
 **Control Functions:**
 
--   `tfail(msg)` - Unconditionally fail test with message
+- `tfail(msg)` - Unconditionally fail test with message
 
 **Environment Functions:**
 
--   `tget(key, default)` - Get environment variable with default
--   `tgeti(key, default)` - Get environment variable as integer
--   `thas(key)` - Check if environment variable exists
--   `tdepth()` - Get current test depth
+- `tget(key, default)` - Get environment variable with default
+- `tgeti(key, default)` - Get environment variable as integer
+- `thas(key)` - Check if environment variable exists
+- `tdepth()` - Get current test depth
 
 **Output Functions:**
 
--   `tinfo(fmt, ...)` - Print informational message (with auto-newline)
--   `tdebug(fmt, ...)` - Print debug message (with auto-newline)
--   `tskip(fmt, ...)` - Print skip message (with auto-newline)
--   `twrite(fmt, ...)` - Print output message (with auto-newline)
+- `tinfo(fmt, ...)` - Print informational message (with auto-newline)
+- `tdebug(fmt, ...)` - Print debug message (with auto-newline)
+- `tskip(fmt, ...)` - Print skip message (with auto-newline)
+- `twrite(fmt, ...)` - Print output message (with auto-newline)
 
 **Legacy Functions (deprecated):**
 
--   `teq(a, b, msg)` - Use `teqi()` instead
--   `tneq(a, b, msg)` - Use `tneqi()` instead
--   `tassert(expr, msg)` - Use `ttrue()` instead
+- `teq(a, b, msg)` - Use `teqi()` instead
+- `tneq(a, b, msg)` - Use `tneqi()` instead
+- `tassert(expr, msg)` - Use `ttrue()` instead
 
 All test macros support optional printf-style format strings and arguments for custom messages.
 
@@ -451,19 +451,19 @@ if (thas('TESTME_VERBOSE')) {
 
 **Traditional API:**
 
--   `teq(received, expected, msg)` - Assert two values are equal
--   `tneq(received, expected, msg)` - Assert two values are not equal
--   `ttrue(expr, msg)` - Assert expression is true
--   `tfalse(expr, msg)` - Assert expression is false
--   `tmatch(str, pattern, msg)` - Assert string matches regex pattern
--   `tcontains(str, substr, msg)` - Assert string contains substring
--   `tfail(msg)` - Fail test with message
--   `tget(key, default)` - Get environment variable with default
--   `thas(key)` - Check if environment variable exists (as number)
--   `tdepth()` - Get current test depth
--   `tverbose()` - Check if verbose mode is enabled
--   `tinfo(...)`, `tdebug(...)` - Print informational messages
--   `tassert(expr, msg)` - Alias for `ttrue`
+- `teq(received, expected, msg)` - Assert two values are equal
+- `tneq(received, expected, msg)` - Assert two values are not equal
+- `ttrue(expr, msg)` - Assert expression is true
+- `tfalse(expr, msg)` - Assert expression is false
+- `tmatch(str, pattern, msg)` - Assert string matches regex pattern
+- `tcontains(str, substr, msg)` - Assert string contains substring
+- `tfail(msg)` - Fail test with message
+- `tget(key, default)` - Get environment variable with default
+- `thas(key)` - Check if environment variable exists (as number)
+- `tdepth()` - Get current test depth
+- `tverbose()` - Check if verbose mode is enabled
+- `tinfo(...)`, `tdebug(...)` - Print informational messages
+- `tassert(expr, msg)` - Alias for `ttrue`
 
 **Jest/Vitest-Compatible API:**
 
@@ -523,19 +523,19 @@ await expect(fetchData()).resolves.toHaveProperty('status', 'ok')
 
 **Available Matchers:**
 
--   **Equality**: `toBe()`, `toEqual()`, `toStrictEqual()`
--   **Truthiness**: `toBeTruthy()`, `toBeFalsy()`, `toBeNull()`, `toBeUndefined()`, `toBeDefined()`, `toBeNaN()`
--   **Type Checking**: `toBeInstanceOf()`, `toBeTypeOf()`
--   **Numeric**: `toBeGreaterThan()`, `toBeGreaterThanOrEqual()`, `toBeLessThan()`, `toBeLessThanOrEqual()`, `toBeCloseTo()`
--   **Strings/Collections**: `toMatch()`, `toContain()`, `toContainEqual()`, `toHaveLength()`
--   **Objects**: `toHaveProperty()`, `toMatchObject()`
--   **Errors**: `toThrow()`, `toThrowError()`
--   **Modifiers**: `.not` (negation), `.resolves` (promise resolution), `.rejects` (promise rejection)
+- **Equality**: `toBe()`, `toEqual()`, `toStrictEqual()`
+- **Truthiness**: `toBeTruthy()`, `toBeFalsy()`, `toBeNull()`, `toBeUndefined()`, `toBeDefined()`, `toBeNaN()`
+- **Type Checking**: `toBeInstanceOf()`, `toBeTypeOf()`
+- **Numeric**: `toBeGreaterThan()`, `toBeGreaterThanOrEqual()`, `toBeLessThan()`, `toBeLessThanOrEqual()`, `toBeCloseTo()`
+- **Strings/Collections**: `toMatch()`, `toContain()`, `toContainEqual()`, `toHaveLength()`
+- **Objects**: `toHaveProperty()`, `toMatchObject()`
+- **Errors**: `toThrow()`, `toThrowError()`
+- **Modifiers**: `.not` (negation), `.resolves` (promise resolution), `.rejects` (promise rejection)
 
 **Choosing Between APIs:**
 
--   **Use `expect()` API** if you're familiar with Jest/Vitest or prefer expressive, chainable assertions
--   **Use `t*` functions** if you prefer traditional assertion functions or are writing C-style tests
+- **Use `expect()` API** if you're familiar with Jest/Vitest or prefer expressive, chainable assertions
+- **Use `t*` functions** if you prefer traditional assertion functions or are writing C-style tests
 
 Both APIs are fully supported and can be mixed in the same project. See [doc/JEST_API.md](doc/JEST_API.md) for complete API documentation and migration guide.
 
@@ -650,13 +650,13 @@ await describe('Calculator operations', async () => {
 
 **Key Features:**
 
--   Top-level `describe()` blocks must be awaited
--   Nested `describe()` blocks must be awaited within async describe functions
--   `test()` functions execute sequentially within a describe block
--   `beforeEach()` and `afterEach()` hooks run before/after each test in the current describe scope
--   Hooks are scoped to their describe block and restored when the block exits
--   When `expect()` is used inside `test()`, failures throw errors caught by the test runner
--   When `expect()` is used outside `test()`, failures exit immediately (backward compatible)
+- Top-level `describe()` blocks must be awaited
+- Nested `describe()` blocks must be awaited within async describe functions
+- `test()` functions execute sequentially within a describe block
+- `beforeEach()` and `afterEach()` hooks run before/after each test in the current describe scope
+- Hooks are scoped to their describe block and restored when the block exits
+- When `expect()` is used inside `test()`, failures throw errors caught by the test runner
+- When `expect()` is used outside `test()`, failures exit immediately (backward compatible)
 
 **Note**: TypeScript tests support both the traditional `t*` functions and the Jest/Vitest `expect()` API with `describe()`/`test()` structure. Both run on the Bun runtime with full TypeScript type checking and IntelliSense support.
 
@@ -732,10 +732,10 @@ tm [OPTIONS] [PATTERNS...]
 
 Filter tests using various pattern types:
 
--   **File patterns**: `"*.tst.c"`, `"math.tst.js"`
--   **Base names**: `"math"` (matches math.tst.c, math.tst.js, etc.)
--   **Directory names**: `"integration"`, `"unit/api"` (runs all tests in directory)
--   **Path patterns**: `"**/math*"`, `"test/unit/*.tst.c"`
+- **File patterns**: `"*.tst.c"`, `"math.tst.js"`
+- **Base names**: `"math"` (matches math.tst.c, math.tst.js, etc.)
+- **Directory names**: `"integration"`, `"unit/api"` (runs all tests in directory)
+- **Path patterns**: `"**/math*"`, `"test/unit/*.tst.c"`
 
 ### Command Line Options
 
@@ -744,7 +744,7 @@ All available options sorted alphabetically:
 | Option                 | Description                                                                                          |
 | ---------------------- | ---------------------------------------------------------------------------------------------------- |
 | `--chdir <DIR>`        | Change to directory before running tests                                                             |
-| `--clean`              | Remove all `.testme` artifact directories                                                            |
+| `--clean`              | Remove all `.testme` artifact directories and exit                                                   |
 | `-c, --config <FILE>`  | Use specific configuration file                                                                      |
 | `--continue`           | Continue running tests even if some fail, always exit with code 0                                    |
 | `-d, --debug`          | Launch debugger (GDB on Linux, Xcode/LLDB on macOS, VS on Windows)                                   |
@@ -752,7 +752,7 @@ All available options sorted alphabetically:
 | `-h, --help`           | Show help message                                                                                    |
 | `--init`               | Create `testme.json5` configuration file in current directory                                        |
 | `-i, --iterations <N>` | Set iteration count (exports `TESTME_ITERATIONS` for tests to use internally, does not repeat tests) |
-| `-k, --keep`           | Keep `.testme` artifacts after running tests                                                         |
+| `-k, --keep`           | Keep `.testme` artifacts after successful tests (failed tests always keep artifacts)                 |
 | `-l, --list`           | List discovered tests without running them                                                           |
 | `--new <NAME>`         | Create new test file from template (e.g., `--new math.c` creates `math.tst.c`)                       |
 | `-n, --no-services`    | Skip all service commands (skip, prep, setup, cleanup)                                               |
@@ -810,10 +810,10 @@ TestMe supports hierarchical configuration using nested `testme.json5` files thr
 
 This enables:
 
--   Project-wide defaults at the repository root
--   Module-specific overrides in subdirectories
--   Test-specific configuration closest to individual tests
--   Automatic merging with CLI arguments preserved
+- Project-wide defaults at the repository root
+- Module-specific overrides in subdirectories
+- Test-specific configuration closest to individual tests
+- Automatic merging with CLI arguments preserved
 
 ```json5
 {
@@ -903,8 +903,8 @@ This enables:
 
 #### Test Control Settings
 
--   `enable` - Enable or disable tests in this directory (default: true)
--   `depth` - Minimum depth required to run tests (default: 0, requires `--depth N` to run)
+- `enable` - Enable or disable tests in this directory (default: true)
+- `depth` - Minimum depth required to run tests (default: 0, requires `--depth N` to run)
 
 #### Compiler Settings
 
@@ -912,40 +912,40 @@ This enables:
 
 TestMe automatically detects and configures the appropriate C compiler for your platform:
 
--   **Windows**: MSVC (Visual Studio), MinGW, or Clang
--   **macOS**: Clang or GCC
--   **Linux**: GCC or Clang
+- **Windows**: MSVC (Visual Studio), MinGW, or Clang
+- **macOS**: Clang or GCC
+- **Linux**: GCC or Clang
 
 **Default Flags (automatically applied):**
 
--   **GCC/Clang**: `-Wall -Wextra -Wno-unused-parameter -Wno-strict-prototypes -O0 -g -I. -I~/.local/include -L~/.local/lib` (plus `-I/opt/homebrew/include -L/opt/homebrew/lib` on macOS)
--   **MSVC**: `/std:c11 /W4 /Od /Zi /nologo`
+- **GCC/Clang**: `-Wall -Wextra -Wno-unused-parameter -Wno-strict-prototypes -O0 -g -I. -I~/.local/include -L~/.local/lib` (plus `-I/opt/homebrew/include -L/opt/homebrew/lib` on macOS)
+- **MSVC**: `/std:c11 /W4 /Od /Zi /nologo`
 
 **Note**: No `-std=` flag is specified by default for GCC/Clang, allowing the compiler to use its default standard (typically `gnu17` or `gnu11`) which includes POSIX extensions like `strdup()`. This makes test code more permissive and easier to write. You can specify a specific standard in your `testme.json5` if needed (e.g., `-std=c99`, `-std=c11`).
 
 **Configuration Options:**
 
--   `compiler.c.compiler` - C compiler path (optional, use 'default' to auto-detect, or specify 'gcc', 'clang', or full path)
--   `compiler.c.gcc.flags` - GCC-specific flags (merged with GCC defaults)
--   `compiler.c.gcc.libraries` - GCC-specific libraries (e.g., `['m', 'pthread']`)
--   `compiler.c.gcc.windows.flags` - Additional Windows-specific GCC flags
--   `compiler.c.gcc.windows.libraries` - Additional Windows-specific GCC libraries
--   `compiler.c.gcc.macosx.flags` - Additional macOS-specific GCC flags
--   `compiler.c.gcc.macosx.libraries` - Additional macOS-specific GCC libraries
--   `compiler.c.gcc.linux.flags` - Additional Linux-specific GCC flags
--   `compiler.c.gcc.linux.libraries` - Additional Linux-specific GCC libraries
--   `compiler.c.clang.flags` - Clang-specific flags (merged with Clang defaults)
--   `compiler.c.clang.libraries` - Clang-specific libraries
--   `compiler.c.clang.windows.flags` - Additional Windows-specific Clang flags
--   `compiler.c.clang.windows.libraries` - Additional Windows-specific Clang libraries
--   `compiler.c.clang.macosx.flags` - Additional macOS-specific Clang flags
--   `compiler.c.clang.macosx.libraries` - Additional macOS-specific Clang libraries
--   `compiler.c.clang.linux.flags` - Additional Linux-specific Clang flags
--   `compiler.c.clang.linux.libraries` - Additional Linux-specific Clang libraries
--   `compiler.c.msvc.flags` - MSVC-specific flags (merged with MSVC defaults)
--   `compiler.c.msvc.libraries` - MSVC-specific libraries
--   `compiler.c.msvc.windows.flags` - Additional Windows-specific MSVC flags
--   `compiler.c.msvc.windows.libraries` - Additional Windows-specific MSVC libraries
+- `compiler.c.compiler` - C compiler path (optional, use 'default' to auto-detect, or specify 'gcc', 'clang', or full path)
+- `compiler.c.gcc.flags` - GCC-specific flags (merged with GCC defaults)
+- `compiler.c.gcc.libraries` - GCC-specific libraries (e.g., `['m', 'pthread']`)
+- `compiler.c.gcc.windows.flags` - Additional Windows-specific GCC flags
+- `compiler.c.gcc.windows.libraries` - Additional Windows-specific GCC libraries
+- `compiler.c.gcc.macosx.flags` - Additional macOS-specific GCC flags
+- `compiler.c.gcc.macosx.libraries` - Additional macOS-specific GCC libraries
+- `compiler.c.gcc.linux.flags` - Additional Linux-specific GCC flags
+- `compiler.c.gcc.linux.libraries` - Additional Linux-specific GCC libraries
+- `compiler.c.clang.flags` - Clang-specific flags (merged with Clang defaults)
+- `compiler.c.clang.libraries` - Clang-specific libraries
+- `compiler.c.clang.windows.flags` - Additional Windows-specific Clang flags
+- `compiler.c.clang.windows.libraries` - Additional Windows-specific Clang libraries
+- `compiler.c.clang.macosx.flags` - Additional macOS-specific Clang flags
+- `compiler.c.clang.macosx.libraries` - Additional macOS-specific Clang libraries
+- `compiler.c.clang.linux.flags` - Additional Linux-specific Clang flags
+- `compiler.c.clang.linux.libraries` - Additional Linux-specific Clang libraries
+- `compiler.c.msvc.flags` - MSVC-specific flags (merged with MSVC defaults)
+- `compiler.c.msvc.libraries` - MSVC-specific libraries
+- `compiler.c.msvc.windows.flags` - Additional Windows-specific MSVC flags
+- `compiler.c.msvc.windows.libraries` - Additional Windows-specific MSVC libraries
 
 **Note:** Platform-specific settings (`windows`, `macosx`, `linux`) are **additive** - they are appended to the base compiler settings, allowing you to specify common settings once and add platform-specific flags/libraries only where needed.
 
@@ -953,14 +953,14 @@ TestMe automatically detects and configures the appropriate C compiler for your 
 
 Environment variables in compiler flags and paths support `${...}` expansion:
 
--   `${PLATFORM}` - Current platform (e.g., macosx-arm64, linux-x64, win-x64)
--   `${OS}` - Operating system (macosx, linux, windows)
--   `${ARCH}` - CPU architecture (arm64, x64, x86)
--   `${PROFILE}` - Build profile (debug, release, dev, prod, etc.)
--   `${CC}` - Compiler name (gcc, clang, msvc)
--   `${CONFIGDIR}` - Directory containing the testme.json5 file
--   `${TESTDIR}` - Relative path from executable to test file directory
--   `${pattern}` - Glob patterns (e.g., `${../build/*/bin}` expands to matching paths)
+- `${PLATFORM}` - Current platform (e.g., macosx-arm64, linux-x64, win-x64)
+- `${OS}` - Operating system (macosx, linux, windows)
+- `${ARCH}` - CPU architecture (arm64, x64, x86)
+- `${PROFILE}` - Build profile (debug, release, dev, prod, etc.)
+- `${CC}` - Compiler name (gcc, clang, msvc)
+- `${CONFIGDIR}` - Directory containing the testme.json5 file
+- `${TESTDIR}` - Relative path from executable to test file directory
+- `${pattern}` - Glob patterns (e.g., `${../build/*/bin}` expands to matching paths)
 
 **Example (Basic):**
 
@@ -1022,28 +1022,28 @@ Environment variables in compiler flags and paths support `${...}` expansion:
 
 #### Execution Settings
 
--   `execution.timeout` - Test timeout in seconds (default: 30)
--   `execution.parallel` - Enable parallel execution (default: true)
--   `execution.workers` - Number of parallel workers (default: 4)
+- `execution.timeout` - Test timeout in seconds (default: 30)
+- `execution.parallel` - Enable parallel execution (default: true)
+- `execution.workers` - Number of parallel workers (default: 4)
 
 #### Output Settings
 
--   `output.verbose` - Enable verbose output (default: false)
--   `output.format` - Output format: "simple", "detailed", "json" (default: "simple")
--   `output.colors` - Enable colored output (default: true)
+- `output.verbose` - Enable verbose output (default: false)
+- `output.format` - Output format: "simple", "detailed", "json" (default: "simple")
+- `output.colors` - Enable colored output (default: true)
 
 #### Pattern Settings
 
 Pattern configuration supports platform-specific patterns that are deep blended with base patterns:
 
--   `patterns.include` - Array of include patterns applied to all platforms
--   `patterns.exclude` - Array of exclude patterns applied to all platforms
--   `patterns.windows.include` - Additional patterns for Windows (merged with base)
--   `patterns.windows.exclude` - Additional exclude patterns for Windows
--   `patterns.macosx.include` - Additional patterns for macOS (merged with base)
--   `patterns.macosx.exclude` - Additional exclude patterns for macOS
--   `patterns.linux.include` - Additional patterns for Linux (merged with base)
--   `patterns.linux.exclude` - Additional exclude patterns for Linux
+- `patterns.include` - Array of include patterns applied to all platforms
+- `patterns.exclude` - Array of exclude patterns applied to all platforms
+- `patterns.windows.include` - Additional patterns for Windows (merged with base)
+- `patterns.windows.exclude` - Additional exclude patterns for Windows
+- `patterns.macosx.include` - Additional patterns for macOS (merged with base)
+- `patterns.macosx.exclude` - Additional exclude patterns for macOS
+- `patterns.linux.include` - Additional patterns for Linux (merged with base)
+- `patterns.linux.exclude` - Additional exclude patterns for Linux
 
 **Pattern Merging Behavior:**
 
@@ -1083,13 +1083,13 @@ Platform-specific patterns are added to base patterns, not replaced:
 
 On Windows, the effective patterns would be:
 
--   Include: `**/*.tst.c`, `**/*.tst.js`, `**/*.tst.ts`, `**/*.tst.ps1`, `**/*.tst.bat`
--   Exclude: `**/node_modules/**`, `**/wsl/**`
+- Include: `**/*.tst.c`, `**/*.tst.js`, `**/*.tst.ts`, `**/*.tst.ps1`, `**/*.tst.bat`
+- Exclude: `**/node_modules/**`, `**/wsl/**`
 
 On macOS/Linux, the effective patterns would be:
 
--   Include: `**/*.tst.c`, `**/*.tst.js`, `**/*.tst.ts`, `**/*.tst.sh`
--   Exclude: `**/node_modules/**`
+- Include: `**/*.tst.c`, `**/*.tst.js`, `**/*.tst.ts`, `**/*.tst.sh`
+- Exclude: `**/node_modules/**`
 
 #### Service Settings
 
@@ -1097,48 +1097,48 @@ Service scripts execute in a specific order to manage test environment lifecycle
 
 **Global Services (run once before/after all test groups):**
 
--   `services.globalPrep` - Command to run once before any test groups are processed (waits for completion)
-    -   Uses the **shallowest (closest to filesystem root) testme.json5** found from all discovered test directories
-    -   Walks up from each test directory and selects the config with fewest directory levels
-    -   Example: Tests in `/project/xxxx/test/unit/` → uses `/project/xxxx/testme.json5` if it exists (shallowest)
-    -   Runs with shallowest configuration environment
-    -   Use for project-wide setup: building shared libraries, starting databases, etc.
-    -   If global prep fails, all test execution is aborted
--   `services.globalPrepTimeout` - Global prep timeout in seconds (default: 30)
--   `services.globalCleanup` - Command to run once after all test groups complete (waits for completion)
-    -   Uses the same **shallowest configuration** as globalPrep
-    -   Runs with shallowest configuration environment
-    -   Use for project-wide teardown: cleaning shared resources, stopping databases, etc.
-    -   Receives `TESTME_SUCCESS` (1 if all tests passed) and `TESTME_KEEP` (1 if keepArtifacts enabled)
-    -   Errors logged but don't fail the test run
--   `services.globalCleanupTimeout` - Global cleanup timeout in seconds (default: 10)
+- `services.globalPrep` - Command to run once before any test groups are processed (waits for completion)
+    - Uses the **shallowest (closest to filesystem root) testme.json5** found from all discovered test directories
+    - Walks up from each test directory and selects the config with fewest directory levels
+    - Example: Tests in `/project/xxxx/test/unit/` → uses `/project/xxxx/testme.json5` if it exists (shallowest)
+    - Runs with shallowest configuration environment
+    - Use for project-wide setup: building shared libraries, starting databases, etc.
+    - If global prep fails, all test execution is aborted
+- `services.globalPrepTimeout` - Global prep timeout in seconds (default: 30)
+- `services.globalCleanup` - Command to run once after all test groups complete (waits for completion)
+    - Uses the same **shallowest configuration** as globalPrep
+    - Runs with shallowest configuration environment
+    - Use for project-wide teardown: cleaning shared resources, stopping databases, etc.
+    - Receives `TESTME_SUCCESS` (1 if all tests passed) and `TESTME_KEEP` (1 if keepArtifacts enabled)
+    - Errors logged but don't fail the test run
+- `services.globalCleanupTimeout` - Global cleanup timeout in seconds (default: 10)
 
 **Per-Group Services (run for each configuration group):**
 
--   `services.skip` - Script to check if tests should run (exit 0=run, non-zero=skip)
--   `services.environment` - Script to emit environment variables as key=value lines
--   `services.prep` - Command to run once before tests in this group begin (waits for completion)
-    -   Runs with the configuration group's environment
-    -   Use for group-specific setup: compiling test fixtures, etc.
--   `services.setup` - Command to start background service during test execution
--   `services.cleanup` - Command to run after all tests in this group complete
-    -   Runs with the configuration group's environment
-    -   Use for group-specific teardown: cleaning test fixtures, etc.
--   `services.skipTimeout` - Skip script timeout in seconds (default: 30)
--   `services.environmentTimeout` - Environment script timeout in seconds (default: 30)
--   `services.prepTimeout` - Prep command timeout in seconds (default: 30)
--   `services.setupTimeout` - Setup command timeout in seconds (default: 30)
--   `services.cleanupTimeout` - Cleanup command timeout in seconds (default: 10)
--   `services.setupDelay` - Delay after setup starts before running tests in seconds (default: 1)
-    -   Replaces deprecated `services.delay` field
-    -   Allows services time to initialize before tests begin
-    -   **Note**: If `healthCheck` is configured, setupDelay is ignored in favor of active health checking
--   `services.healthCheck` - Configuration for actively monitoring service readiness (optional)
-    -   When configured, TestMe polls the service instead of using a fixed setupDelay
-    -   Provides faster test execution (starts tests as soon as service is ready)
-    -   More reliable than arbitrary delays (won't start tests before service is ready)
-    -   Supports four health check types:
-        -   **HTTP/HTTPS**: Checks endpoint status and optional response body
+- `services.skip` - Script to check if tests should run (exit 0=run, non-zero=skip)
+- `services.environment` - Script to emit environment variables as key=value lines
+- `services.prep` - Command to run once before tests in this group begin (waits for completion)
+    - Runs with the configuration group's environment
+    - Use for group-specific setup: compiling test fixtures, etc.
+- `services.setup` - Command to start background service during test execution
+- `services.cleanup` - Command to run after all tests in this group complete
+    - Runs with the configuration group's environment
+    - Use for group-specific teardown: cleaning test fixtures, etc.
+- `services.skipTimeout` - Skip script timeout in seconds (default: 30)
+- `services.environmentTimeout` - Environment script timeout in seconds (default: 30)
+- `services.prepTimeout` - Prep command timeout in seconds (default: 30)
+- `services.setupTimeout` - Setup command timeout in seconds (default: 30)
+- `services.cleanupTimeout` - Cleanup command timeout in seconds (default: 10)
+- `services.setupDelay` - Delay after setup starts before running tests in seconds (default: 1)
+    - Replaces deprecated `services.delay` field
+    - Allows services time to initialize before tests begin
+    - **Note**: If `healthCheck` is configured, setupDelay is ignored in favor of active health checking
+- `services.healthCheck` - Configuration for actively monitoring service readiness (optional)
+    - When configured, TestMe polls the service instead of using a fixed setupDelay
+    - Provides faster test execution (starts tests as soon as service is ready)
+    - More reliable than arbitrary delays (won't start tests before service is ready)
+    - Supports four health check types:
+        - **HTTP/HTTPS**: Checks endpoint status and optional response body
             ```json5
             healthCheck: {
                 type: 'http',                  // Optional: defaults to 'http'
@@ -1149,7 +1149,7 @@ Service scripts execute in a specific order to manage test environment lifecycle
                 timeout: 30                    // Optional: max wait in seconds (default: 30)
             }
             ```
-        -   **TCP**: Verifies port is accepting connections
+        - **TCP**: Verifies port is accepting connections
             ```json5
             healthCheck: {
                 type: 'tcp',
@@ -1158,7 +1158,7 @@ Service scripts execute in a specific order to manage test environment lifecycle
                 timeout: 60
             }
             ```
-        -   **Script**: Executes custom health check command
+        - **Script**: Executes custom health check command
             ```json5
             healthCheck: {
                 type: 'script',
@@ -1167,7 +1167,7 @@ Service scripts execute in a specific order to manage test environment lifecycle
                 timeout: 10
             }
             ```
-        -   **File**: Checks for existence of ready marker file
+        - **File**: Checks for existence of ready marker file
             ```json5
             healthCheck: {
                 type: 'file',
@@ -1175,23 +1175,24 @@ Service scripts execute in a specific order to manage test environment lifecycle
                 timeout: 30
             }
             ```
-    -   Common settings (all types):
-        -   `interval` - Poll interval in milliseconds (default: 100)
-        -   `timeout` - Maximum wait time in seconds (default: 30)
-    -   Example use cases:
-        -   Web servers: HTTP check on `/health` endpoint
-        -   Databases: TCP port check (PostgreSQL, MySQL, Redis)
-        -   Message queues: TCP or script-based check
-        -   Custom services: File marker or script validation
--   `services.shutdownTimeout` - Maximum wait time for graceful shutdown before SIGKILL in seconds (default: 5)
-    -   After sending SIGTERM (Unix) or graceful taskkill (Windows), polls every 100ms to check if process exited
-    -   If process exits gracefully within shutdownTimeout, SIGKILL is skipped (no unnecessary force-kill)
-    -   If process still running after shutdownTimeout, sends SIGKILL (Unix) or taskkill /F (Windows) to force termination
-    -   Default of 5 seconds allows most services to clean up gracefully without unnecessary waiting
-    -   Set to 0 to immediately force-kill without any wait time
-    -   Useful for services that need time to clean up resources (databases, file handles, network connections)
+    - Common settings (all types):
+        - `interval` - Poll interval in milliseconds (default: 100)
+        - `timeout` - Maximum wait time in seconds (default: 30)
+    - Example use cases:
+        - Web servers: HTTP check on `/health` endpoint
+        - Databases: TCP port check (PostgreSQL, MySQL, Redis)
+        - Message queues: TCP or script-based check
+        - Custom services: File marker or script validation
+- `services.shutdownTimeout` - Maximum wait time for graceful shutdown before SIGKILL in seconds (default: 5)
+    - After sending SIGTERM (Unix) or graceful taskkill (Windows), polls every 100ms to check if process exited
+    - If process exits gracefully within shutdownTimeout, SIGKILL is skipped (no unnecessary force-kill)
+    - If process still running after shutdownTimeout, sends SIGKILL (Unix) or taskkill /F (Windows) to force termination
+    - Default of 5 seconds allows most services to clean up gracefully without unnecessary waiting
+    - Set to 0 to immediately force-kill without any wait time
+    - Useful for services that need time to clean up resources (databases, file handles, network connections)
 
 **Execution Order:**
+
 ```
 1. Global Prep (once)
 2. For each configuration group:
@@ -1206,28 +1207,28 @@ Service scripts execute in a specific order to manage test environment lifecycle
 
 #### Environment Variables
 
--   `env` - Object defining environment variables to set during test execution
--   Environment variable values support `${...}` expansion using glob patterns
--   Paths are resolved relative to the configuration file's directory
--   Supports platform-specific overrides via `windows`, `macosx`, and `linux` keys
--   Platform-specific variables are merged with base variables (platform values override base)
--   Useful for providing dynamic paths to build artifacts, libraries, and test data
+- `env` - Object defining environment variables to set during test execution
+- Environment variable values support `${...}` expansion using glob patterns
+- Paths are resolved relative to the configuration file's directory
+- Supports platform-specific overrides via `windows`, `macosx`, and `linux` keys
+- Platform-specific variables are merged with base variables (platform values override base)
+- Useful for providing dynamic paths to build artifacts, libraries, and test data
 
 **Special Variables Automatically Exported:**
 
 TestMe automatically exports these special environment variables to all tests and service scripts (skip, prep, setup, cleanup):
 
--   `TESTME_PLATFORM` - Combined OS and architecture (e.g., `macosx-arm64`, `linux-x64`, `windows-x64`)
--   `TESTME_PROFILE` - Build profile from `--profile` flag, config `profile` setting, `PROFILE` env var, or default `dev`
--   `TESTME_OS` - Operating system (`macosx`, `linux`, `windows`)
--   `TESTME_ARCH` - Architecture (`x64`, `arm64`, `ia32`)
--   `TESTME_CC` - C compiler detected or configured (`gcc`, `clang`, `msvc`)
--   `TESTME_TESTDIR` - Relative path from executable directory to test file directory
--   `TESTME_CONFIGDIR` - Relative path from executable directory to configuration file directory
--   `TESTME_VERBOSE` - Set to `1` when `--verbose` flag is used
--   `TESTME_DEPTH` - Current depth value from `--depth` flag
--   `TESTME_ITERATIONS` - Iteration count from `--iterations` flag (defaults to `1`)
-    -   **Note**: TestMe does NOT automatically repeat test execution. This variable is provided for tests to implement their own iteration logic internally if needed.
+- `TESTME_PLATFORM` - Combined OS and architecture (e.g., `macosx-arm64`, `linux-x64`, `windows-x64`)
+- `TESTME_PROFILE` - Build profile from `--profile` flag, config `profile` setting, `PROFILE` env var, or default `dev`
+- `TESTME_OS` - Operating system (`macosx`, `linux`, `windows`)
+- `TESTME_ARCH` - Architecture (`x64`, `arm64`, `ia32`)
+- `TESTME_CC` - C compiler detected or configured (`gcc`, `clang`, `msvc`)
+- `TESTME_TESTDIR` - Relative path from executable directory to test file directory
+- `TESTME_CONFIGDIR` - Relative path from executable directory to configuration file directory
+- `TESTME_VERBOSE` - Set to `1` when `--verbose` flag is used
+- `TESTME_DEPTH` - Current depth value from `--depth` flag
+- `TESTME_ITERATIONS` - Iteration count from `--iterations` flag (defaults to `1`)
+    - **Note**: TestMe does NOT automatically repeat test execution. This variable is provided for tests to implement their own iteration logic internally if needed.
 
 These variables are available in all test and service script environments and can be used in shell scripts (e.g., `$TESTME_PLATFORM`), C code (via `getenv("TESTME_PLATFORM")`), or JavaScript/TypeScript (via `process.env.TESTME_PLATFORM`).
 
@@ -1283,9 +1284,9 @@ These variables are available in all test and service script environments and ca
 
 **Accessing Environment Variables:**
 
--   C tests: `getenv("BIN")` or use `tget("BIN", default)` from testme.h
--   Shell tests: `$BIN` or `${BIN}`
--   JavaScript/TypeScript: `process.env.BIN` or use `tget("BIN", default)` from testme.js
+- C tests: `getenv("BIN")` or use `tget("BIN", default)` from testme.h
+- Shell tests: `$BIN` or `${BIN}`
+- JavaScript/TypeScript: `process.env.BIN` or use `tget("BIN", default)` from testme.js
 
 ## 📚 Common Use Cases
 
@@ -1392,7 +1393,16 @@ project/tests/
     └── compile.log       # Compilation output
 ```
 
-Use `tm --clean` to remove all artifact directories, or `tm --keep` to preserve them after tests run.
+**Automatic Cleanup:**
+
+- Artifacts are automatically removed after successful tests
+- Failed tests preserve artifacts for debugging
+- Empty `.testme` directories are removed automatically
+
+**Manual Control:**
+
+- `tm --keep` - Preserve artifacts from successful tests
+- `tm --clean` - Remove all `.testme` directories and exit
 
 ## 🐛 Debugging Tests
 
@@ -1440,7 +1450,7 @@ tm --debug types.tst.ts
 
 Prerequisites:
 
--   Install the [Bun VSCode extension](https://marketplace.visualstudio.com/items?itemName=oven.bun-vscode)
+- Install the [Bun VSCode extension](https://marketplace.visualstudio.com/items?itemName=oven.bun-vscode)
 
 Steps:
 
@@ -1466,9 +1476,9 @@ Steps:
 
 **Supported Debuggers:**
 
--   `vscode` - Visual Studio Code (default)
--   `cursor` - Cursor editor (VSCode fork)
--   Custom path to debugger executable
+- `vscode` - Visual Studio Code (default)
+- `cursor` - Cursor editor (VSCode fork)
+- Custom path to debugger executable
 
 ### Python Test Debugging
 
@@ -1482,13 +1492,13 @@ tm --debug test.tst.py
 
 **pdb commands:**
 
--   `h` - help
--   `b <line>` - set breakpoint
--   `c` - continue
--   `n` - next line
--   `s` - step into
--   `p <var>` - print variable
--   `q` - quit
+- `h` - help
+- `b <line>` - set breakpoint
+- `c` - continue
+- `n` - next line
+- `s` - step into
+- `p <var>` - print variable
+- `q` - quit
 
 **Configuration:**
 
@@ -1513,13 +1523,13 @@ tm --debug calc.tst.go
 
 **delve commands:**
 
--   `help` - show help
--   `break <line>` - set breakpoint
--   `continue` - continue execution
--   `next` - step over
--   `step` - step into
--   `print <var>` - print variable
--   `exit` - exit debugger
+- `help` - show help
+- `break <line>` - set breakpoint
+- `continue` - continue execution
+- `next` - step over
+- `step` - step into
+- `print <var>` - print variable
+- `exit` - exit debugger
 
 **Configuration:**
 
@@ -1624,10 +1634,10 @@ bun --hot src/index.ts
 
 ### Code Style
 
--   4-space indentation
--   TypeScript with strict mode
--   ESLint and Prettier configured
--   Comprehensive JSDoc comments
+- 4-space indentation
+- TypeScript with strict mode
+- ESLint and Prettier configured
+- Comprehensive JSDoc comments
 
 ## 💡 Tips and Best Practices
 
@@ -1640,9 +1650,9 @@ bun --hot src/index.ts
 
 ### Performance Optimization
 
--   Use parallel execution for independent tests (default behavior)
--   Adjust worker count based on system resources: `tm -w 8`
--   Clean artifacts regularly: `tm --clean`
+- Use parallel execution for independent tests (default behavior)
+- Adjust worker count based on system resources: `tm -w 8`
+- Clean artifacts regularly: `tm --clean`
 
 ### Troubleshooting
 
@@ -1669,9 +1679,9 @@ bun --hot src/index.ts
 
 If you're a package maintainer or want to contribute TestMe to additional repositories:
 
--   **[Publishing Guide](doc/PUBLISHING.md)** - Complete step-by-step instructions for publishing to all package repositories
--   **[Quick Reference](doc/PUBLISHING-QUICKREF.md)** - One-page reference for package publishing
--   **[Installation Packages](installs/README.md)** - Package configurations and build instructions
+- **[Publishing Guide](doc/PUBLISHING.md)** - Complete step-by-step instructions for publishing to all package repositories
+- **[Quick Reference](doc/PUBLISHING-QUICKREF.md)** - One-page reference for package publishing
+- **[Installation Packages](installs/README.md)** - Package configurations and build instructions
 
 ---
 
