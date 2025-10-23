@@ -604,7 +604,6 @@ export class ServiceManager {
      * Use for global teardown operations (stopping databases, cleaning shared resources, etc.).
      * Errors in cleanup are logged but don't fail the test run.
      * Sets TESTME_SUCCESS=1 if allTestsPassed is true, 0 otherwise.
-     * Sets TESTME_KEEP=1 if keepArtifacts is enabled, 0 otherwise.
      */
     async runGlobalCleanup(config: TestConfig, allTestsPassed?: boolean): Promise<void> {
         const globalCleanupCommand = config.services?.globalCleanup
@@ -633,9 +632,6 @@ export class ServiceManager {
 
             // Add TESTME_SUCCESS (1 if all tests passed, 0 otherwise)
             env.TESTME_SUCCESS = allTestsPassed === true ? '1' : '0'
-
-            // Add TESTME_KEEP (1 if keepArtifacts is enabled, 0 otherwise)
-            env.TESTME_KEEP = config.execution?.keepArtifacts === true ? '1' : '0'
 
             // Run global cleanup in foreground with proper environment
             const globalCleanupProcess = Bun.spawn([command, ...args], {
@@ -693,7 +689,6 @@ export class ServiceManager {
      * Automatically kills the setup process first if it's still running.
      * Errors in cleanup are logged but don't fail the test run.
      * Sets TESTME_SUCCESS=1 if allTestsPassed is true, 0 otherwise.
-     * Sets TESTME_KEEP=1 if keepArtifacts is enabled, 0 otherwise.
      */
     async runCleanup(config: TestConfig, allTestsPassed?: boolean): Promise<void> {
         const cleanupCommand = config.services?.cleanup
@@ -731,9 +726,6 @@ export class ServiceManager {
 
             // Add TESTME_SUCCESS (1 if all tests passed, 0 otherwise)
             env.TESTME_SUCCESS = allTestsPassed === true ? '1' : '0'
-
-            // Add TESTME_KEEP (1 if keepArtifacts is enabled, 0 otherwise)
-            env.TESTME_KEEP = config.execution?.keepArtifacts === true ? '1' : '0'
 
             // Run cleanup in foreground with proper environment
             const cleanupProcess = Bun.spawn([command, ...args], {
@@ -956,7 +948,17 @@ export class ServiceManager {
     /*
      Gets the environment variables for service execution including config env vars
      @param config Configuration containing environment variables
-     @returns Environment object with expanded variables
+     @returns Environment object with expanded variables and special TESTME_* variables:
+              - TESTME_PLATFORM: Platform identifier (e.g., macosx-arm64)
+              - TESTME_PROFILE: Build profile (e.g., dev, prod)
+              - TESTME_OS: Operating system (macosx, windows, linux)
+              - TESTME_ARCH: Architecture (arm64, x64)
+              - TESTME_CC: Compiler name
+              - TESTME_TESTDIR: Relative path to test directory
+              - TESTME_CONFIGDIR: Relative path to config directory
+              - TESTME_VERBOSE: 1 if verbose mode, 0 otherwise
+              - TESTME_QUIET: 1 if quiet mode, 0 otherwise
+              - TESTME_KEEP: 1 if keepArtifacts is enabled, 0 otherwise
      */
     private async getServiceEnvironment(config: TestConfig): Promise<Record<string, string>> {
         // Start with process environment, then add environment script variables
@@ -1013,6 +1015,11 @@ export class ServiceManager {
         // Use '.' for empty relative paths (when in the same directory)
         if (specialVars.TESTDIR !== undefined) env.TESTME_TESTDIR = specialVars.TESTDIR || '.'
         if (specialVars.CONFIGDIR !== undefined) env.TESTME_CONFIGDIR = specialVars.CONFIGDIR || '.'
+
+        // Export verbose, quiet, and keepArtifacts flags for service scripts
+        env.TESTME_VERBOSE = config.output?.verbose === true ? '1' : '0'
+        env.TESTME_QUIET = config.output?.quiet === true ? '1' : '0'
+        env.TESTME_KEEP = config.execution?.keepArtifacts === true ? '1' : '0'
 
         // Add environment variables from configuration with expansion
         // Support both 'environment' (new) and 'env' (legacy) keys

@@ -1109,7 +1109,7 @@ Service scripts execute in a specific order to manage test environment lifecycle
     - Uses the same **shallowest configuration** as globalPrep
     - Runs with shallowest configuration environment
     - Use for project-wide teardown: cleaning shared resources, stopping databases, etc.
-    - Receives `TESTME_SUCCESS` (1 if all tests passed) and `TESTME_KEEP` (1 if keepArtifacts enabled)
+    - Receives `TESTME_SUCCESS` (1 if all tests passed, 0 otherwise)
     - Errors logged but don't fail the test run
 - `services.globalCleanupTimeout` - Global cleanup timeout in seconds (default: 10)
 
@@ -1124,6 +1124,7 @@ Service scripts execute in a specific order to manage test environment lifecycle
 - `services.cleanup` - Command to run after all tests in this group complete
     - Runs with the configuration group's environment
     - Use for group-specific teardown: cleaning test fixtures, etc.
+    - Receives `TESTME_SUCCESS` (1 if all tests in group passed, 0 otherwise)
 - `services.skipTimeout` - Skip script timeout in seconds (default: 30)
 - `services.environmentTimeout` - Environment script timeout in seconds (default: 30)
 - `services.prepTimeout` - Prep command timeout in seconds (default: 30)
@@ -1225,7 +1226,9 @@ TestMe automatically exports these special environment variables to all tests an
 - `TESTME_CC` - C compiler detected or configured (`gcc`, `clang`, `msvc`)
 - `TESTME_TESTDIR` - Relative path from executable directory to test file directory
 - `TESTME_CONFIGDIR` - Relative path from executable directory to configuration file directory
-- `TESTME_VERBOSE` - Set to `1` when `--verbose` flag is used
+- `TESTME_VERBOSE` - Set to `1` when `--verbose` flag is used, `0` otherwise
+- `TESTME_QUIET` - Set to `1` when `--quiet` flag is used, `0` otherwise
+- `TESTME_KEEP` - Set to `1` when `--keep` flag is used, `0` otherwise
 - `TESTME_DEPTH` - Current depth value from `--depth` flag
 - `TESTME_ITERATIONS` - Iteration count from `--iterations` flag (defaults to `1`)
     - **Note**: TestMe does NOT automatically repeat test execution. This variable is provided for tests to implement their own iteration logic internally if needed.
