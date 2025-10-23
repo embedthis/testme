@@ -121,7 +121,13 @@ export class ServiceManager {
                 }, timeout)
             }
 
-            const result = await skipProcess.exited
+            // Read stdout/stderr concurrently with waiting for process exit
+            // This ensures we capture output even if the process crashes
+            const [result, stdout, stderr] = await Promise.all([
+                skipProcess.exited,
+                new Response(skipProcess.stdout).text(),
+                new Response(skipProcess.stderr).text(),
+            ])
 
             if (timeoutId) {
                 clearTimeout(timeoutId)
@@ -137,8 +143,6 @@ export class ServiceManager {
                 return {shouldSkip: false}
             } else {
                 // Non-zero exit code means skip tests
-                const stdout = await new Response(skipProcess.stdout).text()
-                const stderr = await new Response(skipProcess.stderr).text()
                 const message = stdout.trim() || stderr.trim() || `Skip script returned exit code ${result}`
                 return {shouldSkip: true, message}
             }
@@ -200,7 +204,13 @@ export class ServiceManager {
                 }, timeout)
             }
 
-            const result = await envProcess.exited
+            // Read stdout/stderr concurrently with waiting for process exit
+            // This ensures we capture output even if the process crashes
+            const [result, stdout, stderr] = await Promise.all([
+                envProcess.exited,
+                new Response(envProcess.stdout).text(),
+                new Response(envProcess.stderr).text(),
+            ])
 
             if (timeoutId) {
                 clearTimeout(timeoutId)
@@ -210,7 +220,6 @@ export class ServiceManager {
                 throw new Error(`Environment script timed out after ${timeout}ms`)
             } else if (result === 0) {
                 // Parse stdout for key=value pairs
-                const stdout = await new Response(envProcess.stdout).text()
                 const envVars: Record<string, string> = {}
 
                 // Parse each line for KEY=VALUE format
@@ -239,8 +248,9 @@ export class ServiceManager {
 
                 return envVars
             } else {
-                const stderr = await new Response(envProcess.stderr).text()
-                throw new Error(`Environment script failed with exit code ${result}: ${stderr}`)
+                // Show both stdout and stderr for better diagnostics
+                const output = stdout.trim() || stderr.trim() || '(no output)'
+                throw new Error(`Environment script failed with exit code ${result}: ${output}`)
             }
         } catch (error) {
             // Extract just the message to avoid nested error wrapping
@@ -301,7 +311,13 @@ export class ServiceManager {
                 }, timeout)
             }
 
-            const result = await globalPrepProcess.exited
+            // Read stdout/stderr concurrently with waiting for process exit
+            // This ensures we capture output even if the process crashes
+            const [result, stdout, stderr] = await Promise.all([
+                globalPrepProcess.exited,
+                new Response(globalPrepProcess.stdout).text(),
+                new Response(globalPrepProcess.stderr).text(),
+            ])
 
             if (timeoutId) {
                 clearTimeout(timeoutId)
@@ -312,8 +328,9 @@ export class ServiceManager {
             } else if (result === 0) {
                 console.log(`✓ Global prep completed successfully: ${displayPath}`)
             } else {
-                const stderr = await new Response(globalPrepProcess.stderr).text()
-                throw new Error(`Global prep script failed with exit code ${result}: ${stderr}`)
+                // Show both stdout and stderr for better diagnostics
+                const output = stdout.trim() || stderr.trim() || '(no output)'
+                throw new Error(`Global prep script failed with exit code ${result}: ${output}`)
             }
         } catch (error) {
             // Extract just the message to avoid nested error wrapping
@@ -373,7 +390,13 @@ export class ServiceManager {
                 }, timeout)
             }
 
-            const result = await prepProcess.exited
+            // Read stdout/stderr concurrently with waiting for process exit
+            // This ensures we capture output even if the process crashes
+            const [result, stdout, stderr] = await Promise.all([
+                prepProcess.exited,
+                new Response(prepProcess.stdout).text(),
+                new Response(prepProcess.stderr).text(),
+            ])
 
             if (timeoutId) {
                 clearTimeout(timeoutId)
@@ -384,8 +407,9 @@ export class ServiceManager {
             } else if (result === 0) {
                 console.log(`✓ Prep script completed successfully: ${displayPath}`)
             } else {
-                const stderr = await new Response(prepProcess.stderr).text()
-                throw new Error(`Prep script failed with exit code ${result}: ${stderr}`)
+                // Show both stdout and stderr for better diagnostics
+                const output = stdout.trim() || stderr.trim() || '(no output)'
+                throw new Error(`Prep script failed with exit code ${result}: ${output}`)
             }
         } catch (error) {
             // Extract just the message to avoid nested error wrapping
@@ -629,7 +653,13 @@ export class ServiceManager {
                 }, timeout)
             }
 
-            const result = await globalCleanupProcess.exited
+            // Read stdout/stderr concurrently with waiting for process exit
+            // This ensures we capture output even if the process crashes
+            const [result, stdout, stderr] = await Promise.all([
+                globalCleanupProcess.exited,
+                new Response(globalCleanupProcess.stdout).text(),
+                new Response(globalCleanupProcess.stderr).text(),
+            ])
 
             if (timeoutId) {
                 clearTimeout(timeoutId)
@@ -640,8 +670,9 @@ export class ServiceManager {
             } else if (result === 0) {
                 console.log(`✓ Global cleanup completed successfully: ${displayPath}`)
             } else {
-                const stderr = await new Response(globalCleanupProcess.stderr).text()
-                console.warn(`✗ Global cleanup completed with exit code ${result}: ${stderr}`)
+                // Show both stdout and stderr for better diagnostics
+                const output = stdout.trim() || stderr.trim() || '(no output)'
+                console.warn(`✗ Global cleanup completed with exit code ${result}: ${output}`)
             }
         } catch (error) {
             console.error(`✗ Global cleanup failed: ${error}`)
@@ -714,7 +745,13 @@ export class ServiceManager {
                 }, timeout)
             }
 
-            const result = await cleanupProcess.exited
+            // Read stdout/stderr concurrently with waiting for process exit
+            // This ensures we capture output even if the process crashes
+            const [result, stdout, stderr] = await Promise.all([
+                cleanupProcess.exited,
+                new Response(cleanupProcess.stdout).text(),
+                new Response(cleanupProcess.stderr).text(),
+            ])
 
             if (timeoutId) {
                 clearTimeout(timeoutId)
@@ -725,8 +762,9 @@ export class ServiceManager {
             } else if (result === 0) {
                 console.log(`✓ Cleanup completed successfully: ${displayPath}`)
             } else {
-                const stderr = await new Response(cleanupProcess.stderr).text()
-                console.warn(`✗ Cleanup completed with exit code ${result}: ${stderr}`)
+                // Show both stdout and stderr for better diagnostics
+                const output = stdout.trim() || stderr.trim() || '(no output)'
+                console.warn(`✗ Cleanup completed with exit code ${result}: ${output}`)
             }
         } catch (error) {
             console.error(`✗ Cleanup failed: ${error}`)
