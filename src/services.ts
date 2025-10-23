@@ -253,7 +253,7 @@ export class ServiceManager {
             } else {
                 // Show both stdout and stderr for better diagnostics
                 const output = this.combineServiceOutput(stdout, stderr)
-                throw new Error(`Environment script failed with exit code ${result}${output ? ': ' + output : ''}`)
+                throw new Error(`Environment script failed with exit code ${result}${output ? ':\n' + output : ''}`)
             }
         } catch (error) {
             // Extract just the message to avoid nested error wrapping
@@ -333,7 +333,7 @@ export class ServiceManager {
             } else {
                 // Show both stdout and stderr for better diagnostics
                 const output = this.combineServiceOutput(stdout, stderr)
-                throw new Error(`Global prep script failed with exit code ${result}${output ? ': ' + output : ''}`)
+                throw new Error(`Global prep script failed with exit code ${result}${output ? ':\n' + output : ''}`)
             }
         } catch (error) {
             // Extract just the message to avoid nested error wrapping
@@ -412,7 +412,7 @@ export class ServiceManager {
             } else {
                 // Show both stdout and stderr for better diagnostics
                 const output = this.combineServiceOutput(stdout, stderr)
-                throw new Error(`Prep script failed with exit code ${result}${output ? ': ' + output : ''}`)
+                throw new Error(`Prep script failed with exit code ${result}${output ? ':\n' + output : ''}`)
             }
         } catch (error) {
             // Extract just the message to avoid nested error wrapping
@@ -675,7 +675,7 @@ export class ServiceManager {
             } else {
                 // Show both stdout and stderr for better diagnostics
                 const output = this.combineServiceOutput(stdout, stderr)
-                console.warn(`✗ Global cleanup completed with exit code ${result}${output ? ': ' + output : ''}`)
+                console.warn(`✗ Global cleanup completed with exit code ${result}${output ? ':\n' + output : ''}`)
             }
         } catch (error) {
             console.error(`✗ Global cleanup failed: ${error}`)
@@ -773,7 +773,7 @@ export class ServiceManager {
             } else {
                 // Show both stdout and stderr for better diagnostics
                 const output = this.combineServiceOutput(stdout, stderr)
-                console.warn(`✗ Cleanup completed with exit code ${result}${output ? ': ' + output : ''}`)
+                console.warn(`✗ Cleanup completed with exit code ${result}${output ? ':\n' + output : ''}`)
             }
         } catch (error) {
             console.error(`✗ Cleanup failed: ${error}`)
