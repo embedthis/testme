@@ -449,10 +449,12 @@ export class ServiceManager {
             // Parse command and arguments
             const [command, ...args] = this.parseCommand(setupCommand, config.configDir, true)
 
-            // In verbose mode, inherit stdout/stderr to show service output
-            // Otherwise pipe it so we can capture on errors
-            const stdoutMode = config.output?.verbose ? 'inherit' : 'pipe'
-            const stderrMode = config.output?.verbose ? 'inherit' : 'pipe'
+            // Always pipe stdout/stderr for setup services to prevent output from appearing
+            // after test results. Service output is only shown if there's an error or
+            // if the service exits unexpectedly.
+            // This ensures test results are always the last output displayed.
+            const stdoutMode = 'pipe'
+            const stderrMode = 'pipe'
 
             // Start the background process with proper environment
             this.setupProcess = Bun.spawn([command, ...args], {
@@ -795,23 +797,6 @@ export class ServiceManager {
                 // Fallback: just kill the main process
                 this.setupProcess.kill()
             }
-
-            // Wait for the process to actually exit and any buffered output to flush
-            // This prevents service shutdown messages from appearing after test results
-            // Use a timeout in case the process hangs
-            try {
-                await Promise.race([
-                    this.setupProcess.exited,
-                    new Promise((_, reject) =>
-                        setTimeout(() => reject(new Error('Process exit timeout')), shutdownTimeout + 1000)
-                    ),
-                ])
-            } catch {
-                // Process didn't exit in time or was already gone - continue anyway
-            }
-
-            // Give a brief moment for stdout/stderr buffers to flush
-            await new Promise((resolve) => setTimeout(resolve, 100))
 
             this.isSetupRunning = false
             this.setupProcess = null
