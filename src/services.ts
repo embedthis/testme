@@ -796,6 +796,23 @@ export class ServiceManager {
                 this.setupProcess.kill()
             }
 
+            // Wait for the process to actually exit and any buffered output to flush
+            // This prevents service shutdown messages from appearing after test results
+            // Use a timeout in case the process hangs
+            try {
+                await Promise.race([
+                    this.setupProcess.exited,
+                    new Promise((_, reject) =>
+                        setTimeout(() => reject(new Error('Process exit timeout')), shutdownTimeout + 1000)
+                    ),
+                ])
+            } catch {
+                // Process didn't exit in time or was already gone - continue anyway
+            }
+
+            // Give a brief moment for stdout/stderr buffers to flush
+            await new Promise((resolve) => setTimeout(resolve, 100))
+
             this.isSetupRunning = false
             this.setupProcess = null
         } catch (error) {
