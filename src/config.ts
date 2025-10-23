@@ -1,5 +1,5 @@
 import type {TestConfig} from './types.ts'
-import {join, dirname, resolve, isAbsolute} from 'path'
+import {join, dirname, resolve} from 'path'
 import {readdir, stat} from 'fs/promises'
 import JSON5 from 'json5'
 import {ErrorMessages} from './utils/error-messages.ts'
@@ -435,8 +435,25 @@ export class ConfigManager {
                         part.startsWith('.\\') ||
                         part.startsWith('..\\')
                     ) {
-                        // Don't resolve if it contains ${...} variables - those will be expanded later
-                        if (!part.includes('${')) {
+                        // If part contains ${...} variables, we need to resolve the relative path prefix
+                        // while preserving the ${...} patterns for later expansion
+                        // Example: ../build/${PLATFORM}/bin → /absolute/path/build/${PLATFORM}/bin
+                        if (part.includes('${')) {
+                            // Extract the prefix before any ${...} pattern
+                            const firstDollarBrace = part.indexOf('${')
+                            const prefix = part.substring(0, firstDollarBrace)
+                            const suffix = part.substring(firstDollarBrace)
+
+                            // Check if prefix ends with a path separator
+                            const endsWithSeparator = prefix.endsWith('/') || prefix.endsWith('\\')
+
+                            // Resolve the prefix
+                            const resolvedPrefix = resolve(configDir, prefix)
+
+                            // If original prefix ended with separator, add it back (resolve() strips it)
+                            return endsWithSeparator ? resolvedPrefix + '/' + suffix : resolvedPrefix + suffix
+                        } else {
+                            // No ${...} variables, resolve normally
                             return resolve(configDir, part)
                         }
                     }
@@ -451,8 +468,23 @@ export class ConfigManager {
             value.startsWith('.\\') ||
             value.startsWith('..\\')
         ) {
-            // Don't resolve if it contains ${...} variables - those will be expanded later
-            if (!value.includes('${')) {
+            // If value contains ${...} variables, resolve the relative path prefix
+            // while preserving the ${...} patterns for later expansion
+            if (value.includes('${')) {
+                const firstDollarBrace = value.indexOf('${')
+                const prefix = value.substring(0, firstDollarBrace)
+                const suffix = value.substring(firstDollarBrace)
+
+                // Check if prefix ends with a path separator
+                const endsWithSeparator = prefix.endsWith('/') || prefix.endsWith('\\')
+
+                // Resolve the prefix
+                const resolvedPrefix = resolve(configDir, prefix)
+
+                // If original prefix ended with separator, add it back (resolve() strips it)
+                return endsWithSeparator ? resolvedPrefix + '/' + suffix : resolvedPrefix + suffix
+            } else {
+                // No ${...} variables, resolve normally
                 return resolve(configDir, value)
             }
         }
