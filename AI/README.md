@@ -1,11 +1,11 @@
-# TestMe Agent Documentation
+# TestMe AI Documentation
 
 This directory contains structured documentation to assist AI agents (like Claude Code) in understanding and working with the TestMe project.
 
 ## Directory Structure
 
 ```
-.agent/
+AI/
 ├── README.md           # This file
 ├── context/            # Saved context for in-progress tasks
 ├── designs/            # Design documents
