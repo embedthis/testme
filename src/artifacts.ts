@@ -55,6 +55,14 @@ export class ArtifactManager implements IArtifactManager {
         const artifactDir = testFile.artifactDir
 
         try {
+            // Explicitly create parent .testme directory first to work around
+            // Windows mkdir recursive issues in GitHub runners
+            const parentDir = dirname(artifactDir)
+            if (basename(parentDir) === '.testme' && !existsSync(parentDir)) {
+                await mkdir(parentDir, {recursive: true})
+            }
+
+            // Create the test-specific artifact directory
             await mkdir(artifactDir, {recursive: true})
             return artifactDir
         } catch (error) {
