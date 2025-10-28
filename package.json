@@ -1,7 +1,7 @@
 {
     "name": "@embedthis/testme",
     "owner": "embedthis",
-    "version": "0.8.25",
+    "version": "0.8.26",
     "description": "Test runner for system projects",
     "author": "Embedthis Software",
     "license": "GPL-2.0",
@@ -34,6 +34,7 @@
         "bin/update-version.mjs",
         "src/**/*.ts",
         "src/**/*.js",
+        "src/modules/js/package.json",
         "src/**/*.d.ts",
         "!src/modules/js/node_modules",
         "src/modules/c/testme.h",
