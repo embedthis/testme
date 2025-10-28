@@ -259,9 +259,14 @@ export class TestDiscovery {
                         if (normalizedPath.endsWith(normalizedPattern)) {
                             return true
                         }
-                        // Also try matching with the test extension removed from the path
+                        // Also try matching with the final extension removed from the path
                         const pathWithoutExt = normalizedPath.slice(0, -test.extension.length)
                         if (pathWithoutExt.endsWith(normalizedPattern)) {
+                            return true
+                        }
+                        // Also try matching with the full test extension removed (e.g., remove .tst.sh not just .sh)
+                        const pathWithoutTestExt = normalizedPath.slice(0, -(test.name.length - testBaseName.length))
+                        if (pathWithoutTestExt.endsWith(normalizedPattern)) {
                             return true
                         }
                         // Check if pattern is a directory prefix (test directory contains the pattern)

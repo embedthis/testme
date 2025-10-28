@@ -961,6 +961,8 @@ export class ServiceManager {
               - TESTME_VERBOSE: 1 if verbose mode, 0 otherwise
               - TESTME_QUIET: 1 if quiet mode, 0 otherwise
               - TESTME_KEEP: 1 if keepArtifacts is enabled, 0 otherwise
+              - TESTME_DEPTH: Depth value if --depth specified
+              - TESTME_ITERATIONS: Iteration count if --iterations specified
      */
     private async getServiceEnvironment(config: TestConfig): Promise<Record<string, string>> {
         // Start with process environment, then add environment script variables
@@ -1022,6 +1024,14 @@ export class ServiceManager {
         env.TESTME_VERBOSE = config.output?.verbose === true ? '1' : '0'
         env.TESTME_QUIET = config.output?.quiet === true ? '1' : '0'
         env.TESTME_KEEP = config.execution?.keepArtifacts === true ? '1' : '0'
+
+        // Export depth and iterations if set
+        if (config.execution?.depth !== undefined) {
+            env.TESTME_DEPTH = String(config.execution.depth)
+        }
+        if (config.execution?.iterations !== undefined) {
+            env.TESTME_ITERATIONS = String(config.execution.iterations)
+        }
 
         // Add environment variables from configuration with expansion
         // Support both 'environment' (new) and 'env' (legacy) keys

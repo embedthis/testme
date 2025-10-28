@@ -197,10 +197,14 @@ Original error: ${error}`
     ): Promise<Record<string, string>> {
         const env: Record<string, string> = {}
 
-        // Set TESTME_VERBOSE if verbose mode is enabled
-        if (config.output?.verbose) {
-            env.TESTME_VERBOSE = '1'
-        }
+        // Set TESTME_VERBOSE (always set to 0 or 1)
+        env.TESTME_VERBOSE = config.output?.verbose === true ? '1' : '0'
+
+        // Set TESTME_QUIET (always set to 0 or 1)
+        env.TESTME_QUIET = config.output?.quiet === true ? '1' : '0'
+
+        // Set TESTME_KEEP (always set to 0 or 1)
+        env.TESTME_KEEP = config.execution?.keepArtifacts === true ? '1' : '0'
 
         // Set TESTME_DEPTH if depth is specified
         if (config.execution?.depth !== undefined) {

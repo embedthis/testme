@@ -1,5 +1,38 @@
 # TestMe Changelog
 
+## 2025-10-28
+
+### Environment Variables for Services and Tests
+
+- **DEV**: Export TESTME_DEPTH and TESTME_ITERATIONS to services and tests
+    - **Problem**: `--depth` and `--iterations` CLI flags weren't accessible to setup/cleanup scripts and tests
+    - **Solution**:
+        - Added `TESTME_DEPTH` export when `--depth` flag is used
+        - Added `TESTME_ITERATIONS` export when `--iterations` flag is used
+        - Made `TESTME_VERBOSE`, `TESTME_QUIET`, `TESTME_KEEP` always set to '0' or '1' (previously VERBOSE was only set when true)
+    - **Impact**: Service scripts and tests can now access all CLI configuration:
+        - `TESTME_VERBOSE` - Always '0' or '1'
+        - `TESTME_QUIET` - Always '0' or '1'
+        - `TESTME_KEEP` - Always '0' or '1'
+        - `TESTME_DEPTH` - Set when `--depth N` is used
+        - `TESTME_ITERATIONS` - Set when `--iterations N` is used
+        - `TESTME_SUCCESS` - Set to '1' or '0' in cleanup scripts only
+    - **Files Modified**:
+        - [src/services.ts](../../src/services.ts:1026-1032) - Export DEPTH and ITERATIONS in service environment
+        - [src/handlers/base.ts](../../src/handlers/base.ts:200-215) - Export all flags to test environment
+
+### Pattern Matching Enhancement
+
+- **FIX**: Fixed pattern matching for paths with subdirectories (e.g., `tm subdir/name`)
+    - **Problem**: `tm subdir/name` didn't match `subdir/name.tst.sh`, but `tm subdir/name.tst` worked
+    - **Root Cause**: Pattern matching only removed the final extension (`.sh`) when comparing paths, leaving `.tst` in the comparison
+    - **Solution**: Added additional matching check that removes the full test extension (e.g., `.tst.sh`) not just the final extension
+    - **Impact**: All three patterns now work correctly:
+        - `tm name` - matches test in any subdirectory
+        - `tm subdir/name` - matches test with path (NOW FIXED)
+        - `tm subdir/name.tst` - matches test with partial extension
+    - **Files Modified**: [src/discovery.ts](../../src/discovery.ts:267-271) - Added pathWithoutTestExt matching
+
 ## 2025-10-22
 
 ### Root Configuration Discovery for Global Services

@@ -1,0 +1,6 @@
+{
+    services: {
+        setup: './setup.sh',
+        cleanup: './cleanup.sh',
+    },
+}
