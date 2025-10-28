@@ -1,5 +1,5 @@
 #
-#	module/c - Makefile to install the testme.h
+#	modules/c - Makefile to install the testme.h
 #
 all: build
 

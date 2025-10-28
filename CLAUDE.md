@@ -179,7 +179,7 @@ TestMe provides runtime helpers for different test languages:
     - Provides traditional test assertion helpers: `teq()`, `tneq()`, `ttrue()`, `tfalse()`, etc.
     - Provides Jest/Vitest-compatible `expect()` API with 30+ matchers
     - Provides `describe()` and `test()` (alias: `it()`) for organizing tests
-    - Provides `beforeEach()` and `afterEach()` lifecycle hooks
+    - Provides lifecycle hooks: `beforeEach()`, `afterEach()`, `beforeAll()`, `afterAll()`
     - Full TypeScript support with type definitions in `expect.d.ts`
     - Supports `.not` negation, `.resolves` and `.rejects` for promises
     - Deep equality algorithm for objects, arrays, Maps, Sets, Dates, RegExp
@@ -188,13 +188,27 @@ TestMe provides runtime helpers for different test languages:
     **Using describe() and test():**
 
     ```javascript
-    import {describe, test, expect, beforeEach, afterEach} from 'testme'
+    import {describe, test, expect, beforeAll, afterAll, beforeEach, afterEach} from 'testme'
 
     await describe('Math operations', async () => {
-        let value
+        let sharedResource
+
+        beforeAll(() => {
+            // Runs once before all tests in this describe block
+            sharedResource = setupExpensiveResource()
+        })
+
+        afterAll(() => {
+            // Runs once after all tests in this describe block
+            cleanupExpensiveResource(sharedResource)
+        })
 
         beforeEach(() => {
-            value = 0
+            // Runs before each test
+        })
+
+        afterEach(() => {
+            // Runs after each test
         })
 
         test('addition works', () => {
@@ -207,6 +221,10 @@ TestMe provides runtime helpers for different test languages:
         })
 
         await describe('nested group', () => {
+            beforeAll(() => {
+                // Runs once before nested tests (after outer beforeAll)
+            })
+
             test('nested test', () => {
                 expect(1).toBe(1)
             })
@@ -219,6 +237,10 @@ TestMe provides runtime helpers for different test languages:
     - Nested `describe()` blocks must be awaited within async describe functions
     - `test()` functions are always async and execute sequentially
     - `beforeEach()` and `afterEach()` hooks run before/after each test in the current describe scope
+    - `beforeAll()` runs once before all tests in a describe block
+    - `afterAll()` runs once after all tests in a describe block
+    - Nested describes inherit parent hooks and run them in proper order:
+        - Execution order: outer beforeAll → outer tests → inner beforeAll → inner tests → inner afterAll → remaining outer tests → outer afterAll
     - Hooks are scoped to their describe block and restored when the block exits
     - When `expect()` is used inside `test()`, failures throw errors that are caught by the test runner
     - When `expect()` is used outside `test()`, failures exit immediately (backward compatible)

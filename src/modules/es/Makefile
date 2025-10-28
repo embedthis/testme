@@ -1,5 +1,5 @@
 #
-#	module/es - Makefile to install the testme.mod
+#	modules/es - Makefile to install the legacy Ejscript testme.mod
 #
 all: build
 

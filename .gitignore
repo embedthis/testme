@@ -21,7 +21,6 @@ _.log
 bun.lock
 coverage
 dist
-!vendor/ejscript/dist
 node_modules
 out
 tm
