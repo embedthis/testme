@@ -50,6 +50,8 @@ export function getStack() {
     const error = new Error()
     const stack = error.stack?.split('\n') || []
 
+    let bestCandidate = null
+
     // Find the first line that is the actual test code (not internal test framework functions)
     // This is more robust than using a fixed index, as it handles console.log overrides and other stack variations
     for (let i = 1; i < stack.length; i++) {
@@ -68,8 +70,9 @@ export function getStack() {
         // Skip if it's the getStack function itself
         if (line.includes('getStack')) continue
 
-        // Skip if it's a known test helper function
+        // Check if it's a known test helper function
         const funcMatch = line.match(/at\s+(\w+)\s/)
+        let isHelperFunction = false
         if (funcMatch) {
             const funcName = funcMatch[1]
             const testFunctions = [
@@ -85,14 +88,30 @@ export function getStack() {
                 'beforeEach',
                 'afterEach',
             ]
-            if (testFunctions.includes(funcName)) continue
+            isHelperFunction = testFunctions.includes(funcName)
         }
 
-        // This should be the actual test file location
-        return {
-            filename: match[1],
-            line: match[2],
+        // Store this as best candidate if we don't have one yet
+        if (!bestCandidate) {
+            bestCandidate = {
+                filename: match[1],
+                line: match[2],
+            }
         }
+
+        // If it's not a helper function, this is the actual test file location
+        if (!isHelperFunction) {
+            return {
+                filename: match[1],
+                line: match[2],
+            }
+        }
+    }
+
+    // If we found at least one candidate (even if it was a helper function), use it
+    // This handles cases where a helper function throws and we want to report the next frame up
+    if (bestCandidate) {
+        return bestCandidate
     }
 
     return {filename: 'unknown file', line: 'unknown line'}

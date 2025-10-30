@@ -17,10 +17,15 @@ export class HealthCheckManager {
     /*
      Waits for a service to become healthy using the configured health check
      @param config Health check configuration
+     @param setupProcess Optional setup process to monitor (stops checking if it exits)
      @param verbose Whether to log check attempts
-     @returns Promise that resolves when healthy, rejects on timeout
+     @returns Promise that resolves when healthy, rejects on timeout or if setup process exits
      */
-    async waitForHealthy(config: HealthCheckConfig, verbose: boolean = false): Promise<void> {
+    async waitForHealthy(
+        config: HealthCheckConfig,
+        setupProcess: Bun.Subprocess | null = null,
+        verbose: boolean = false
+    ): Promise<void> {
         const interval = config.interval ?? 100 // Default 100ms
         const timeout = (config.timeout ?? 30) * 1000 // Default 30s, convert to ms
         const startTime = Date.now()
@@ -36,6 +41,19 @@ export class HealthCheckManager {
         let lastError: string | null = null
 
         while (Date.now() - startTime < timeout) {
+            // Check if setup process has exited
+            if (setupProcess) {
+                const exitPromise = setupProcess.exited
+                const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve('timeout'), 10))
+                const raceResult = await Promise.race([exitPromise, timeoutPromise])
+
+                // If the process has exited, stop health checks
+                if (raceResult !== 'timeout') {
+                    const exitCode = typeof raceResult === 'number' ? raceResult : -1
+                    throw new Error(`Setup process exited with code ${exitCode} during health check`)
+                }
+            }
+
             attemptCount++
 
             try {

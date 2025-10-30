@@ -489,7 +489,11 @@ export class ServiceManager {
                 // Use health check to verify service is ready
                 const healthCheckManager = new HealthCheckManager()
                 try {
-                    await healthCheckManager.waitForHealthy(healthCheckConfig, config.output?.verbose)
+                    await healthCheckManager.waitForHealthy(
+                        healthCheckConfig,
+                        this.setupProcess,
+                        config.output?.verbose
+                    )
                 } catch (error) {
                     // Health check failed - kill the setup process
                     await this.killSetup(config)
