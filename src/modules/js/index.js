@@ -67,7 +67,10 @@ export function getStack() {
         if (line.includes('.bun/install/global/node_modules/@embedthis/testme')) continue
 
         // Extract the file path from the stack line
-        const match = line.match(/at (?:.*\s+\()?([^:]+):(\d+)/)
+        // On Windows, paths may have drive letters like C:\path\file.js:123
+        // Pattern: at [function] (path:line) or at path:line
+        // For Windows: Match drive letter (C:), then non-colons, then :line
+        const match = line.match(/at (?:.*\s+\()?([a-zA-Z]:[^:]+|[^:]+):(\d+)/)
         if (!match) continue
 
         // Skip if it's the getStack function itself
@@ -503,7 +506,8 @@ async function runTest(name, fn, indent) {
                 if (line.includes('(native:')) continue
 
                 //  Extract file:line
-                const match = line.match(/at (?:.*\s+\()?([^:]+):(\d+)/)
+                // On Windows, paths may have drive letters like C:\path\file.js:123
+                const match = line.match(/at (?:.*\s+\()?([a-zA-Z]:[^:]+|[^:]+):(\d+)/)
                 if (match) {
                     //  Replace "unknown file:unknown line" with actual location
                     message = message.replace('unknown file:unknown line', `${match[1]}:${match[2]}`)
