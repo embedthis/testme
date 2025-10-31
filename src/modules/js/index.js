@@ -60,8 +60,11 @@ export function getStack() {
         // Skip native calls
         if (line.includes('(native:')) continue
 
-        // Skip testme module internals
-        if (line.includes('/testme/src/modules/')) continue
+        // Skip testme module internals (handles various installation paths)
+        // Matches: /testme/src/modules/, \testme\src\modules\, node_modules/@embedthis/testme, etc.
+        if (line.includes('testme/src/modules/') || line.includes('testme\\src\\modules\\')) continue
+        if (line.includes('node_modules/@embedthis/testme') || line.includes('node_modules\\@embedthis\\testme')) continue
+        if (line.includes('.bun/install/global/node_modules/@embedthis/testme')) continue
 
         // Extract the file path from the stack line
         const match = line.match(/at (?:.*\s+\()?([^:]+):(\d+)/)
@@ -485,7 +488,31 @@ async function runTest(name, fn, indent) {
 
         testContext.failedTests++
         console.error(`${indent}✗ ${name}`)
-        console.error(`${indent}  ${error.message}`)
+
+        //  Try to extract a better location from the error stack if message shows "unknown file"
+        let message = error.message
+        if (message.includes('unknown file:unknown line') && error.stack) {
+            //  Parse the stack to find the actual test file location
+            const stackLines = error.stack.split('\n')
+            for (let i = 1; i < stackLines.length; i++) {
+                const line = stackLines[i]
+                //  Skip testme internals
+                if (line.includes('testme/src/modules/') || line.includes('testme\\src\\modules\\')) continue
+                if (line.includes('node_modules/@embedthis/testme') || line.includes('node_modules\\@embedthis\\testme')) continue
+                if (line.includes('.bun/install/global/node_modules/@embedthis/testme')) continue
+                if (line.includes('(native:')) continue
+
+                //  Extract file:line
+                const match = line.match(/at (?:.*\s+\()?([^:]+):(\d+)/)
+                if (match) {
+                    //  Replace "unknown file:unknown line" with actual location
+                    message = message.replace('unknown file:unknown line', `${match[1]}:${match[2]}`)
+                    break
+                }
+            }
+        }
+
+        console.error(`${indent}  ${message}`)
         if (tverbose() && error.stack) {
             console.error(error.stack)
         }
