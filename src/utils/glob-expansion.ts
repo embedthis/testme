@@ -1,12 +1,12 @@
 import {glob} from 'glob'
-import {relative} from 'path'
+import {relative, resolve} from 'path'
 
 /*
  Special variables that can be used in ${...} expressions
  */
 export type SpecialVariables = {
-    TESTDIR?: string // Relative path from executable to test file directory
-    CONFIGDIR?: string // Relative path from executable to testme.json5 directory
+    TESTDIR?: string // Absolute path to test file directory
+    CONFIGDIR?: string // Absolute path to testme.json5 directory
     OS?: string // Operating system: darwin, linux, windows
     ARCH?: string // CPU architecture: arm64, x64, x86
     PLATFORM?: string // Combined OS-ARCH: macosx-arm64, linux-x64, windows-x64
@@ -135,9 +135,9 @@ export class GlobExpansion {
         compiler?: string,
         profile?: string
     ): SpecialVariables {
-        // Calculate relative paths from executable to test/config directories
-        const testDirRel = relative(executableDir, testDir)
-        const configDirRel = configDir ? relative(executableDir, configDir) : testDirRel
+        // TESTDIR and CONFIGDIR are absolute paths (for use in rpath and other absolute path contexts)
+        const testDirAbs = resolve(testDir)
+        const configDirAbs = configDir ? resolve(configDir) : resolve(testDir)
 
         // Detect OS
         let os = 'unknown'
@@ -171,8 +171,8 @@ export class GlobExpansion {
         const profileValue = profile || process.env.PROFILE || 'dev'
 
         return {
-            TESTDIR: testDirRel,
-            CONFIGDIR: configDirRel,
+            TESTDIR: testDirAbs,
+            CONFIGDIR: configDirAbs,
             OS: os,
             ARCH: arch,
             PLATFORM: platform,

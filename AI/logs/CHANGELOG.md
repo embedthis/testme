@@ -1,5 +1,50 @@
 # TestMe Changelog
 
+## 2025-11-03
+
+### Fixed CONFIGDIR Variable Expansion in Inherited Configs
+
+- **FIX**: `${CONFIGDIR}` in parent configs is now substituted with parent's absolute path before inheritance
+    - **Problem**: When a child config inherited from a parent, `${CONFIGDIR}` variables in the parent's flags were NOT expanded before merging. The child would use its own CONFIGDIR value instead of the parent's, causing incorrect paths (especially for rpath settings)
+    - **Example of Bug**:
+        - Parent (`/web/test/testme.json5`): `flags: ['-Wl,-rpath,${CONFIGDIR}/../build/bin']`
+        - Child (`/web/test/fuzz/testme.json5`): `inherit: ['compiler']`
+        - **Bug**: `${CONFIGDIR}` expanded to `/web/test/fuzz` (child's dir) instead of `/web/test` (parent's dir)
+        - **Result**: Incorrect rpath pointing to wrong build directory
+    - **Root Cause**: `${CONFIGDIR}` was preserved as a variable string during inheritance and only expanded at compile time using the child's config directory
+    - **Solution**: Added `substituteConfigDirVariables()` method that replaces `${CONFIGDIR}` with the parent's absolute path BEFORE merging into child config
+    - **Impact**:
+        - ✅ Parent's `${CONFIGDIR}` in compiler flags now correctly refers to parent's directory
+        - ✅ rpath settings work correctly with inherited configs (e.g., web/test/fuzz inheriting from web/test)
+        - ✅ Environment variables with `${CONFIGDIR}` also substituted correctly
+        - ✅ Grandparent inheritance chains work correctly (recursive substitution)
+        - ✅ Other variables (`${PLATFORM}`, `${PROFILE}`, etc.) still expanded at runtime as before
+    - **Files Modified**:
+        - [src/config.ts](../../src/config.ts:511-543) - Added `substituteConfigDirVariables()` method
+        - [src/config.ts](../../src/config.ts:576-578) - Integrated substitution into `loadParentConfig()`
+        - [test/config/inherit-paths/testme.json5](../../test/config/inherit-paths/testme.json5) - Added `${CONFIGDIR}` test case
+        - [test/config/inherit-paths/child/grandchild/test-paths.tst.ts](../../test/config/inherit-paths/child/grandchild/test-paths.tst.ts) - Verify substitution works
+
+### TESTDIR and CONFIGDIR Variables Now Use Absolute Paths
+
+- **DEV**: Changed `${TESTDIR}` and `${CONFIGDIR}` to provide absolute paths instead of relative paths
+    - **Problem**: When using these variables in rpath flags (e.g., `-Wl,-rpath,${CONFIGDIR}/../build/bin`), inherited configs from subdirectories wouldn't work correctly because they were relative to the executable location
+    - **Root Cause**: Both variables were calculated as `relative(executableDir, dir)`, making them unsuitable for use in rpath and other contexts requiring absolute paths
+    - **Solution**: Changed both to use `resolve(dir)` to provide absolute paths
+    - **Impact**:
+        - `${TESTDIR}` now expands to absolute path (e.g., `/Users/mob/c/web/test`)
+        - `${CONFIGDIR}` now expands to absolute path (e.g., `/Users/mob/c/web/test`)
+        - Works correctly with inherited configs in subdirectories
+        - Ideal for rpath: `flags: ['-Wl,-rpath,${CONFIGDIR}/../build/${PLATFORM}-${PROFILE}/bin']`
+        - `TESTME_TESTDIR` and `TESTME_CONFIGDIR` environment variables also provide absolute paths
+        - More consistent and reliable across all use cases
+    - **Migration**: If you were using `${TESTDIR}` or `${CONFIGDIR}` expecting relative paths, adjust your path logic to work with absolute paths (most use cases benefit from absolute paths)
+    - **Files Modified**:
+        - [src/utils/glob-expansion.ts](../../src/utils/glob-expansion.ts:8-9) - Type definitions updated
+        - [src/utils/glob-expansion.ts](../../src/utils/glob-expansion.ts:139-140) - Changed to absolute paths
+        - [src/services.ts](../../src/services.ts:963-964) - Updated documentation
+        - [CLAUDE.md](../../CLAUDE.md:347-355) - Updated with usage examples
+
 ## 2025-10-28
 
 ### Environment Variables for Services and Tests

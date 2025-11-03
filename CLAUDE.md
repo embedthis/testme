@@ -344,8 +344,23 @@ The configuration file uses this hierarchy:
 **Environment Variables:**
 
 - Values support `${...}` patterns for glob expansion
+- `${TESTDIR}` - Absolute path to test directory
+- `${CONFIGDIR}` - Absolute path to testme.json5 directory
+- `${PLATFORM}` - Combined OS-ARCH (e.g., macosx-arm64)
+- `${PROFILE}` - Build profile (dev, prod, debug, release)
+- `${OS}`, `${ARCH}`, `${CC}` - Operating system, architecture, compiler
 - Paths resolved relative to config file directory
 - Example: `BIN: "${../build/*/bin}"` expands to actual build path
+- Both `${TESTDIR}` and `${CONFIGDIR}` provide absolute paths for reliability in rpath and inherited configs
+
+**Compiler rpath with CONFIGDIR:**
+
+- `${CONFIGDIR}` expands to an absolute path, use it directly without relative loader directives
+- Example: `flags: ['-Wl,-rpath,${CONFIGDIR}/../build/${PLATFORM}-${PROFILE}/bin']`
+- **DO NOT** combine `${CONFIGDIR}` with `@executable_path` (macOS) or `$ORIGIN` (Linux)
+- **INCORRECT**: `-Wl,-rpath,@executable_path/${CONFIGDIR}/../lib` - will not work, mixes relative and absolute
+- **CORRECT**: `-Wl,-rpath,${CONFIGDIR}/../build/lib` - absolute path from CONFIGDIR
+- Use `@executable_path` or `$ORIGIN` only when you need paths relative to the binary location, not config location
 
 **Test Control:**
 

@@ -960,8 +960,8 @@ export class ServiceManager {
               - TESTME_OS: Operating system (macosx, windows, linux)
               - TESTME_ARCH: Architecture (arm64, x64)
               - TESTME_CC: Compiler name
-              - TESTME_TESTDIR: Relative path to test directory
-              - TESTME_CONFIGDIR: Relative path to config directory
+              - TESTME_TESTDIR: Absolute path to test directory
+              - TESTME_CONFIGDIR: Absolute path to config directory
               - TESTME_VERBOSE: 1 if verbose mode, 0 otherwise
               - TESTME_QUIET: 1 if quiet mode, 0 otherwise
               - TESTME_KEEP: 1 if keepArtifacts is enabled, 0 otherwise

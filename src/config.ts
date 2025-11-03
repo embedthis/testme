@@ -493,6 +493,56 @@ export class ConfigManager {
     }
 
     /**
+     * Substitutes ${CONFIGDIR} variables in parent config with absolute path
+     *
+     * @param config - Parent configuration to process
+     * @param configDir - Absolute path to parent's config directory
+     * @returns Configuration with ${CONFIGDIR} replaced by absolute path
+     *
+     * @internal
+     * @remarks
+     * When a child inherits from a parent, ${CONFIGDIR} in the parent's strings
+     * should refer to the parent's directory, not the child's. This method
+     * performs that substitution before inheritance merging.
+     *
+     * Only ${CONFIGDIR} is substituted. Other variables (${TESTDIR}, ${PLATFORM}, etc.)
+     * are left unchanged to be expanded at runtime.
+     */
+    private static substituteConfigDirVariables(
+        config: Partial<TestConfig>,
+        configDir: string
+    ): Partial<TestConfig> {
+        // Deep clone to avoid mutating original config
+        const result = JSON.parse(JSON.stringify(config)) as Partial<TestConfig>
+
+        // Recursively substitute ${CONFIGDIR} in all strings
+        const substitute = (obj: any): void => {
+            if (typeof obj === 'string') {
+                return obj.replace(/\$\{CONFIGDIR\}/g, configDir)
+            } else if (Array.isArray(obj)) {
+                for (let i = 0; i < obj.length; i++) {
+                    if (typeof obj[i] === 'string') {
+                        obj[i] = obj[i].replace(/\$\{CONFIGDIR\}/g, configDir)
+                    } else if (typeof obj[i] === 'object' && obj[i] !== null) {
+                        substitute(obj[i])
+                    }
+                }
+            } else if (typeof obj === 'object' && obj !== null) {
+                for (const key in obj) {
+                    if (typeof obj[key] === 'string') {
+                        obj[key] = obj[key].replace(/\$\{CONFIGDIR\}/g, configDir)
+                    } else if (typeof obj[key] === 'object' && obj[key] !== null) {
+                        substitute(obj[key])
+                    }
+                }
+            }
+        }
+
+        substitute(result)
+        return result
+    }
+
+    /**
      * Loads parent configuration from parent directory
      *
      * @param currentConfigDir - Directory containing current config file
@@ -523,15 +573,19 @@ export class ConfigManager {
         // This allows child configs to inherit without path depth issues
         const resolvedParentConfig = this.resolveConfigPaths(parentConfig, parentConfigDir)
 
+        // Substitute ${CONFIGDIR} with parent's absolute path before inheritance
+        // This ensures child configs inherit the correct parent directory reference
+        const substitutedParentConfig = this.substituteConfigDirVariables(resolvedParentConfig, parentConfigDir)
+
         // If parent config also has inherit, recursively load its parent
-        if (resolvedParentConfig.inherit !== undefined && resolvedParentConfig.inherit !== false) {
+        if (substitutedParentConfig.inherit !== undefined && substitutedParentConfig.inherit !== false) {
             const grandparentConfig = await this.loadParentConfig(parentConfigDir)
             if (grandparentConfig) {
-                return this.mergeInheritedConfig(resolvedParentConfig, grandparentConfig)
+                return this.mergeInheritedConfig(substitutedParentConfig, grandparentConfig)
             }
         }
 
-        return resolvedParentConfig
+        return substitutedParentConfig
     }
 
     /**

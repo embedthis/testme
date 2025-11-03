@@ -1,11 +1,12 @@
 {
-    // Parent config with relative paths
+    // Parent config with relative paths and ${CONFIGDIR} variable
     compiler: {
         c: {
             gcc: {
                 flags: [
                     '-I../../src',
                     '-L../../dist',
+                    '-Wl,-rpath,${CONFIGDIR}/../../dist',
                 ],
                 libraries: ['testlib'],
             },
@@ -21,5 +22,6 @@
     environment: {
         TEST_PATH: '../../dist',
         PATH: '../../dist:${PATH}',
+        TEST_CONFIGDIR: '${CONFIGDIR}',
     },
 }

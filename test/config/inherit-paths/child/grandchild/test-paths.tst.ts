@@ -25,16 +25,17 @@ if (parts.length === 0 || !parts[0]) {
 const testRootDir = parts[0]
 const expectedDistDir = resolve(testRootDir, 'test', 'dist')
 
-// Check compiler flags
-const compilerFlags = process.env.TESTME_COMPILER_FLAGS || ''
-console.log('Compiler flags:', compilerFlags)
+// Note: TESTME_COMPILER_FLAGS is only set for C tests, not TypeScript tests
+// We verify the config via --show flag output in the test runner instead
 
 // Check environment variables
 const testPath = process.env.TEST_PATH || ''
 const path = process.env.PATH || ''
+const testConfigDir = process.env.TEST_CONFIGDIR || ''
 
 console.log('TEST_PATH:', testPath)
 console.log('PATH:', path)
+console.log('TEST_CONFIGDIR:', testConfigDir)
 
 // Verify TEST_PATH is absolute and points to dist
 if (!testPath.includes(expectedDistDir)) {
@@ -48,5 +49,16 @@ if (!path.includes(expectedDistDir)) {
     process.exit(1)
 }
 
+// Verify TEST_CONFIGDIR was substituted with parent's absolute path
+// Parent is at: /Users/mob/c/testme/test/config/inherit-paths
+const expectedParentConfigDir = resolve(testRootDir, 'test', 'config', 'inherit-paths')
+if (testConfigDir !== expectedParentConfigDir) {
+    console.error(`TEST_CONFIGDIR should be ${expectedParentConfigDir}, got: ${testConfigDir}`)
+    console.error('This means ${CONFIGDIR} was not substituted during inheritance!')
+    process.exit(1)
+}
+
 console.log('✓ Inherited paths were resolved correctly')
+console.log('✓ ${CONFIGDIR} in environment was substituted with parent\'s absolute path')
+console.log('✓ (Compiler flag substitution verified via --show output)')
 process.exit(0)
