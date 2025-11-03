@@ -230,6 +230,37 @@ const testSpecificConfig = await ConfigManager.findConfig(testFile.directory)
 -   Project-wide defaults
 -   Flexible deployment scenarios
 
+**Configuration Inheritance (v0.8.29+):**
+
+**Problem:** When a child config inherits from a parent, `${CONFIGDIR}` variables in the parent's flags were expanded using the child's directory, not the parent's, causing incorrect paths (especially for rpath settings).
+
+**Solution:** Variable substitution before inheritance:
+
+```typescript
+// Parent config: /web/test/testme.json5
+{
+    compiler: { c: { gcc: {
+        flags: ['-Wl,-rpath,${CONFIGDIR}/../build/bin']
+    }}}
+}
+
+// Child config: /web/test/fuzz/testme.json5
+{
+    inherit: ['compiler']
+}
+```
+
+**Implementation:**
+- `substituteConfigDirVariables()` replaces `${CONFIGDIR}` with parent's absolute path BEFORE merging
+- Recursive substitution for grandparent inheritance chains
+- Other variables (`${PLATFORM}`, `${PROFILE}`) still expanded at runtime
+- `${TESTDIR}` and `${CONFIGDIR}` now provide absolute paths (not relative)
+
+**Before Fix:** `${CONFIGDIR}` → `/web/test/fuzz` (wrong - child's directory)
+**After Fix:** `${CONFIGDIR}` → `/web/test` (correct - parent's directory)
+
+**Files:** [src/config.ts](../../src/config.ts:511-578)
+
 ### 5. Fresh Handler Instances
 
 **Problem:** Shared handler state causing race conditions in parallel execution?

@@ -6,11 +6,30 @@ TestMe is a specialized test runner designed for **core infrastructure projects*
 
 Test files can be written in C, C++, shell scripts, Python, Go or Javascript/Typescript.
 
-**Version**: 0.8.22
-**Last Updated**: 2025-10-22
+**Version**: 0.8.29
+**Last Updated**: 2025-11-04
 
 ## Recently Completed
 
+-   ✅ Configuration inheritance fixes (2025-11-04)
+    -   Fixed ${CONFIGDIR} variable expansion in inherited configs
+    -   Parent's ${CONFIGDIR} now correctly substituted with absolute path before inheritance
+    -   Prevents incorrect paths in child configs (especially rpath settings)
+    -   Supports grandparent inheritance chains with recursive substitution
+    -   Added comprehensive test coverage for inheritance scenarios
+-   ✅ Absolute path handling (2025-11-04)
+    -   Changed ${TESTDIR} and ${CONFIGDIR} to provide absolute paths
+    -   More reliable for rpath flags and inherited configurations
+    -   Consistent behavior across all use cases
+-   ✅ Pattern matching improvements (2025-11-04)
+    -   Fixed subdirectory path matching (e.g., `tm subdir/name`)
+    -   Now correctly matches tests with full extension removal
+-   ✅ Enhanced environment variables (2025-10-28)
+    -   Added TESTME_DEPTH and TESTME_ITERATIONS exports
+    -   Made TESTME_VERBOSE, TESTME_QUIET, TESTME_KEEP always set to '0' or '1'
+-   ✅ Root configuration discovery (2025-10-22)
+    -   Changed to use shallowest config from discovered tests
+    -   More reliable globalPrep/globalCleanup execution
 -   ✅ Service health check implementation (2025-10-22)
     -   Implemented active service health checking to replace arbitrary delays
     -   Created HealthCheckManager class with 4 check types: HTTP, TCP, Script, File
