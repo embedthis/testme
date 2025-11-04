@@ -55,6 +55,7 @@ export class ShellTestHandler extends BaseTestHandler {
                 cwd: file.directory,
                 timeout: (config.execution?.timeout || 30) * 1000,
                 env: testEnv,
+                config,
             })
         })
 

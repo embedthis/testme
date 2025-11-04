@@ -46,7 +46,12 @@ export class TestReporter {
 
         // Only show running status in interactive terminals (not in quiet mode or show mode)
         // Disable TTY cursor control when showCommands is enabled to prevent clearing environment output
-        const shouldUseTTY = !this.config.output?.quiet && !this.config.execution?.showCommands && isInteractiveTTY()
+        // Disable TTY cursor control when live streaming is enabled to prevent clearing streamed output
+        const shouldUseTTY =
+            !this.config.output?.quiet &&
+            !this.config.execution?.showCommands &&
+            !this.config.output?.live &&
+            isInteractiveTTY()
         if (shouldUseTTY) {
             // If we already have a running line displayed, don't show another one
             // (in parallel mode, we only show one "RUN" line at a time)
@@ -70,7 +75,8 @@ export class TestReporter {
 
         // If we're in an interactive terminal and not in show mode
         // Disable TTY cursor control when showCommands is enabled to prevent clearing environment output
-        if (isInteractiveTTY() && !this.config.execution?.showCommands) {
+        // Disable TTY cursor control when live streaming is enabled to prevent clearing streamed output
+        if (isInteractiveTTY() && !this.config.execution?.showCommands && !this.config.output?.live) {
             // Clear the "running" line if one exists
             if (this.hasRunningLine) {
                 clearCurrentLine()

@@ -75,6 +75,7 @@ export class CTestHandler extends BaseTestHandler {
                 cwd: file.directory, // Always run test with CWD set to test directory
                 timeout: (config.execution?.timeout || 30) * 1000,
                 env: await this.getTestEnvironment(config, file, compileResult.compiler),
+                config,
             })
         })
 

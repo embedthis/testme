@@ -137,6 +137,7 @@ export type OutputConfig = {
     colors: boolean
     quiet?: boolean
     errorsOnly?: boolean
+    live?: boolean // Stream test output in real-time to console (requires TTY)
 }
 
 /*
@@ -247,6 +248,7 @@ export type CliOptions = {
     noServices: boolean
     iterations?: number
     stop: boolean
+    live: boolean
 }
 
 /*

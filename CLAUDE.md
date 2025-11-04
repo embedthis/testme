@@ -368,6 +368,15 @@ The configuration file uses this hierarchy:
 - Set `depth: N` to require `--depth N` or higher to run tests
 - Skip script can dynamically determine if tests should run
 
+**Live Output Streaming:**
+
+- Use `--monitor` or `-m` flag to stream test output in real-time to console
+- Only active when running in a TTY (interactive terminal) and not in quiet mode
+- Output is still buffered for result reporting, assertion counting, and test summaries
+- Useful for monitoring long-running tests or debugging test behavior
+- Falls back to standard buffered mode when output is piped or redirected
+- Combines with `--verbose` for detailed reporting: `tm --monitor --verbose`
+
 **Service Lifecycle:**
 
 - Global Prep (once) → For each group: Skip → Environment → Prep → Setup → Tests → Cleanup → Global Cleanup (once)

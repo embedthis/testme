@@ -467,6 +467,11 @@ export class ServiceManager {
 
             this.isSetupRunning = true
 
+            // In verbose mode, stream setup service output to console
+            if (config.output?.verbose && this.setupProcess) {
+                this.streamSetupOutput(this.setupProcess)
+            }
+
             // Set up timeout
             let timeoutId: Timer | undefined
             let timedOut = false
@@ -595,6 +600,59 @@ export class ServiceManager {
             // Extract just the message to avoid nested error wrapping
             const message = error instanceof Error ? error.message : String(error)
             throw new Error(`Failed to start setup service (${displayPath}): ${message}`)
+        }
+    }
+
+    /**
+     * Streams setup service output to console in the background
+     * Does not wait for the process to complete - output is streamed asynchronously
+     *
+     * @param proc - The subprocess to stream output from
+     * @internal
+     */
+    private streamSetupOutput(proc: Bun.Subprocess): void {
+        // Stream stdout asynchronously
+        if (proc.stdout && typeof proc.stdout !== 'number') {
+            const stdoutReader = proc.stdout.getReader()
+            const decoder = new TextDecoder()
+
+            // Don't await - let it run in background
+            ;(async () => {
+                try {
+                    while (true) {
+                        const {done, value} = await stdoutReader.read()
+                        if (done) break
+                        const text = decoder.decode(value, {stream: true})
+                        process.stdout.write(text)
+                    }
+                } catch (error) {
+                    // Ignore errors - process may have been killed
+                } finally {
+                    stdoutReader.releaseLock()
+                }
+            })()
+        }
+
+        // Stream stderr asynchronously
+        if (proc.stderr && typeof proc.stderr !== 'number') {
+            const stderrReader = proc.stderr.getReader()
+            const decoder = new TextDecoder()
+
+            // Don't await - let it run in background
+            ;(async () => {
+                try {
+                    while (true) {
+                        const {done, value} = await stderrReader.read()
+                        if (done) break
+                        const text = decoder.decode(value, {stream: true})
+                        process.stderr.write(text)
+                    }
+                } catch (error) {
+                    // Ignore errors - process may have been killed
+                } finally {
+                    stderrReader.releaseLock()
+                }
+            })()
         }
     }
 

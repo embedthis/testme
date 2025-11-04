@@ -47,7 +47,7 @@ export abstract class BaseTestHandler implements TestHandler {
      Executes a system command with timeout and environment options
      @param command Command to execute
      @param args Command arguments
-     @param options Execution options (cwd, timeout, env)
+     @param options Execution options (cwd, timeout, env, config for live streaming)
      @returns Promise resolving to command execution results
      */
     protected async runCommand(
@@ -57,6 +57,7 @@ export abstract class BaseTestHandler implements TestHandler {
             cwd?: string
             timeout?: number
             env?: Record<string, string>
+            config?: TestConfig
         } = {}
     ): Promise<{exitCode: number; stdout: string; stderr: string}> {
         // Build environment - be defensive about PATH handling on Windows
@@ -109,30 +110,104 @@ export abstract class BaseTestHandler implements TestHandler {
         }
 
         try {
-            // Read stdout/stderr concurrently with waiting for process exit
-            // This ensures we capture output even if the process crashes
-            const [result, stdout, stderr] = await Promise.all([
-                proc.exited,
-                new Response(proc.stdout).text(),
-                new Response(proc.stderr).text(),
-            ])
+            // Check if live streaming is enabled (requires TTY and not quiet mode)
+            const shouldStream =
+                options.config?.output?.live &&
+                !options.config?.output?.quiet &&
+                typeof process !== 'undefined' &&
+                process.stdout &&
+                process.stdout.isTTY === true
 
-            if (timeoutId) {
-                clearTimeout(timeoutId)
-            }
+            let stdout = ''
+            let stderr = ''
 
-            if (timedOut) {
-                return {
-                    exitCode: -1,
-                    stdout: stdout,
-                    stderr: stderr + '\nProcess timed out',
+            if (shouldStream) {
+                // Stream output in real-time while also buffering
+                const stdoutReader = proc.stdout.getReader()
+                const stderrReader = proc.stderr.getReader()
+                const decoder = new TextDecoder()
+
+                const readStream = async (
+                    reader: ReadableStreamDefaultReader<Uint8Array>,
+                    isStderr: boolean
+                ): Promise<string> => {
+                    let buffer = ''
+                    try {
+                        while (true) {
+                            const {done, value} = await reader.read()
+                            if (done) break
+
+                            const text = decoder.decode(value, {stream: true})
+                            buffer += text
+
+                            // Stream to console in real-time
+                            if (isStderr) {
+                                process.stderr.write(text)
+                            } else {
+                                process.stdout.write(text)
+                            }
+                        }
+                    } finally {
+                        reader.releaseLock()
+                    }
+                    return buffer
                 }
-            }
 
-            return {
-                exitCode: result,
-                stdout,
-                stderr,
+                // Read both streams concurrently with process exit
+                const [result, stdoutText, stderrText] = await Promise.all([
+                    proc.exited,
+                    readStream(stdoutReader, false),
+                    readStream(stderrReader, true),
+                ])
+
+                stdout = stdoutText
+                stderr = stderrText
+
+                if (timeoutId) {
+                    clearTimeout(timeoutId)
+                }
+
+                if (timedOut) {
+                    return {
+                        exitCode: -1,
+                        stdout,
+                        stderr: stderr + '\nProcess timed out',
+                    }
+                }
+
+                return {
+                    exitCode: result,
+                    stdout,
+                    stderr,
+                }
+            } else {
+                // Original buffered mode - read all at once
+                const [result, stdoutText, stderrText] = await Promise.all([
+                    proc.exited,
+                    new Response(proc.stdout).text(),
+                    new Response(proc.stderr).text(),
+                ])
+
+                stdout = stdoutText
+                stderr = stderrText
+
+                if (timeoutId) {
+                    clearTimeout(timeoutId)
+                }
+
+                if (timedOut) {
+                    return {
+                        exitCode: -1,
+                        stdout,
+                        stderr: stderr + '\nProcess timed out',
+                    }
+                }
+
+                return {
+                    exitCode: result,
+                    stdout,
+                    stderr,
+                }
             }
         } catch (error) {
             if (timeoutId) {

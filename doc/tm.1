@@ -44,6 +44,9 @@ Keep .testme artifact directories after successful tests. By default, TestMe rem
 .BR \-l ", " \-\-list
 List discovered tests without running them. Shows all test files that would be executed.
 .TP
+.BR \-m ", " \-\-monitor
+Stream test output in real-time to console. Only active in interactive terminals (TTY) and not in quiet mode. Output is still buffered for result reporting and assertion counting. Useful for monitoring long-running tests or debugging test behavior. Falls back to standard buffered mode when output is piped or redirected.
+.TP
 .BR \-\-new " " \fINAME\fR
 Create new test file from template. Auto-detects test type from extension (e.g., \fB\-\-new math.c\fR creates math.tst.c). Supports C, Shell, JavaScript, and TypeScript templates.
 .TP
@@ -723,6 +726,10 @@ Clean all test artifacts:
 .TP
 Run with verbose output:
 .B tm -v "integration*"
+
+.TP
+Stream test output in real-time:
+.B tm --monitor "*.tst.c"
 
 .TP
 Keep build artifacts for debugging:

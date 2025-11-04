@@ -28,6 +28,7 @@ export class CliParser {
             continue: false,
             noServices: false,
             stop: false,
+            live: false,
         }
 
         let i = 0
@@ -193,6 +194,12 @@ export class CliParser {
                     i++
                     break
 
+                case '--monitor':
+                case '-m':
+                    options.live = true
+                    i++
+                    break
+
                 default:
                     if (arg.startsWith('-')) {
                         throw new Error(`Unknown option: ${arg}`)
@@ -240,6 +247,7 @@ OPTIONS:
         --init             Create testme.json5 configuration file in current directory
     -k, --keep             Keep .testme artifacts after successful tests (failed tests always keep)
     -l, --list             List discovered tests without running them
+    -m, --monitor          Stream test output in real-time to console (requires TTY)
     -n, --no-services      Skip all service commands (skip, prep, setup, cleanup)
         --new <NAME>       Create new test file from template (e.g., --new math.c)
     -p, --profile <NAME>   Set build profile (overrides config and env.PROFILE)

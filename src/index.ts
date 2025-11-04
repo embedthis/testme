@@ -648,6 +648,13 @@ class TestMeApp {
             }
         }
 
+        if (options.live) {
+            mergedConfig.output = {
+                ...mergedConfig.output,
+                live: true,
+            }
+        }
+
         if (options.keep) {
             mergedConfig.execution = {
                 ...mergedConfig.execution,
@@ -907,6 +914,17 @@ class TestMeApp {
                         verbose: false,
                         colors: false,
                         format: config.output?.format ?? 'simple',
+                    },
+                }
+            }
+
+            // Apply live streaming mode if requested
+            if (options.live) {
+                config = {
+                    ...config,
+                    output: {
+                        ...config.output,
+                        live: true,
                     },
                 }
             }
