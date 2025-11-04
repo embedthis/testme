@@ -281,6 +281,9 @@ Original error: ${error}`
         // Set TESTME_KEEP (always set to 0 or 1)
         env.TESTME_KEEP = config.execution?.keepArtifacts === true ? '1' : '0'
 
+        // Set TESTME_STOP (always set to 0 or 1)
+        env.TESTME_STOP = config.execution?.stopOnFailure === true ? '1' : '0'
+
         // Set TESTME_DEPTH if depth is specified
         if (config.execution?.depth !== undefined) {
             env.TESTME_DEPTH = config.execution.depth.toString()

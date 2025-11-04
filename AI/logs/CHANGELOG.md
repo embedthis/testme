@@ -2,6 +2,16 @@
 
 ## 2025-11-04
 
+### Added TESTME_STOP Environment Variable
+
+- **DEV**: Added `TESTME_STOP` environment variable for `--stop` flag
+    - **Feature**: Tests and service scripts can now detect when `--stop` (fast-fail mode) is enabled
+    - **Behavior**: `TESTME_STOP` is always set to '0' or '1' (consistent with other boolean flags)
+    - **Use Case**: Tests can modify their behavior when running in fast-fail mode
+    - **Example**: A fuzzer can stop early when it detects the first crash if `TESTME_STOP=1`
+    - **Files Modified**:
+        - [src/handlers/base.ts:284-285](../../src/handlers/base.ts#L284-L285) - Added TESTME_STOP export
+
 ### Fixed --monitor Flag Not Streaming Output in Real-Time
 
 - **FIX**: `--monitor` (`-m`) flag now correctly enables real-time output streaming during test execution
