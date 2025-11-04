@@ -521,6 +521,7 @@ export class TestRunner {
                         ...(globalConfig.output?.errorsOnly !== undefined && {
                             errorsOnly: globalConfig.output.errorsOnly,
                         }),
+                        ...(globalConfig.output?.live !== undefined && {live: globalConfig.output.live}),
                     },
                     // Preserve environment variables from global config (including those from environment script)
                     environment: {

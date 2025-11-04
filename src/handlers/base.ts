@@ -156,8 +156,8 @@ export abstract class BaseTestHandler implements TestHandler {
                 // Read both streams concurrently with process exit
                 const [result, stdoutText, stderrText] = await Promise.all([
                     proc.exited,
-                    readStream(stdoutReader, false),
-                    readStream(stderrReader, true),
+                    readStream(stdoutReader as any, false),
+                    readStream(stderrReader as any, true),
                 ])
 
                 stdout = stdoutText

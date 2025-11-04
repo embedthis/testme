@@ -538,6 +538,9 @@ export class ServiceManager {
                     // Note: Setup service output is not displayed in real-time to avoid cluttering test output.
                     // Output will be shown if the service fails or exits unexpectedly.
 
+                    // Monitor for unexpected process exit
+                    this.monitorSetupProcessExit(config)
+
                     // Set up cleanup on process exit
                     this.registerCleanupHandlers()
                 }
@@ -981,6 +984,32 @@ export class ServiceManager {
             await cleanup()
             process.exit(1)
         })
+    }
+
+    /*
+     Monitors the setup process for unexpected exit after it's been validated as running
+     Logs verbose information if the process exits while tests are running with non-zero exit code
+     @param config Test configuration for accessing output settings
+     */
+    private monitorSetupProcessExit(config: TestConfig): void {
+        if (!this.setupProcess) {
+            return
+        }
+
+        // Monitor for unexpected exit in the background
+        ;(async () => {
+            try {
+                const exitCode = await this.setupProcess?.exited
+                // If we get here, the setup process exited while tests were running
+                // Only warn if exit code is non-zero (failure) and verbose is enabled
+                if (this.isSetupRunning && config.output?.verbose && exitCode !== 0) {
+                    console.log(`\n⚠️  Setup process exited unexpectedly with code ${exitCode}`)
+                }
+                this.isSetupRunning = false
+            } catch (error) {
+                // Ignore errors - process may have been killed intentionally
+            }
+        })()
     }
 
     /*

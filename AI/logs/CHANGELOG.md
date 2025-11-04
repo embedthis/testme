@@ -1,5 +1,27 @@
 # TestMe Changelog
 
+## 2025-11-04
+
+### Fixed --monitor Flag Not Streaming Output in Real-Time
+
+- **FIX**: `--monitor` (`-m`) flag now correctly enables real-time output streaming during test execution
+    - **Problem**: When running tests with `tm -m`, output would only appear after the test completed instead of streaming progressively
+    - **Root Cause**: The `findConfigForTest()` method in `src/runner.ts` was merging test-specific config with global config but NOT preserving the `output.live` flag from CLI arguments
+    - **Symptoms**:
+        - `tm -m -i 10000 http` would show all output at the end instead of progressively
+        - Progressive iteration counters (1000/10000, 2000/10000, etc.) would not appear in real-time
+        - Live streaming worked for other CLI flags (`--verbose`, `--debug`) but not `--monitor`
+    - **Solution**: Added `live` flag preservation in `findConfigForTest()` output merging at [src/runner.ts:524](../../src/runner.ts#L524)
+    - **Impact**:
+        - ✅ `--monitor` flag now streams test output as it's generated
+        - ✅ Long-running tests show progress in real-time (e.g., fuzzing iterations)
+        - ✅ Works with C tests, JavaScript tests, and all other test types
+        - ✅ Requires TTY (interactive terminal) - automatically disabled when output is piped
+        - ✅ Combines with `--verbose` for detailed real-time reporting: `tm -m -v`
+    - **Files Modified**:
+        - [src/runner.ts:524](../../src/runner.ts#L524) - Added `live` flag preservation
+        - [src/handlers/base.ts:159-160](../../src/handlers/base.ts#L159-L160) - Fixed TypeScript type errors in stream readers
+
 ## 2025-11-03
 
 ### Fixed CONFIGDIR Variable Expansion in Inherited Configs
