@@ -503,6 +503,9 @@ export class TestRunner {
                             keepArtifacts: globalConfig.execution.keepArtifacts,
                         }),
                         ...(globalConfig.execution?.stepMode && {stepMode: globalConfig.execution.stepMode}),
+                        ...(globalConfig.execution?.stopOnFailure !== undefined && {
+                            stopOnFailure: globalConfig.execution.stopOnFailure,
+                        }),
                         ...(globalConfig.execution?.depth !== undefined && {depth: globalConfig.execution.depth}),
                         ...(globalConfig.execution?.workers !== undefined && {workers: globalConfig.execution.workers}),
                         ...(globalConfig.execution?.iterations !== undefined && {

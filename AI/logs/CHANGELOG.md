@@ -1,5 +1,20 @@
 # TestMe Changelog
 
+## 2025-11-05
+
+### Fixed TESTME_STOP Not Being Set for Tests
+
+- **FIX**: `TESTME_STOP` environment variable now correctly propagates to tests when `--stop` flag is used
+    - **Problem**: Tests were seeing `TESTME_STOP=0` even when running with `--stop` flag (e.g., `tm --stop -m http`)
+    - **Root Cause**: The `findConfigForTest()` method in `src/runner.ts` was merging test-specific configs with global config but was NOT preserving the `stopOnFailure` setting from CLI arguments
+    - **Solution**: Added `stopOnFailure` to the list of CLI overrides that are preserved during config merging at [src/runner.ts:506-508](../../src/runner.ts#L506-L508)
+    - **Impact**:
+        - ✅ `TESTME_STOP` now correctly set to '1' when `--stop` flag is used
+        - ✅ `TESTME_STOP` correctly set to '0' when `--stop` flag is NOT used
+        - ✅ Tests can now detect fast-fail mode and adjust behavior (e.g., fuzzers stopping early on first crash)
+    - **Files Modified**:
+        - [src/runner.ts:506-508](../../src/runner.ts#L506-L508) - Added stopOnFailure preservation in config merging
+
 ## 2025-11-04
 
 ### Added TESTME_STOP Environment Variable
