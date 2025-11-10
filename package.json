@@ -1,7 +1,7 @@
 {
     "name": "@embedthis/testme",
     "owner": "embedthis",
-    "version": "0.8.29",
+    "version": "0.8.30",
     "description": "Test runner for system projects",
     "author": "Embedthis Software",
     "license": "GPL-2.0",
