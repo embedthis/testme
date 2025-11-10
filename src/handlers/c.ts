@@ -76,6 +76,7 @@ export class CTestHandler extends BaseTestHandler {
                 timeout: (config.execution?.timeout || 30) * 1000,
                 env: await this.getTestEnvironment(config, file, compileResult.compiler),
                 config,
+                description: `Test ${file.name}`,
             })
         })
 
@@ -310,6 +311,7 @@ export class CTestHandler extends BaseTestHandler {
                 cwd: baseDir, // Compile from config directory so relative paths in flags work correctly
                 timeout: 60000, // 1 minute for compilation
                 env,
+                description: `Compilation of ${file.name}`,
             })
         })
 
@@ -574,6 +576,7 @@ ${result.stderr}`
             const xcodegen = await this.runCommand('xcodegen', ['--spec', configFileName], {
                 cwd: file.artifactDir,
                 timeout: 30000,
+                description: 'xcodegen project generation',
             })
 
             if (xcodegen.exitCode !== 0) {
@@ -597,6 +600,7 @@ ${result.stderr}`
             const open = await this.runCommand('open', [projectName], {
                 cwd: file.artifactDir,
                 timeout: 10000,
+                description: 'Opening Xcode project',
             })
 
             if (open.exitCode !== 0) {

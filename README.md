@@ -846,7 +846,7 @@ This enables:
         },
     },
     execution: {
-        timeout: 30000,
+        timeout: 30,
         parallel: true,
         workers: 4,
     },
@@ -875,11 +875,11 @@ This enables:
         prep: 'make build',
         setup: 'docker-compose up -d',
         cleanup: 'docker-compose down',
-        skipTimeout: 30000,
-        prepTimeout: 30000,
-        setupTimeout: 30000,
-        cleanupTimeout: 10000,
-        delay: 3000,
+        skipTimeout: 30,
+        prepTimeout: 30,
+        setupTimeout: 30,
+        cleanupTimeout: 10,
+        delay: 3,
     },
     env: {
         // Common environment variables for all platforms
@@ -1327,7 +1327,7 @@ These variables are available in all test and service script environments and ca
         prep: 'docker-compose build',
         setup: 'docker-compose up -d',
         cleanup: 'docker-compose down',
-        delay: 5000, // Wait 5 seconds for services to start
+        delay: 5, // Wait 5 seconds for services to start
     },
     env: {
         DATABASE_URL: 'postgresql://localhost:5432/testdb',
@@ -1365,7 +1365,7 @@ Root testme.json5 (quick unit tests):
 ```json5
 {
     depth: 0,
-    execution: {timeout: 5000},
+    execution: {timeout: 5},
 }
 ```
 
@@ -1374,7 +1374,7 @@ integration/testme.json5 (slow integration tests):
 ```json5
 {
     depth: 1,
-    execution: {timeout: 60000},
+    execution: {timeout: 60},
     services: {
         setup: './start-services.sh',
         cleanup: './stop-services.sh',

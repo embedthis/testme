@@ -47,7 +47,7 @@ export abstract class BaseTestHandler implements TestHandler {
      Executes a system command with timeout and environment options
      @param command Command to execute
      @param args Command arguments
-     @param options Execution options (cwd, timeout, env, config for live streaming)
+     @param options Execution options (cwd, timeout, env, config for live streaming, description for error messages)
      @returns Promise resolving to command execution results
      */
     protected async runCommand(
@@ -58,6 +58,7 @@ export abstract class BaseTestHandler implements TestHandler {
             timeout?: number
             env?: Record<string, string>
             config?: TestConfig
+            description?: string
         } = {}
     ): Promise<{exitCode: number; stdout: string; stderr: string}> {
         // Build environment - be defensive about PATH handling on Windows
@@ -110,13 +111,9 @@ export abstract class BaseTestHandler implements TestHandler {
         }
 
         try {
-            // Check if live streaming is enabled (requires TTY and not quiet mode)
-            const shouldStream =
-                options.config?.output?.live &&
-                !options.config?.output?.quiet &&
-                typeof process !== 'undefined' &&
-                process.stdout &&
-                process.stdout.isTTY === true
+            // Check if live streaming is enabled
+            // When user explicitly requests monitor mode (-m/--monitor), honor it regardless of TTY status
+            const shouldStream = options.config?.output?.live && !options.config?.output?.quiet
 
             let stdout = ''
             let stderr = ''
@@ -168,10 +165,12 @@ export abstract class BaseTestHandler implements TestHandler {
                 }
 
                 if (timedOut) {
+                    const timeoutSeconds = Math.round((options.timeout || 0) / 1000)
+                    const description = options.description || `${command} ${args.join(' ')}`
                     return {
                         exitCode: -1,
                         stdout,
-                        stderr: stderr + '\nProcess timed out',
+                        stderr: stderr + `\n${description} timed out after ${timeoutSeconds}s`,
                     }
                 }
 
@@ -196,10 +195,12 @@ export abstract class BaseTestHandler implements TestHandler {
                 }
 
                 if (timedOut) {
+                    const timeoutSeconds = Math.round((options.timeout || 0) / 1000)
+                    const description = options.description || `${command} ${args.join(' ')}`
                     return {
                         exitCode: -1,
                         stdout,
-                        stderr: stderr + '\nProcess timed out',
+                        stderr: stderr + `\n${description} timed out after ${timeoutSeconds}s`,
                     }
                 }
 

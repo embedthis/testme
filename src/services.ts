@@ -136,7 +136,7 @@ export class ServiceManager {
             }
 
             if (timedOut) {
-                throw new Error(`Skip script timed out after ${timeout}ms`)
+                throw new Error(`Skip script '${displayPath}' timed out after ${timeout / 1000}s`)
             } else if (result === 0) {
                 // Exit code 0 means don't skip (run tests)
                 if (config.output?.verbose) {
@@ -220,7 +220,7 @@ export class ServiceManager {
             }
 
             if (timedOut) {
-                throw new Error(`Environment script timed out after ${timeout}ms`)
+                throw new Error(`Environment script '${displayPath}' timed out after ${timeout / 1000}s`)
             } else if (result === 0) {
                 // Parse stdout for key=value pairs
                 const envVars: Record<string, string> = {}
@@ -327,7 +327,7 @@ export class ServiceManager {
             }
 
             if (timedOut) {
-                throw new Error(`Global prep script timed out after ${timeout}ms`)
+                throw new Error(`Global prep script '${displayPath}' timed out after ${timeout / 1000}s`)
             } else if (result === 0) {
                 console.log(`✓ Global prep completed successfully: ${displayPath}`)
             } else {
@@ -406,7 +406,7 @@ export class ServiceManager {
             }
 
             if (timedOut) {
-                throw new Error(`Prep script timed out after ${timeout}ms`)
+                throw new Error(`Prep script '${displayPath}' timed out after ${timeout / 1000}s`)
             } else if (result === 0) {
                 console.log(`✓ Prep script completed successfully: ${displayPath}`)
             } else {
@@ -479,7 +479,7 @@ export class ServiceManager {
             if (timeout > 0) {
                 timeoutId = setTimeout(() => {
                     timedOut = true
-                    console.log(`✗ Setup command timed out after ${timeout}ms`)
+                    console.log(`✗ Setup command '${displayPath}' timed out after ${timeout / 1000}s`)
                     this.killSetup()
                 }, timeout)
             }
@@ -732,7 +732,7 @@ export class ServiceManager {
             }
 
             if (timedOut) {
-                console.log(`✗ Global cleanup command timed out after ${timeout}ms`)
+                console.log(`✗ Global cleanup command '${displayPath}' timed out after ${timeout / 1000}s`)
             } else if (result === 0) {
                 console.log(`✓ Global cleanup completed successfully: ${displayPath}`)
             } else {
@@ -826,7 +826,7 @@ export class ServiceManager {
             }
 
             if (timedOut) {
-                console.log(`✗ Cleanup command timed out after ${timeout}ms`)
+                console.log(`✗ Cleanup command '${displayPath}' timed out after ${timeout / 1000}s`)
             } else if (result === 0) {
                 console.log(`✓ Cleanup completed successfully: ${displayPath}`)
             } else {
