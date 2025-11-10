@@ -397,6 +397,49 @@ TestMe implements robust signal handling for graceful shutdown and process manag
 
 **Usage**: `tm --stop` or `tm --stop "*.tst.c"`
 
+#### Duration Flag (--duration)
+
+**Purpose**: Set a duration value that is exported to tests and service scripts for time-based test control
+
+**Implementation**:
+- CLI flag `--duration <COUNT>` accepts time values with optional suffixes
+- Supports suffixes: no suffix/`sec`/`secs` (seconds), `min`/`mins` (minutes), `hr`/`hrs`/`hour`/`hours` (hours), `day`/`days` (days)
+- Supports decimal values (e.g., `--duration 1.5hours` → 5400 seconds)
+- All values converted to seconds and exported as `TESTME_DURATION` environment variable
+- Available in all test types (C, Shell, JavaScript, TypeScript, Python, Go, Ejscript)
+- Available in all service scripts (skip, environment, prep, setup, cleanup)
+
+**Parsing Logic** (`src/cli.ts:parseDuration()`):
+```typescript
+const match = value.match(/^(\d+(?:\.\d+)?)\s*(secs?|mins?|hours?|hrs?|days?)?$/i)
+const count = parseFloat(match[1]!)
+// Convert based on suffix:
+// - sec/secs: count (seconds)
+// - min/mins: count * 60
+// - hr/hrs/hour/hours: count * 3600
+// - day/days: count * 86400
+```
+
+**Usage Examples**:
+```bash
+tm --duration 30 "stress-test"          # 30 seconds
+tm --duration 5mins "integration-test"  # 300 seconds
+tm --duration 2hrs "soak-test"          # 7200 seconds
+tm --duration 1day "endurance-test"     # 86400 seconds
+```
+
+**Use Cases**:
+- Tests that need to run for a specific duration
+- Load tests that scale based on time
+- Performance tests with configurable run times
+- Integration tests with timeout-based scenarios
+
+**Environment Variable Export**:
+- **Test Execution**: `BaseTestHandler.getTestEnvironment()` exports `TESTME_DURATION` when `config.execution.duration` is set
+- **Service Scripts**: `ServiceManager.getServiceEnvironment()` exports `TESTME_DURATION` for skip, prep, setup, cleanup scripts
+- **Value**: Always in seconds (integer or decimal)
+- **Availability**: Only set when `--duration` flag is provided (not set by default)
+
 ### Test Discovery Process
 
 1. **Recursive Directory Walking**: Starting from root, traverse all subdirectories

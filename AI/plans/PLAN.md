@@ -6,11 +6,22 @@ TestMe is a specialized test runner designed for **core infrastructure projects*
 
 Test files can be written in C, C++, shell scripts, Python, Go or Javascript/Typescript.
 
-**Version**: 0.8.29
-**Last Updated**: 2025-11-04
+**Version**: 0.8.30
+**Last Updated**: 2025-11-11
 
 ## Recently Completed
 
+-   ✅ Duration flag for test control (2025-11-11)
+    -   Added `--duration <COUNT>` CLI flag with time suffix support
+    -   Supports suffixes: no suffix/sec/secs (seconds), min/mins (minutes), hr/hrs/hour/hours (hours), day/days (days)
+    -   Supports decimal values (e.g., `--duration 1.5hours` → 5400 seconds)
+    -   Exports `TESTME_DURATION` environment variable in seconds to all tests and service scripts
+    -   Available in all test types (C, Shell, JavaScript, TypeScript, Python, Go, Ejscript)
+    -   Use cases: load testing, performance testing, time-based integration tests
+-   ✅ Monitor mode streaming fixes (2025-11-10)
+    -   Fixed `--monitor` flag to properly stream test output in real-time
+    -   Added fflush() calls to C test utility functions
+    -   Removed strict TTY requirement when user explicitly requests --monitor
 -   ✅ Configuration inheritance fixes (2025-11-04)
     -   Fixed ${CONFIGDIR} variable expansion in inherited configs
     -   Parent's ${CONFIGDIR} now correctly substituted with absolute path before inheritance

@@ -511,6 +511,9 @@ export class TestRunner {
                         ...(globalConfig.execution?.iterations !== undefined && {
                             iterations: globalConfig.execution.iterations,
                         }),
+                        ...(globalConfig.execution?.duration !== undefined && {
+                            duration: globalConfig.execution.duration,
+                        }),
                     },
                     // Preserve output settings that may have CLI overrides
                     output: {

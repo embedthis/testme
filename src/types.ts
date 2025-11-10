@@ -126,6 +126,7 @@ export type ExecutionConfig = {
     showCommands?: boolean
     iterations?: number
     stopOnFailure?: boolean // Stop testing as soon as a test fails
+    duration?: number // Duration in seconds (exported as TESTME_DURATION)
 }
 
 /*
@@ -249,6 +250,7 @@ export type CliOptions = {
     iterations?: number
     stop: boolean
     live: boolean
+    duration?: number // Duration in seconds
 }
 
 /*

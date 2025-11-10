@@ -32,6 +32,9 @@ Launch debugger for C tests. Uses GDB on Linux and Xcode on macOS.
 .BR \-\-depth " " \fINUMBER\fR
 Run tests with depth requirement <= NUMBER (default: 0). Tests with higher depth requirements in their configuration will be skipped. Sets TESTME_DEPTH environment variable for tests.
 .TP
+.BR \-\-duration " " \fICOUNT\fR
+Set duration count with optional suffix (secs/mins/hrs/hours/days). The duration is converted to seconds and exported as TESTME_DURATION environment variable for tests and service scripts to use. Examples: \fB\-\-duration 30\fR (30 secs), \fB\-\-duration 5mins\fR, \fB\-\-duration 2hrs\fR, \fB\-\-duration 3days\fR.
+.TP
 .BR \-h ", " \-\-help
 Show help message with usage information and examples.
 .TP
@@ -566,6 +569,9 @@ Current depth value from \fB\-\-depth\fR flag
 .TP
 .B $TESTME_ITERATIONS
 Iteration count from \fB\-\-iterations\fR flag (defaults to 1). TestMe does NOT automatically repeat test execution - this variable is provided for tests to implement their own iteration logic internally if needed.
+.TP
+.B $TESTME_DURATION
+Duration in seconds from \fB\-\-duration\fR flag (only set if specified). Tests and service scripts can use this value for timing-related operations or test duration control.
 
 These special variables are available in two ways:
 .RS

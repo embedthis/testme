@@ -293,6 +293,11 @@ Original error: ${error}`
         // Set TESTME_ITERATIONS (default to 1 if not specified)
         env.TESTME_ITERATIONS = (config.execution?.iterations ?? 1).toString()
 
+        // Set TESTME_DURATION if specified
+        if (config.execution?.duration !== undefined) {
+            env.TESTME_DURATION = config.execution.duration.toString()
+        }
+
         // Create special variables for expansion if we have file context
         let specialVars
         if (file) {

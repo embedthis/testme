@@ -728,6 +728,15 @@ class TestMeApp {
             }
         }
 
+        if (options.duration !== undefined) {
+            mergedConfig.execution = {
+                ...mergedConfig.execution,
+                timeout: mergedConfig.execution?.timeout ?? 30000,
+                parallel: mergedConfig.execution?.parallel ?? true,
+                duration: options.duration,
+            }
+        }
+
         if (options.profile !== undefined) {
             mergedConfig.profile = options.profile
         }
@@ -872,6 +881,16 @@ class TestMeApp {
                     timeout: config.execution?.timeout ?? 30,
                     parallel: config.execution?.parallel ?? true,
                     iterations: options.iterations,
+                }
+            }
+
+            // Apply duration flag from CLI - sets duration count
+            if (options.duration !== undefined) {
+                config.execution = {
+                    ...config.execution,
+                    timeout: config.execution?.timeout ?? 30,
+                    parallel: config.execution?.parallel ?? true,
+                    duration: options.duration,
                 }
             }
 

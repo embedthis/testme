@@ -200,6 +200,16 @@ export class CliParser {
                     i++
                     break
 
+                case '--duration':
+                    if (i + 1 < args.length) {
+                        const durationValue = this.parseDuration(args[i + 1]!)
+                        options.duration = durationValue
+                        i += 2
+                    } else {
+                        throw new Error(`${arg} requires a value with optional suffix (secs/mins/hours/hrs/days)`)
+                    }
+                    break
+
                 default:
                     if (arg.startsWith('-')) {
                         throw new Error(`Unknown option: ${arg}`)
@@ -212,6 +222,41 @@ export class CliParser {
         }
 
         return options
+    }
+
+    /*
+     Parses a duration value with optional suffix (secs/mins/hours/days)
+     @param value Duration string (e.g., "30", "5mins", "2hours", "3days")
+     @returns Duration in seconds
+     @throws Error if value is invalid
+     */
+    private static parseDuration(value: string): number {
+        const match = value.match(/^(\d+(?:\.\d+)?)\s*(secs?|mins?|hours?|hrs?|days?)?$/i)
+        if (!match) {
+            throw new Error(
+                `Invalid duration format: "${value}". Expected format: <count>[secs|mins|hours|hrs|days]`
+            )
+        }
+
+        const count = parseFloat(match[1]!)
+        const suffix = match[2]?.toLowerCase() || ''
+
+        if (count < 0) {
+            throw new Error(`Duration must be non-negative: ${value}`)
+        }
+
+        // Convert to seconds based on suffix
+        if (!suffix || suffix === 'sec' || suffix === 'secs') {
+            return count
+        } else if (suffix === 'min' || suffix === 'mins') {
+            return count * 60
+        } else if (suffix === 'hour' || suffix === 'hours' || suffix === 'hr' || suffix === 'hrs') {
+            return count * 3600
+        } else if (suffix === 'day' || suffix === 'days') {
+            return count * 86400
+        }
+
+        throw new Error(`Unknown duration suffix: "${suffix}". Use secs, mins, hours, hrs, or days`)
     }
 
     /*
@@ -236,28 +281,31 @@ ARGUMENTS:
                   - Path patterns: "**/math*", "tests/*.tst.c"
 
 OPTIONS:
-        --chdir <DIR>      Change to directory before running tests
-        --clean            Clean all .testme artifact directories and exit
-    -c, --config <FILE>    Use specific configuration file
-        --continue         Continue running tests even if some fail, always exit with 0
-    -d, --debug            Launch debugger (GDB on Linux, Xcode on macOS)
-        --depth <NUMBER>   Run tests with depth requirement <= NUMBER (default: 0)
-    -h, --help             Show this help message
-    -i, --iterations <N>   Set iteration count (exports TESTME_ITERATIONS for tests to use, TestMe does not repeat execution)
-        --init             Create testme.json5 configuration file in current directory
-    -k, --keep             Keep .testme artifacts after successful tests (failed tests always keep)
-    -l, --list             List discovered tests without running them
-    -m, --monitor          Stream test output in real-time to console (requires TTY)
-    -n, --no-services      Skip all service commands (skip, prep, setup, cleanup)
-        --new <NAME>       Create new test file from template (e.g., --new math.c)
-    -p, --profile <NAME>   Set build profile (overrides config and env.PROFILE)
-    -q, --quiet            Run silently with no output, only exit codes
-    -s, --show             Display test configuration and environment variables
-        --step             Run tests one at a time with prompts (forces serial mode)
-        --stop             Stop immediately when a test fails (fast-fail mode)
-    -v, --verbose          Enable verbose mode with detailed output and TESTME_VERBOSE
-    -V, --version          Show version information
-    -w, --workers <NUMBER> Number of parallel workers (overrides config)
+        --chdir <DIR>        Change to directory before running tests
+        --clean              Clean all .testme artifact directories and exit
+    -c, --config <FILE>      Use specific configuration file
+        --continue           Continue running tests even if some fail, always exit with 0
+    -d, --debug              Launch debugger (GDB on Linux, Xcode on macOS)
+        --depth <NUMBER>     Run tests with depth requirement <= NUMBER (default: 0)
+        --duration <COUNT>   Set duration count with optional suffix (secs/mins/hrs/hours/days)
+                             Exports TESTME_DURATION in seconds to tests and scripts
+                             Examples: --duration 30, --duration 5mins, --duration 2hrs, --duration 3days
+    -h, --help               Show this help message
+    -i, --iterations <N>     Set iteration count (exports TESTME_ITERATIONS for tests to use, TestMe does not repeat execution)
+        --init               Create testme.json5 configuration file in current directory
+    -k, --keep               Keep .testme artifacts after successful tests (failed tests always keep)
+    -l, --list               List discovered tests without running them
+    -m, --monitor            Stream test output in real-time to console (requires TTY)
+    -n, --no-services        Skip all service commands (skip, prep, setup, cleanup)
+        --new <NAME>         Create new test file from template (e.g., --new math.c)
+    -p, --profile <NAME>     Set build profile (overrides config and env.PROFILE)
+    -q, --quiet              Run silently with no output, only exit codes
+    -s, --show               Display test configuration and environment variables
+        --step               Run tests one at a time with prompts (forces serial mode)
+        --stop               Stop immediately when a test fails (fast-fail mode)
+    -v, --verbose            Enable verbose mode with detailed output and TESTME_VERBOSE
+    -V, --version            Show version information
+    -w, --workers <NUMBER>   Number of parallel workers (overrides config)
 
 EXAMPLES:
     # Getting Started

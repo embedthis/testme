@@ -749,6 +749,7 @@ All available options sorted alphabetically:
 | `--continue`           | Continue running tests even if some fail, always exit with code 0                                    |
 | `-d, --debug`          | Launch debugger (GDB on Linux, Xcode/LLDB on macOS, VS on Windows)                                   |
 | `--depth <N>`          | Run tests with depth requirement ≤ N (default: 0)                                                    |
+| `--duration <COUNT>`   | Set duration with optional suffix (secs/mins/hrs/hours/days). Exports `TESTME_DURATION` in seconds   |
 | `-h, --help`           | Show help message                                                                                    |
 | `--init`               | Create `testme.json5` configuration file in current directory                                        |
 | `-i, --iterations <N>` | Set iteration count (exports `TESTME_ITERATIONS` for tests to use internally, does not repeat tests) |
@@ -1232,6 +1233,7 @@ TestMe automatically exports these special environment variables to all tests an
 - `TESTME_DEPTH` - Current depth value from `--depth` flag
 - `TESTME_ITERATIONS` - Iteration count from `--iterations` flag (defaults to `1`)
     - **Note**: TestMe does NOT automatically repeat test execution. This variable is provided for tests to implement their own iteration logic internally if needed.
+- `TESTME_DURATION` - Duration in seconds from `--duration` flag (only set if specified). Tests and service scripts can use this value for timing-related operations or test duration control.
 
 These variables are available in all test and service script environments and can be used in shell scripts (e.g., `$TESTME_PLATFORM`), C code (via `getenv("TESTME_PLATFORM")`), or JavaScript/TypeScript (via `process.env.TESTME_PLATFORM`).
 

@@ -1054,6 +1054,7 @@ export class ServiceManager {
               - TESTME_KEEP: 1 if keepArtifacts is enabled, 0 otherwise
               - TESTME_DEPTH: Depth value if --depth specified
               - TESTME_ITERATIONS: Iteration count if --iterations specified
+              - TESTME_DURATION: Duration in seconds if --duration specified
      */
     private async getServiceEnvironment(config: TestConfig): Promise<Record<string, string>> {
         // Start with process environment, then add environment script variables
@@ -1116,12 +1117,15 @@ export class ServiceManager {
         env.TESTME_QUIET = config.output?.quiet === true ? '1' : '0'
         env.TESTME_KEEP = config.execution?.keepArtifacts === true ? '1' : '0'
 
-        // Export depth and iterations if set
+        // Export depth, iterations, and duration if set
         if (config.execution?.depth !== undefined) {
             env.TESTME_DEPTH = String(config.execution.depth)
         }
         if (config.execution?.iterations !== undefined) {
             env.TESTME_ITERATIONS = String(config.execution.iterations)
+        }
+        if (config.execution?.duration !== undefined) {
+            env.TESTME_DURATION = String(config.execution.duration)
         }
 
         // Add environment variables from configuration with expansion

@@ -1,5 +1,71 @@
 # TestMe Changelog
 
+## 2025-11-10
+
+### Fixed Monitor Mode Not Streaming Output in Real-Time
+
+- **FIX**: `--monitor` (`-m`) flag now correctly streams test output in real-time during test execution
+    - **Problem**: Output appeared only after test completion instead of streaming progressively
+    - **Root Causes**:
+        1. **C Tests**: The `testme.h` header functions (`tinfo`, `tdebug`, `tskip`, `twrite`, `tReport`) were not flushing stdout/stderr after printf calls, causing buffered output when stdout was piped to the test runner
+        2. **TTY Check**: The `base.ts` handler enforced strict TTY check (`process.stdout.isTTY === true`), preventing streaming when user explicitly requested `--monitor` but output was piped
+    - **Solution**:
+        - Added `fflush(stdout)` and `fflush(stderr)` after all printf/fprintf calls in C test utility functions in [src/modules/c/testme.h](../../src/modules/c/testme.h)
+        - Removed strict TTY requirement in [src/handlers/base.ts:114-115](../../src/handlers/base.ts#L114-L115) - when user explicitly requests `--monitor`, honor it regardless of TTY status
+        - Added description parameter to `runCommand` calls for better timeout error messages
+    - **Impact**:
+        - ✅ Long-running tests (like memory leak detection) now show progress in real-time
+        - ✅ Works with all test types (C, JavaScript, TypeScript, Python, Go, Shell)
+        - ✅ Better timeout error messages showing test name and duration
+    - **Files Modified**:
+        - [src/modules/c/testme.h](../../src/modules/c/testme.h) - Added fflush() calls to all output functions
+        - [src/handlers/base.ts](../../src/handlers/base.ts) - Removed strict TTY check
+        - [src/handlers/c.ts](../../src/handlers/c.ts) - Added description to runCommand calls
+        - [src/handlers/shell.ts](../../src/handlers/shell.ts) - Added description to runCommand calls
+        - [src/handlers/typescript.ts](../../src/handlers/typescript.ts) - Added description to runCommand calls
+        - [src/handlers/ejscript.ts](../../src/handlers/ejscript.ts) - Added description to runCommand calls
+        - [src/services.ts](../../src/services.ts) - Improved timeout error messages
+        - [test/testme.h](../../test/testme.h) - Updated local copy of testme.h
+
+### Skipped Go Tests on Windows
+
+- **TEST**: Added platform detection to skip Go tests on Windows
+    - **Problem**: Go tests were failing on Windows CI/CD pipelines where the Go toolchain may not be available or compatible
+    - **Solution**: Updated `test/go/skip.js` to detect Windows platform (`process.platform === 'win32'`) and skip tests before checking for Go installation
+    - **Impact**: Tests no longer fail on Windows CI/CD pipelines due to missing Go support
+    - **Files Modified**:
+        - [test/go/skip.js](../../test/go/skip.js) - Added Windows platform check
+
+### Added Duration Flag for Test Control
+
+- **DEV**: Added `--duration <COUNT>` CLI flag to set a duration value exported to tests and service scripts
+    - **Feature**: Tests can now receive a duration parameter via the `TESTME_DURATION` environment variable
+    - **Implementation**:
+        - Supports multiple time unit suffixes: no suffix/`sec`/`secs` (seconds), `min`/`mins` (minutes), `hr`/`hrs`/`hour`/`hours` (hours), `day`/`days` (days)
+        - Supports decimal values (e.g., `--duration 1.5hours` → 5400 seconds)
+        - Duration is always converted to seconds and exported as `TESTME_DURATION`
+        - Available in all test types (C, Shell, JavaScript, TypeScript, Python, Go, Ejscript)
+        - Available in all service scripts (skip, environment, prep, setup, cleanup)
+    - **Usage Examples**:
+        - `tm --duration 30 "stress-test"` - 30 seconds
+        - `tm --duration 5mins "integration-test"` - 5 minutes = 300 seconds
+        - `tm --duration 2hrs "soak-test"` - 2 hours = 7200 seconds
+        - `tm --duration 1day "endurance-test"` - 1 day = 86400 seconds
+    - **Use Cases**:
+        - Tests that need to run for a specific duration
+        - Load tests that scale based on time
+        - Performance tests with configurable run times
+        - Integration tests with timeout-based scenarios
+    - **Files Modified**:
+        - [src/cli.ts](../../src/cli.ts) - Added CLI flag parsing with `parseDuration()` helper function
+        - [src/types.ts](../../src/types.ts) - Added `duration` field to `ExecutionConfig` and `CliOptions` types
+        - [src/handlers/base.ts](../../src/handlers/base.ts) - Export `TESTME_DURATION` environment variable in test execution
+        - [src/services.ts](../../src/services.ts) - Export `TESTME_DURATION` environment variable in service scripts
+        - [src/index.ts](../../src/index.ts) - Apply CLI overrides for duration setting
+        - [src/runner.ts](../../src/runner.ts) - Preserve duration in test-specific config merging
+        - [doc/tm.1](../../doc/tm.1) - Updated man page documentation
+        - [README.md](../../README.md) - Updated README with flag details and environment variable info
+
 ## 2025-11-05
 
 ### Fixed TESTME_STOP Not Being Set for Tests
