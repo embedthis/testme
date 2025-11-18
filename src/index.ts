@@ -8,7 +8,7 @@ import {TestDiscovery} from './discovery.ts'
 import {VERSION} from './version.ts'
 import type {TestConfig, TestFile} from './types.ts'
 import {TestStatus} from './types.ts'
-import {resolve, relative, join} from 'path'
+import {resolve, relative, join, sep} from 'path'
 import {writeFile} from 'fs/promises'
 import {existsSync} from 'fs'
 
@@ -357,6 +357,17 @@ class TestMeApp {
             return true
         }
 
+        // Also check without full test extension (e.g., "fuzz/tls" matches "fuzz/tls.tst.c")
+        const testBaseName = this.getTestBaseName(test.name)
+        const relativeDir = test.directory.startsWith(rootDir)
+            ? test.directory.slice(rootDir.length).replace(/^[\/\\]/, '')
+            : ''
+        const relativePathWithoutTestExt = relativeDir ? `${relativeDir}/${testBaseName}` : testBaseName
+        const normalizedRelativePathWithoutTestExt = relativePathWithoutTestExt.replace(/\\/g, '/')
+        if (normalizedRelativePathWithoutTestExt === normalizedPattern) {
+            return true
+        }
+
         return false
     }
 
@@ -392,13 +403,15 @@ class TestMeApp {
      @param patterns Optional patterns to filter tests
      @param baseConfig Base configuration to inherit from
      @param options CLI options
+     @param invocationDir Original directory where tm was invoked (before chdir)
      @returns Exit code
      */
     private async executeHierarchically(
         rootDir: string,
         patterns: string[],
         baseConfig: TestConfig,
-        options: any
+        options: any,
+        invocationDir: string
     ): Promise<number> {
         // Discover all tests in the directory tree using config patterns
         // This ensures we find all potential test files based on their extensions
@@ -462,20 +475,56 @@ class TestMeApp {
                 continue
             }
 
-            // Filter manual tests - only run if explicitly named
+            // Filter manual tests - only run if explicitly named or invoked from within the manual directory
             let filteredTests = tests
             if (mergedConfig.enable === 'manual') {
+                // Check if tm was invoked from within this config directory (use invocationDir, not cwd after chdir)
+                const isInvokedFromManualDir = invocationDir === configDir || invocationDir.startsWith(configDir + sep)
+
                 // Check if any patterns were provided
                 const hasExplicitPatterns = patterns.length > 0 && patterns.some((p) => this.isExplicitPattern(p))
 
-                if (hasExplicitPatterns) {
+                if (isInvokedFromManualDir && patterns.length === 0) {
+                    // Invoked from manual directory without patterns - run all tests in this group
+                    // This is treated as an explicit manual invocation
+                    if (mergedConfig.output?.verbose) {
+                        console.log(
+                            `\n✓ Running manual tests in: ${relative(rootDir, configDir) || '.'} (invoked from manual directory)`
+                        )
+                    }
+                } else if (hasExplicitPatterns) {
                     // Only include tests that match explicit patterns
                     filteredTests = tests.filter((test) =>
-                        patterns.some(
-                            (pattern) =>
-                                this.isExplicitPattern(pattern) &&
-                                this.testMatchesExplicitPattern(test, pattern, rootDir)
-                        )
+                        patterns.some((pattern) => {
+                            if (!this.isExplicitPattern(pattern)) {
+                                return false
+                            }
+
+                            // For manual tests NOT invoked from manual directory,
+                            // require that the pattern explicitly includes the directory path
+                            if (!isInvokedFromManualDir) {
+                                // Get relative path from rootDir to configDir
+                                const relativeConfigDir =
+                                    configDir === rootDir ? '' : configDir.replace(rootDir + '/', '').replace(/\\/g, '/')
+                                const normalizedPattern = pattern.replace(/\\/g, '/')
+
+                                // If we have a config directory (not root), check if pattern references it
+                                if (relativeConfigDir) {
+                                    // Pattern must include the config directory path
+                                    // Examples: "fuzz/tls", "fuzz/tls.tst.c"
+                                    const configDirWithSlash = relativeConfigDir + '/'
+                                    if (
+                                        !normalizedPattern.startsWith(configDirWithSlash) &&
+                                        normalizedPattern !== relativeConfigDir
+                                    ) {
+                                        // Pattern doesn't reference this manual directory, skip this test
+                                        return false
+                                    }
+                                }
+                            }
+
+                            return this.testMatchesExplicitPattern(test, pattern, rootDir)
+                        })
                     )
 
                     if (filteredTests.length === 0) {
@@ -487,7 +536,7 @@ class TestMeApp {
                         continue
                     }
                 } else {
-                    // No explicit patterns - skip all manual tests
+                    // No explicit patterns and not invoked from manual directory - skip all manual tests
                     if (mergedConfig.output?.verbose) {
                         console.log(
                             `\n⏭️  Skipping manual tests in: ${relative(rootDir, configDir) || '.'} (not explicitly named)`
@@ -737,6 +786,14 @@ class TestMeApp {
             }
         }
 
+        if (options.timeout !== undefined) {
+            mergedConfig.execution = {
+                ...mergedConfig.execution,
+                timeout: options.timeout,
+                parallel: mergedConfig.execution?.parallel ?? true,
+            }
+        }
+
         if (options.profile !== undefined) {
             mergedConfig.profile = options.profile
         }
@@ -788,6 +845,9 @@ class TestMeApp {
                 await handleNew(options.new)
                 return 0
             }
+
+            // Capture invocation directory before chdir
+            const invocationDir = process.cwd()
 
             // Handle chdir option
             if (options.chdir) {
@@ -914,7 +974,7 @@ class TestMeApp {
                         excludePatterns: config.patterns?.exclude || [],
                     },
                     config,
-                    rootDir,
+                    invocationDir,
                     options.patterns
                 )
                 return 0
@@ -948,7 +1008,7 @@ class TestMeApp {
                 }
             }
 
-            return await this.executeHierarchically(rootDir, options.patterns, config, options)
+            return await this.executeHierarchically(rootDir, options.patterns, config, options, invocationDir)
         } catch (error) {
             // Only run cleanup if parsing completed and services were potentially started
             if (parsingComplete && options && !options.noServices && this.serviceManagers.size > 0) {

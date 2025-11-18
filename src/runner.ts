@@ -346,7 +346,12 @@ export class TestRunner {
                     )
                 }
             } else if (groupConfig.enable === 'manual') {
-                // Manual tests are only listed if CLI pattern explicitly targets this config directory or specific tests
+                // Check if tm was invoked from within this config directory
+                const cwd = invocationDir || process.cwd()
+                const {sep} = await import('path')
+                const isInvokedFromManualDir = cwd === configDir || cwd.startsWith(configDir + sep)
+
+                // Manual tests are listed if invoked from manual directory OR if CLI pattern explicitly targets this config directory or specific tests
                 const relativeConfigDir =
                     configDir === options.rootDir ? '.' : configDir.replace(options.rootDir + '/', '')
                 const isExplicitlyTargeted =
@@ -355,10 +360,25 @@ export class TestRunner {
                     cliPatterns.some((p) => {
                         if (p.includes('*') || p.includes('?')) return false
 
+                        const normalizedPattern = p.replace(/\/$/, '').replace(/\\/g, '/')
+                        const normalizedConfigDir = relativeConfigDir.replace(/\/$/, '').replace(/\\/g, '/')
+
                         // Check if pattern matches the config directory
-                        const normalizedPattern = p.replace(/\/$/, '')
-                        const normalizedConfigDir = relativeConfigDir.replace(/\/$/, '')
                         if (normalizedPattern === normalizedConfigDir) return true
+
+                        // For manual tests NOT invoked from manual directory,
+                        // pattern must explicitly reference the directory path
+                        if (!isInvokedFromManualDir && relativeConfigDir !== '.') {
+                            // Pattern must include the config directory path
+                            const configDirWithSlash = normalizedConfigDir + '/'
+                            if (
+                                !normalizedPattern.startsWith(configDirWithSlash) &&
+                                normalizedPattern !== normalizedConfigDir
+                            ) {
+                                // Pattern doesn't reference this manual directory
+                                return false
+                            }
+                        }
 
                         // Check if pattern matches any test in this group (by base name or full path)
                         return groupTests.some((test) => {
@@ -371,11 +391,22 @@ export class TestRunner {
                                 : test.path
                             const normalizedRelativePath = relativePath.replace(/\\/g, '/')
                             const normalizedP = p.replace(/\\/g, '/')
-                            return normalizedRelativePath === normalizedP
+                            if (normalizedRelativePath === normalizedP) return true
+
+                            // Also check path without test extension (e.g., "fuzz/tls" matches "fuzz/tls.tst.c")
+                            const relativeDir = test.directory.startsWith(options.rootDir)
+                                ? test.directory.slice(options.rootDir.length).replace(/^[\/\\]/, '')
+                                : ''
+                            const relativePathWithoutTestExt = relativeDir ? `${relativeDir}/${baseName}` : baseName
+                            const normalizedRelativePathWithoutTestExt = relativePathWithoutTestExt.replace(/\\/g, '/')
+                            return normalizedRelativePathWithoutTestExt === normalizedP
                         })
                     })
 
-                if (isExplicitlyTargeted) {
+                if (isInvokedFromManualDir && (!cliPatterns || cliPatterns.length === 0)) {
+                    // Invoked from manual directory without patterns - list all tests
+                    enabledTests.push(...groupTests)
+                } else if (isExplicitlyTargeted) {
                     enabledTests.push(...groupTests)
                 } else if (config.output?.verbose) {
                     console.log(`⏭️  Manual tests in: ${relativeConfigDir} (use explicit name to list)`)

@@ -97,6 +97,42 @@ async function test() {
     }
     console.log('✓ Manual tests correctly appear in list')
 
+    // Test 6: Running tm with same-name pattern should only run top-level test (not manual subdir)
+    console.log('\n6. Running tm same-name (should only run top-level test, not manual subdir)...')
+    const result6 = await runTm(['same-name'])
+    const total6 = extractTotalTests(result6.stdout)
+    if (!result6.stdout.includes('PASSED') || result6.exitCode !== 0 || total6 !== 1) {
+        console.log('STDOUT:', result6.stdout)
+        console.log('STDERR:', result6.stderr)
+        throw new Error(
+            `Should only run top-level test, not manual subdir test - got Total: ${total6}, exit: ${result6.exitCode}`
+        )
+    }
+    // Verify that it ran only in the root directory (not in manual-subdir)
+    if (!result6.stdout.includes('Running 1 test(s) in: .')) {
+        console.log('STDOUT:', result6.stdout)
+        throw new Error('Should have run the test in root directory')
+    }
+    console.log('✓ Correctly ran only top-level test, skipped manual subdir test')
+
+    // Test 7: Running tm manual-subdir/same-name should run the manual test
+    console.log('\n7. Running tm manual-subdir/same-name (should run manual test)...')
+    const result7 = await runTm(['manual-subdir/same-name'])
+    const total7 = extractTotalTests(result7.stdout)
+    if (!result7.stdout.includes('PASSED') || result7.exitCode !== 0 || total7 !== 1) {
+        console.log('STDOUT:', result7.stdout)
+        console.log('STDERR:', result7.stderr)
+        throw new Error(
+            `Manual test should run when explicitly named with directory path - got Total: ${total7}, exit: ${result7.exitCode}`
+        )
+    }
+    // Verify that it ran in the manual-subdir
+    if (!result7.stdout.includes('Running 1 test(s) in: manual-subdir')) {
+        console.log('STDOUT:', result7.stdout)
+        throw new Error('Should have run the test in manual-subdir')
+    }
+    console.log('✓ Manual test correctly ran when explicitly named with directory path')
+
     console.log('\n✅ All manual filtering tests passed!')
 }
 
