@@ -229,7 +229,8 @@ export class ConfigManager {
                     const file = Bun.file(configPath)
                     if (await file.exists()) {
                         // Calculate depth (number of path separators)
-                        const depth = currentDir.split('/').filter((s) => s).length
+                        // Normalize backslashes to forward slashes for Windows compatibility
+                        const depth = currentDir.replace(/\\/g, '/').split('/').filter((s) => s).length
 
                         // Keep the shallowest config (fewest directory levels)
                         if (depth < shallowestDepth) {
