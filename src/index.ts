@@ -448,7 +448,9 @@ class TestMeApp {
 
         // Run global prep once before all test groups (if configured in root config)
         if (!options.noServices && rootConfig.services?.globalPrep) {
-            await this.getGlobalServiceManager(rootConfig.configDir || rootDir).runGlobalPrep(rootConfig)
+            // Apply CLI overrides to rootConfig so verbose mode works for global prep
+            const rootConfigWithOverrides = this.applyCliOverrides(rootConfig, options)
+            await this.getGlobalServiceManager(rootConfig.configDir || rootDir).runGlobalPrep(rootConfigWithOverrides)
         }
 
         let allResults: any[] = []
@@ -636,9 +638,11 @@ class TestMeApp {
 
         // Run global cleanup once after all test groups (if configured in root config)
         if (!options.noServices && rootConfig.services?.globalCleanup) {
+            // Apply CLI overrides to rootConfig so verbose mode works for global cleanup
+            const rootConfigWithOverrides = this.applyCliOverrides(rootConfig, options)
             const allTestsPassed = totalExitCode === 0
             await this.getGlobalServiceManager(rootConfig.configDir || rootDir).runGlobalCleanup(
-                rootConfig,
+                rootConfigWithOverrides,
                 allTestsPassed
             )
         }
