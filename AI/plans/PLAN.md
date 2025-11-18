@@ -7,10 +7,22 @@ TestMe is a specialized test runner designed for **core infrastructure projects*
 Test files can be written in C, C++, shell scripts, Python, Go or Javascript/Typescript.
 
 **Version**: 0.8.30
-**Last Updated**: 2025-11-11
+**Last Updated**: 2025-11-18
 
 ## Recently Completed
 
+-   ✅ Global prep/cleanup verbose output fix (2025-11-18)
+    -   Fixed global prep and cleanup scripts not showing output in verbose mode
+    -   Applied CLI overrides to rootConfig before service execution
+    -   Ensures consistent behavior with regular prep/cleanup scripts
+-   ✅ Global prep Windows path fix (2025-11-18)
+    -   Fixed global prep not running on Windows with specific test patterns
+    -   Normalized backslashes to forward slashes in path depth calculation
+    -   Corrects shallowest config detection on Windows CI/CD environments
+-   ✅ Manual test filtering fix (2025-11-18)
+    -   Fixed base name patterns matching manual tests from parent directory
+    -   Requires explicit directory path in pattern when not invoked from manual directory
+    -   Prevents accidental execution of manual tests with common names
 -   ✅ Duration flag for test control (2025-11-11)
     -   Added `--duration <COUNT>` CLI flag with time suffix support
     -   Supports suffixes: no suffix/sec/secs (seconds), min/mins (minutes), hr/hrs/hour/hours (hours), day/days (days)
