@@ -48,6 +48,13 @@ extern "C" {
 //  Short sleep duration in microseconds (5ms)
 #define TM_SHORT_NAP   5000
 
+//  Suppress unused function warnings for static helper functions
+#if defined(__GNUC__) || defined(__clang__)
+    #define TM_UNUSED __attribute__((unused))
+#else
+    #define TM_UNUSED
+#endif
+
 /*********************************** Functions *********************************/
 
 /**
@@ -68,7 +75,7 @@ int tdepth(void)
     Exit the test on failure. If TESTME_SLEEP environment variable is set, pause for debugging.
     @param success Test success status. If false, exits or pauses for debugging.
  */
-static void texit(int success) {
+TM_UNUSED static void texit(int success) {
     if (success) {
         return;
     }
@@ -134,7 +141,7 @@ int thas(const char *key)
     @param loc The location of the test.
     @param fmt Message to emit
  */
-static void tReport(int success, const char *loc, const char *expected, const char *received,
+TM_UNUSED static void tReport(int success, const char *loc, const char *expected, const char *received,
     const char *fmt, ...) {
     va_list     ap;
     char        buf[TM_MAX_BUFFER];
