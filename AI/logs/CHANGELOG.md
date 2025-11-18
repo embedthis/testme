@@ -2,6 +2,32 @@
 
 ## 2025-11-18
 
+### Fixed Global Prep/Cleanup Output Not Shown in Verbose Mode
+
+- **FIX**: Fixed global prep and global cleanup scripts not emitting stdout/stderr output when running with `--verbose` (`-v`) flag
+    - **Issue**: Regular prep/cleanup scripts would show output in verbose mode, but global prep/cleanup scripts would not
+    - **Root Cause**: Global services were using raw `rootConfig` without applying CLI overrides (like `--verbose`)
+    - **Fix**: Applied CLI overrides to `rootConfig` before calling `runGlobalPrep()` and `runGlobalCleanup()`
+    - **Implementation**:
+        - Global prep fix in [src/index.ts:451-453](../../src/index.ts#L451-L453)
+        - Global cleanup fix in [src/index.ts:639-645](../../src/index.ts#L639-L645)
+    - **Impact**: Developers can now see debug output from global prep/cleanup scripts when troubleshooting test setup issues
+    - **Files Modified**:
+        - [src/index.ts](../../src/index.ts) - Applied CLI overrides to global service configs
+
+### Fixed Global Prep Not Running on Windows
+
+- **FIX**: Fixed global prep scripts not running on Windows when specific test patterns were provided
+    - **Issue**: Global prep would not run on Windows CI/CD when using patterns like `tm test/web/tls`
+    - **Root Cause**: Path depth calculation in `findRootConfig()` only split on forward slashes (`/`), treating Windows paths like `D:\a\agent\agent\test\web` as a single segment instead of 6 segments
+    - **Fix**: Normalized backslashes to forward slashes before calculating path depth
+    - **Implementation**:
+        - Path depth calculation fix in [src/config.ts:232-233](../../src/config.ts#L232-L233)
+        - Changed from `currentDir.split('/')` to `currentDir.replace(/\\/g, '/').split('/')`
+    - **Impact**: Global prep scripts now run correctly on Windows CI/CD pipelines and local Windows development environments
+    - **Files Modified**:
+        - [src/config.ts](../../src/config.ts) - Windows path normalization in depth calculation
+
 ### Fixed Manual Test Filtering with Same-Name Tests
 
 - **FIX**: Fixed manual test filtering to prevent running manual tests when using base name patterns from outside the manual directory
