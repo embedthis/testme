@@ -607,6 +607,47 @@ return await this.runCommand(binaryPath, [], {
 })
 ```
 
+#### Compiler Warnings and Output Visibility
+
+TestMe provides flexible control over compiler output visibility:
+
+**Default Behavior:**
+
+-   Successful compilation: Shows "Compilation completed" (warnings are hidden)
+-   Failed compilation: Shows full compiler error output including stderr
+-   All compilation output (stdout/stderr) is always saved to `.testme/<test>/compile.log`
+
+**Viewing Compiler Warnings:**
+
+To see compiler warnings from successful compilations, use both `--show` and `--verbose` flags together:
+
+```bash
+tm -s -v test.tst.c          # Shows config, compile command, and compiler output (including warnings)
+tm -s test.tst.c             # Shows config and compile command only
+tm -v test.tst.c             # Shows verbose test output only
+tm test.tst.c                # Normal mode, warnings hidden
+```
+
+**Output Format with `-s -v`:**
+
+```
+COMPILATION:
+STDERR (warnings):
+/path/to/test.tst.c:4:9: warning: unused variable 'var' [-Wunused-variable]
+    4 |     int var = 42;
+      |         ^~~
+1 warning generated.
+
+EXECUTION STDOUT:
+Test passed
+```
+
+This design provides:
+
+-   Clean output by default for passing tests
+-   Full compiler diagnostic visibility when needed for debugging
+-   Persistent logging in artifact directory for post-mortem analysis
+
 ### Integrated Debugging Support
 
 TestMe provides integrated debugging support for all test languages using the `--debug` flag. The debugging system uses platform-appropriate debuggers and properly configures the environment and working directory.
@@ -1152,7 +1193,7 @@ This enables cross-platform configuration files without platform-specific PATH s
 
 ```typescript
 type TestConfig = {
-    enable?: boolean | 'manual' // Enable (true), disable (false), or run only when explicitly named ('manual')
+    enable?: boolean | 'manual' // Enable (true), disable (false), or run when explicitly named or invoked from manual directory ('manual')
     depth?: number // Minimum depth required to run tests (default: 0)
     profile?: string // Build profile (dev, prod, debug, release, etc.) - defaults to env.PROFILE or 'dev'
     compiler?: {
@@ -1380,7 +1421,7 @@ The `enable` field controls test execution with three modes:
 {
     enable: true, // Run tests normally (default)
     enable: false, // Disable all tests in this directory
-    enable: 'manual', // Only run when explicitly named
+    enable: 'manual', // Only run when explicitly named or invoked from manual directory
 }
 ```
 
@@ -1391,15 +1432,23 @@ The `enable` field controls test execution with three modes:
     -   Verbose output shows "🚫 Tests disabled in: <directory>" message
     -   Silent operation shows no message
     -   Disabled tests are filtered out from `--list` output
--   **`enable: 'manual'`**: Tests only run when explicitly named (new in 2025-10-07)
-    -   Excluded from directory-level patterns (e.g., running `tm` in a directory)
-    -   Excluded from wildcard patterns (e.g., `*.tst.c`, `test*`)
-    -   Included when named explicitly by:
-        -   Full path: `tm test/slow.tst.c`
-        -   Base name: `tm slow`
-        -   Filename: `tm slow.tst.c`
-    -   Verbose output shows "⏭️ Skipping manual tests in: <directory> (not explicitly named)" when excluded
-    -   Manual tests appear in `--list` output when explicitly named
+-   **`enable: 'manual'`**: Tests run when explicitly named or when invoked from the manual directory (enhanced 2025-11-12)
+    -   Excluded when invoked from parent directories with wildcard patterns (e.g., `*.tst.c`, `test*`)
+    -   Excluded when invoked from parent directories without patterns (e.g., running `tm` in parent directory)
+    -   **Included when:**
+        -   Named explicitly by full path: `tm test/slow.tst.c`
+        -   Named explicitly by base name: `tm slow`
+        -   Named explicitly by filename: `tm slow.tst.c`
+        -   **Invoked from within the manual directory**: `cd manual_test_dir && tm` (new in 2025-11-12)
+        -   **Invoked from within subdirectories of manual directory**: `cd manual_test_dir/subdir && tm`
+    -   Implementation:
+        -   Captures invocation directory before `--chdir` is applied
+        -   Checks if invocation directory is within or equal to config directory with manual enable
+        -   Works correctly with `--chdir` option by using pre-chdir invocation directory
+    -   Verbose output:
+        -   Shows "⏭️ Skipping manual tests in: <directory> (not explicitly named)" when excluded
+        -   Shows "✓ Running manual tests in: . (invoked from manual directory)" when included via directory invocation
+    -   Manual tests appear in `--list` output when explicitly named or when listing from manual directory
 
 **Use Cases:**
 

@@ -316,7 +316,24 @@ export class CTestHandler extends BaseTestHandler {
         })
 
         const success = result.exitCode === 0
-        const output = result.stdout || 'Compilation completed'
+
+        // Build compilation output
+        let output = result.stdout || 'Compilation completed'
+
+        // If --show and --verbose are both enabled, include full compilation output (stdout + stderr with warnings)
+        if (config.execution?.showCommands && config.output?.verbose && success) {
+            const compileOutput: string[] = []
+            if (result.stdout && result.stdout.trim()) {
+                compileOutput.push(`STDOUT:\n${result.stdout}`)
+            }
+            if (result.stderr && result.stderr.trim()) {
+                compileOutput.push(`STDERR (warnings):\n${result.stderr}`)
+            }
+            if (compileOutput.length > 0) {
+                output = compileOutput.join('\n\n')
+            }
+        }
+
         let error = result.exitCode !== 0 ? result.stderr : undefined
 
         // Enhance error messages for common compilation failures

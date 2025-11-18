@@ -251,6 +251,7 @@ export type CliOptions = {
     stop: boolean
     live: boolean
     duration?: number // Duration in seconds
+    timeout?: number // Timeout in seconds (overrides config)
 }
 
 /*

@@ -63,13 +63,19 @@ Set build profile (overrides configuration and PROFILE environment variable). Us
 Run silently with no output, only exit codes. Useful for scripting and automation.
 .TP
 .BR \-s ", " \-\-show
-Display test configuration and environment variables. Shows the full test configuration, compiler commands (for C tests), and all environment variables passed to tests. Useful for debugging test execution and environment setup.
+Display test configuration and environment variables. Shows the full test configuration, compiler commands (for C tests), and all environment variables passed to tests. When combined with \fB\-\-verbose\fR, also displays full compilation output including compiler warnings from stderr. Useful for debugging test execution and environment setup.
 .TP
 .BR \-\-step
 Run tests one at a time with prompts. Forces serial mode and prompts before each test execution.
 .TP
+.BR \-\-stop
+Stop immediately when a test fails (fast-fail mode). By default, TestMe continues running remaining tests even if some fail.
+.TP
+.BR \-t ", " \-\-timeout " " \fISECONDS\fR
+Set test timeout in seconds (overrides configuration). Must be a positive integer. Applies to all tests in the run.
+.TP
 .BR \-v ", " \-\-verbose
-Enable verbose mode with detailed output. Sets TESTME_VERBOSE environment variable for tests.
+Enable verbose mode with detailed output. Sets TESTME_VERBOSE environment variable for tests. When combined with \fB\-\-show\fR, displays full compilation output including compiler warnings from stderr for C tests.
 .TP
 .BR \-V ", " \-\-version
 Show version information.
@@ -452,11 +458,11 @@ The \fBenable\fR setting accepts three values:
 .IP \(bu 4
 \fBfalse\fR: Tests are completely disabled and skipped
 .IP \(bu 4
-\fB'manual'\fR: Tests only run when explicitly named by full path or base name (excludes directory-level or wildcard patterns)
+\fB'manual'\fR: Tests only run when explicitly named or when invoked directly from within the manual directory
 
 Set \fBenable: false\fR to disable all tests in a directory. Disabled directories are skipped during execution and excluded from \fB\-\-list\fR output. In verbose mode, disabled directories show a "🚫 Tests disabled" message.
 
-Set \fBenable: 'manual'\fR to require explicit test naming. Manual tests are excluded when using directory-level patterns (e.g., running \fBtm\fR in a directory) or wildcard patterns (e.g., \fB*.tst.c\fR), but will run when named explicitly (e.g., \fBtm math\fR or \fBtm test/slow.tst.c\fR). This is useful for slow tests, destructive tests, or tests requiring special setup that should not run automatically.
+Set \fBenable: 'manual'\fR to require explicit test naming. Manual tests are excluded when using wildcard patterns (e.g., \fB*.tst.c\fR) or when invoked from parent directories, but will run when named explicitly (e.g., \fBtm math\fR or \fBtm test/slow.tst.c\fR) or when \fBtm\fR is invoked from within the manual directory or its subdirectories without patterns. This is useful for slow tests, destructive tests, or tests requiring special setup that should not run automatically from parent directories.
 
 Set \fBdepth: N\fR to require \fB\-\-depth N\fR or higher to run tests in this directory. This is useful for marking integration or resource-intensive tests that should only run when explicitly requested. Tests with higher depth requirements than the current \fB\-\-depth\fR value are skipped.
 
