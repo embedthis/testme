@@ -1,5 +1,47 @@
 # TestMe Changelog
 
+## 2025-11-19
+
+### Fixed Unused Function Warnings in testme.h
+
+- **FIX**: Suppressed compiler warnings about unused static functions in testme.h
+    - **Issue**: C tests including testme.h would generate `-Wunused-function` warnings for `tReport()` and `texit()` helper functions when not all test macros were used
+    - **Root Cause**: Static functions defined in header files generate compiler warnings when included but not used by all code paths in a translation unit
+    - **Fix**: Added `TM_UNUSED` macro using `__attribute__((unused))` for GCC/Clang to suppress warnings
+    - **Implementation**:
+        - Added `TM_UNUSED` macro in [src/modules/c/testme.h:51-56](../../src/modules/c/testme.h#L51-L56)
+        - Applied attribute to `tReport()` in [src/modules/c/testme.h:144](../../src/modules/c/testme.h#L144)
+        - Applied attribute to `texit()` in [src/modules/c/testme.h:78](../../src/modules/c/testme.h#L78)
+    - **Impact**: C tests now compile cleanly with `-Wall -Wextra` without spurious unused function warnings
+    - **Files Modified**:
+        - [src/modules/c/testme.h](../../src/modules/c/testme.h) - Added TM_UNUSED attribute to static helper functions
+        - [test/testme.h](../../test/testme.h) - Updated local copy
+
+### Added Compiler Warning Visibility with -s -v Flags
+
+- **FEATURE**: Added ability to view compiler warnings from successful C test compilations by combining `--show` and `--verbose` flags
+    - **Background**: Previously, compiler warnings were only visible when compilation failed (exit code != 0). Successful compilations with warnings would hide the stderr output, making it difficult to identify and fix potential issues.
+    - **Implementation**:
+        - Modified C handler compilation pipeline in [src/handlers/c.ts:323-335](../../src/handlers/c.ts#L323-L335)
+        - When both `--show` (`-s`) and `--verbose` (`-v`) flags are enabled, includes full compilation output (stdout and stderr)
+        - Warnings from stderr are labeled as "STDERR (warnings):" for clarity
+    - **Usage**:
+        - `tm -s -v test.tst.c` - Shows config, compile command, and compiler output including warnings
+        - `tm -s test.tst.c` - Shows config and compile command only
+        - `tm -v test.tst.c` - Shows verbose test output only
+        - `tm test.tst.c` - Normal mode, warnings hidden
+    - **Output Format**: Compilation warnings are shown in detailed format under "COMPILATION:" section with "STDERR (warnings):" label
+    - **Backward Compatibility**: Default behavior unchanged - warnings remain hidden in normal mode for clean output
+    - **Documentation**:
+        - Updated man page [doc/tm.1:65-66,77-78](../../doc/tm.1#L65-L66) to document the combined flag behavior
+        - Updated CLI help text [src/cli.ts:317-318](../../src/cli.ts#L317-L318) with usage example
+        - Added design documentation section [AI/designs/DESIGN.md:610-649](../../AI/designs/DESIGN.md#L610-L649)
+    - **Files Modified**:
+        - [src/handlers/c.ts](../../src/handlers/c.ts) - Compilation output handling
+        - [src/cli.ts](../../src/cli.ts) - CLI help text
+        - [doc/tm.1](../../doc/tm.1) - Man page documentation
+        - [AI/designs/DESIGN.md](../../AI/designs/DESIGN.md) - Design documentation
+
 ## 2025-11-18
 
 ### Fixed Global Prep/Cleanup Output Not Shown in Verbose Mode
