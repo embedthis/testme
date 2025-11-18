@@ -1,5 +1,88 @@
 # TestMe Changelog
 
+## 2025-11-18
+
+### Fixed Manual Test Filtering with Same-Name Tests
+
+- **FIX**: Fixed manual test filtering to prevent running manual tests when using base name patterns from outside the manual directory
+    - **Issue**: When a pattern like `tm tls` was used from a parent directory, it would match and run tests with the same base name in subdirectories marked with `enable: 'manual'`, even though they should only run when explicitly targeted with the directory path
+    - **Previous Behavior**:
+        - `tm tls` from top directory would run both `tls.tst.c` and `fuzz/tls.tst.c` (where `fuzz/` has `enable: 'manual'`)
+    - **Fixed Behavior**:
+        - `tm tls` from top directory now only runs `tls.tst.c` (skips manual tests without explicit directory path)
+        - `tm fuzz/tls` explicitly runs the manual test by including the directory path
+    - **Implementation**:
+        - Added directory path check for manual tests in [src/index.ts:492-513](../../src/index.ts#L492-L513)
+        - When `enable: 'manual'` and not invoked from manual directory, patterns must explicitly include the directory path
+        - Added path-without-test-extension matching in [src/index.ts:360-369](../../src/index.ts#L360-L369)
+        - Applied same fix to `--list` command in [src/runner.ts:369-403](../../src/runner.ts#L369-L403)
+    - **Test Coverage**:
+        - Added comprehensive test in [test/config/manual-filtering.tst.ts:100-138](../../test/config/manual-filtering.tst.ts#L100-L138)
+        - Tests verify that base name patterns don't match manual tests from outside directories
+        - Tests verify that directory-prefixed patterns do match manual tests
+    - **Files Modified**:
+        - [src/index.ts](../../src/index.ts) - Manual test filtering logic
+        - [src/runner.ts](../../src/runner.ts) - List command manual test filtering
+        - [test/config/manual-filtering.tst.ts](../../test/config/manual-filtering.tst.ts) - Test coverage
+
+## 2025-11-12
+
+### Added Timeout CLI Override
+
+- **DEV**: Added `--timeout <SECONDS>` (`-t`) CLI flag to override configured test timeout
+    - **Feature**: Override test timeout for a specific run without modifying configuration files
+    - **Implementation**:
+        - Accepts timeout value in seconds (must be positive integer)
+        - Overrides `execution.timeout` from testme.json5
+        - Applies to all tests in the run
+        - Can be combined with other options like `--verbose`, `--workers`, etc.
+    - **Usage Examples**:
+        - `tm --timeout 60 "long-test"` - 60 second timeout for specific test
+        - `tm -t 120 "*.tst.c"` - 2 minute timeout for all C tests
+        - `tm --timeout 300` - 5 minute timeout for all tests
+    - **Use Cases**:
+        - Override timeout for specific test runs without changing config
+        - Use longer timeouts for debugging or slow CI/CD environments
+        - Use shorter timeouts for quick feedback during development
+    - **Files Modified**:
+        - [src/cli.ts:213-225](../../src/cli.ts#L213-L225) - CLI flag parsing
+        - [src/types.ts:254](../../src/types.ts#L254) - Type definition for CliOptions.timeout
+        - [src/index.ts:740-746](../../src/index.ts#L740-L746) - Configuration override in applyCliOverrides
+        - [doc/tm.1:74-75](../../doc/tm.1#L74-L75) - Man page documentation
+
+### Enhanced Manual Enable Directory Detection
+
+- **DEV**: Enhanced `enable: "manual"` to automatically run tests when invoked from within the manual directory
+    - **Previous Behavior**: Tests with `enable: "manual"` only ran when explicitly named by pattern
+    - **New Behavior**: Tests with `enable: "manual"` now run in two scenarios:
+        1. When explicitly named: `tm testname` (existing behavior)
+        2. When `tm` is invoked from within the manual directory without patterns: `cd manual_test_dir && tm`
+    - **Implementation**:
+        - Captures invocation directory before `--chdir` is applied
+        - Uses invocation directory (not `process.cwd()` after chdir) to determine if in manual directory
+        - Detects if current working directory is within or equal to the config directory
+        - Treats invocation from manual directory as an explicit manual request
+        - Applies to both test execution and `--list` command
+        - Does not affect pattern-based invocations from parent directories
+    - **Features**:
+        - Provides clearer verbose output: "✓ Running manual tests in: . (invoked from manual directory)"
+        - Maintains backward compatibility - existing behavior with explicit patterns preserved
+        - Works correctly with `--chdir` option by using pre-chdir invocation directory
+    - **Use Cases**:
+        - Developers working on manual tests can simply run `tm` in the test directory
+        - No need to remember test names or use patterns when in the manual directory
+        - Maintains protection from accidental execution when running from parent directories
+        - Useful for slow tests, destructive tests, or tests requiring special setup
+    - **Files Modified**:
+        - [src/index.ts:468-510](../../src/index.ts#L468-L510) - Test execution logic with invocation directory check
+        - [src/index.ts:398-404](../../src/index.ts#L398-L404) - executeHierarchically signature updated with invocationDir parameter
+        - [src/index.ts:813](../../src/index.ts#L813) - Capture invocation directory before chdir
+        - [src/index.ts:941](../../src/index.ts#L941) - Pass invocationDir to listTests
+        - [src/index.ts:975](../../src/index.ts#L975) - Pass invocationDir to executeHierarchically
+        - [src/runner.ts:348-390](../../src/runner.ts#L348-L390) - List command logic with invocation directory check
+        - [src/index.ts:11](../../src/index.ts#L11) - Added sep import from path module
+        - [doc/tm.1:455-465](../../doc/tm.1#L455-L465) - Updated man page documentation
+
 ## 2025-11-10
 
 ### Fixed Monitor Mode Not Streaming Output in Real-Time
