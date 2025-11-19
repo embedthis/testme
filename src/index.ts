@@ -507,7 +507,7 @@ class TestMeApp {
                             if (!isInvokedFromManualDir) {
                                 // Get relative path from rootDir to configDir
                                 const relativeConfigDir =
-                                    configDir === rootDir ? '' : configDir.replace(rootDir + '/', '').replace(/\\/g, '/')
+                                    configDir === rootDir ? '' : configDir.replace(rootDir + sep, '').replace(/\\/g, '/')
                                 const normalizedPattern = pattern.replace(/\\/g, '/')
 
                                 // If we have a config directory (not root), check if pattern references it
