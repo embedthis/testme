@@ -2,6 +2,18 @@
 
 ## 2025-11-19
 
+### Fixed Manual Test Filtering on Windows with Path Separators
+
+- **FIX**: Fixed manual test filtering on Windows when using directory-prefixed patterns
+    - **Issue**: When running `tm manual-dir/test` on Windows, the test would be discovered but then incorrectly filtered out (Total: 0)
+    - **Root Cause**: Manual test filtering logic used hardcoded forward slash (`/`) when removing root directory prefix: `configDir.replace(rootDir + '/', '')`. On Windows, paths use backslashes, so the replacement failed and relative path calculation was incorrect
+    - **Fix**: Changed to use platform-specific path separator from Node.js `path` module: `configDir.replace(rootDir + sep, '')`
+    - **Implementation**:
+        - Path separator fix in [src/index.ts:510](../../src/index.ts#L510)
+    - **Impact**: Manual tests now correctly run on Windows when explicitly named with directory paths
+    - **Files Modified**:
+        - [src/index.ts](../../src/index.ts) - Use platform-specific path separator for manual test filtering
+
 ### Fixed Unused Function Warnings in testme.h
 
 - **FIX**: Suppressed compiler warnings about unused static functions in testme.h
