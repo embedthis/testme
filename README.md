@@ -14,6 +14,10 @@ TestMe is a specialized test runner designed for **core infrastructure projects*
 
 Test files can be written in C, C++, shell scripts, Python, Go or Javascript/Typescript.
 
+## Written by AI
+
+This entire program has been written almost 100% by AI with strong human supervision.
+
 ## 🎯 Ideal Use Cases
 
 TestMe is purpose-built for:
