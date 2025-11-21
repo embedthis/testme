@@ -16,7 +16,7 @@ Test files can be written in C, C++, shell scripts, Python, Go or Javascript/Typ
 
 ## Written by AI
 
-This entire program has been written almost 100% by AI with strong human supervision.
+This entire program has been designed by humans and written almost 100% by AI with strong human supervision.
 
 ## 🎯 Ideal Use Cases
 
