@@ -463,7 +463,7 @@ Patterns support platform-specific additions that are deep blended with base pat
         include: ['**/*.tst.c', '**/*.tst.js'], // All platforms
         exclude: ['**/node_modules/**'],
         windows: {
-            include: ['**/*.tst.ps1', '**/*.tst.bat'], // Added on Windows
+            include: ['**/*.tst.sh', '**/*.tst.ps1', '**/*.tst.bat'], // Added on Windows (bash via Git for Windows)
         },
         macosx: {
             include: ['**/*.tst.sh'], // Added on macOS
@@ -477,7 +477,7 @@ Patterns support platform-specific additions that are deep blended with base pat
 
 **Effective Patterns on Windows:**
 
--   Include: `**/*.tst.c`, `**/*.tst.js`, `**/*.tst.ps1`, `**/*.tst.bat`
+-   Include: `**/*.tst.c`, `**/*.tst.js`, `**/*.tst.sh`, `**/*.tst.ps1`, `**/*.tst.bat`
 -   Exclude: `**/node_modules/**`
 
 **Effective Patterns on macOS:**
@@ -619,13 +619,23 @@ TestMe provides flexible control over compiler output visibility:
 
 **Viewing Compiler Warnings:**
 
-To see compiler warnings from successful compilations, use both `--show` and `--verbose` flags together:
+Use the `--warning` (`-w`) flag to see compiler warnings and the compile command:
 
 ```bash
+tm -w test.tst.c             # Shows compiler + compile command + warnings (minimal output)
+tm -s test.tst.c             # Shows full config, environment, and compile command
 tm -s -v test.tst.c          # Shows config, compile command, and compiler output (including warnings)
-tm -s test.tst.c             # Shows config and compile command only
 tm -v test.tst.c             # Shows verbose test output only
 tm test.tst.c                # Normal mode, warnings hidden
+```
+
+Note: The `-W` (capital) flag is used for setting worker count, e.g., `tm -W 8`.
+
+**Output Format with `-w`:**
+
+```
+🔧 Compiler: /usr/bin/gcc (gcc)
+📋 Compile command: /usr/bin/gcc -Wall -Wextra ... test.tst.c
 ```
 
 **Output Format with `-s -v`:**

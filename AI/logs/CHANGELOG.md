@@ -1,5 +1,54 @@
 # TestMe Changelog
 
+## 2025-11-26
+
+### Added --warning / -w Option for Compiler Warnings
+
+- **FEATURE**: Added `--warning` (`-w`) CLI option to display compiler warnings and compile command line for C tests
+    - **Background**: Previously, viewing compiler warnings required combining `--show` and `--verbose` flags, which also displayed extensive configuration and environment details. Users wanted a simpler way to see just the compile command and any warnings.
+    - **Implementation**:
+        - Added `warning` field to `CliOptions` in [src/types.ts:244](../../src/types.ts#L244)
+        - Added `showWarnings` field to `ExecutionConfig` in [src/types.ts:127](../../src/types.ts#L127)
+        - Added CLI parsing for `--warning` / `-w` in [src/cli.ts:143-147](../../src/cli.ts#L143-L147)
+        - Changed `--workers` short option from `-w` to `-W` in [src/cli.ts:129-141](../../src/cli.ts#L129-L141)
+        - Applied warning option to config in [src/index.ts:766-774](../../src/index.ts#L766-L774) and [src/index.ts:931-940](../../src/index.ts#L931-L940)
+        - Added `showWarnings` preservation in [src/runner.ts:532-534](../../src/runner.ts#L532-L534)
+        - Modified C handler to show minimal output (compiler + command) when `-w` is used in [src/handlers/c.ts:255-294](../../src/handlers/c.ts#L255-L294)
+    - **Behavior**:
+        - `-w` shows only compiler info and compile command (minimal output)
+        - `-s` continues to show full config, environment variables, and compile command (detailed output)
+        - Both options show compiler warnings (stderr) on successful compilation
+    - **Impact**: Users can quickly see compiler warnings with a single flag without verbose output
+    - **Files Modified**:
+        - [src/types.ts](../../src/types.ts) - Added `warning` to CliOptions, `showWarnings` to ExecutionConfig
+        - [src/cli.ts](../../src/cli.ts) - Added `--warning`/`-w`, changed `--workers` to `-W`
+        - [src/index.ts](../../src/index.ts) - Applied warning option to config
+        - [src/runner.ts](../../src/runner.ts) - Preserved showWarnings in config merging
+        - [src/handlers/c.ts](../../src/handlers/c.ts) - Show minimal output for -w flag
+
+### Improved HTTP Health Check Socket Handling
+
+- **FIX**: Added `Connection: close` header to HTTP health check requests
+    - **Background**: HTTP health checks were not explicitly closing connections, which could lead to socket leaks during repeated polling
+    - **Implementation**: Added `Connection: close` header to fetch request in [src/services/health-check.ts:118-120](../../src/services/health-check.ts#L118-L120)
+    - **Impact**: Ensures TCP sockets are closed after each health check request rather than being kept alive
+    - **Files Modified**:
+        - [src/services/health-check.ts](../../src/services/health-check.ts) - Added Connection: close header
+
+## 2025-11-25
+
+### Added Shell Script Test Support on Windows
+
+- **FEATURE**: Shell script tests (`.tst.sh`) are now discovered and run on Windows by default
+    - **Background**: Previously, `.tst.sh` tests were only included in the default patterns for macOS and Linux. Windows users with bash (via Git for Windows) could run shell scripts, but they weren't automatically discovered.
+    - **Change**: Added `**/*.tst.sh` to the default Windows patterns in [src/config.ts:103](../../src/config.ts#L103)
+    - **Implementation**: Shell scripts are executed via `bash` on all platforms, which is available on Windows through Git for Windows
+    - **Impact**: Projects with shell-based tests (like cloud integration tests) now run correctly on Windows CI without requiring custom pattern configuration
+    - **Files Modified**:
+        - [src/config.ts](../../src/config.ts) - Added `.tst.sh` to Windows default patterns
+        - [CLAUDE.md](../../CLAUDE.md) - Updated documentation
+        - [AI/designs/DESIGN.md](../../AI/designs/DESIGN.md) - Updated pattern examples
+
 ## 2025-11-19
 
 ### Fixed Manual Test Filtering on Windows with Path Separators
