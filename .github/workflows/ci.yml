@@ -58,6 +58,12 @@ jobs:
             - name: Build TestMe
               run: bun run build
 
+            - name: Link testme module for tests
+              run: |
+                  cd src/modules/js && bun link
+                  cd ../../../test && bun link testme
+              shell: bash
+
             - name: Verify binary exists (Unix)
               if: runner.os != 'Windows'
               run: |
