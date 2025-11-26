@@ -115,6 +115,9 @@ export class HealthCheckManager {
         try {
             const response = await fetch(config.url, {
                 method: 'GET',
+                headers: {
+                    Connection: 'close',
+                },
                 signal: AbortSignal.timeout(5000), // 5s timeout per request
             })
 
