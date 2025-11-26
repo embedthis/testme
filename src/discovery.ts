@@ -102,7 +102,7 @@ export class TestDiscovery {
                     // First check if file matches include patterns
                     if (this.matchesIncludePatterns(fullPath, options.patterns, options.rootDir)) {
                         // Then check if it's excluded
-                        if (this.matchesExcludePatterns(fullPath, options.excludePatterns)) {
+                        if (this.matchesExcludePatterns(fullPath, options.excludePatterns, options.rootDir)) {
                             // Analyze file based on final extension
                             const testFile = this.analyzeFileByExtension(fullPath)
                             if (testFile) {
@@ -193,13 +193,20 @@ export class TestDiscovery {
      Checks if a file path matches any exclude patterns
      @param filePath Path to check
      @param excludePatterns Array of exclude patterns
+     @param rootDir Root directory for relative path calculation
      @returns true if file should be included (not excluded)
      */
-    private static matchesExcludePatterns(filePath: string, excludePatterns: string[]): boolean {
+    private static matchesExcludePatterns(filePath: string, excludePatterns: string[], rootDir: string): boolean {
         if (!excludePatterns.length) return true
 
+        // Calculate relative path and normalize separators (like matchesIncludePatterns)
+        const relativePath = filePath.startsWith(rootDir)
+            ? filePath.slice(rootDir.length).replace(/^[\/\\]/, '')
+            : filePath
+        const normalizedPath = relativePath.replace(/\\/g, '/')
+
         return !excludePatterns.some((pattern) => {
-            return this.matchesGlob(filePath, pattern)
+            return this.matchesGlob(normalizedPath, pattern)
         })
     }
 
