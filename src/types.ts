@@ -124,6 +124,7 @@ export type ExecutionConfig = {
     depth?: number
     debugMode?: boolean
     showCommands?: boolean
+    showWarnings?: boolean // Show compiler warnings and compile command line
     iterations?: number
     stopOnFailure?: boolean // Stop testing as soon as a test fails
     duration?: number // Duration in seconds (exported as TESTME_DURATION)
@@ -241,6 +242,7 @@ export type CliOptions = {
     chdir?: string
     quiet: boolean
     show: boolean
+    warning: boolean // Show compiler warnings and compile command
     workers?: number
     profile?: string
     init: boolean

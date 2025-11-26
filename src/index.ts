@@ -763,6 +763,16 @@ class TestMeApp {
             }
         }
 
+        if (options.warning) {
+            mergedConfig.execution = {
+                ...mergedConfig.execution,
+                timeout: mergedConfig.execution?.timeout ?? 30000,
+                parallel: mergedConfig.execution?.parallel ?? true,
+                showCommands: true,
+                showWarnings: true,
+            }
+        }
+
         if (options.workers !== undefined) {
             mergedConfig.execution = {
                 ...mergedConfig.execution,
@@ -925,6 +935,17 @@ class TestMeApp {
                     timeout: config.execution?.timeout ?? 30,
                     parallel: config.execution?.parallel ?? true,
                     showCommands: true,
+                }
+            }
+
+            // Apply warning flag from CLI - shows compiler warnings and compile command
+            if (options.warning) {
+                config.execution = {
+                    ...config.execution,
+                    timeout: config.execution?.timeout ?? 30,
+                    parallel: config.execution?.parallel ?? true,
+                    showCommands: true,
+                    showWarnings: true,
                 }
             }
 

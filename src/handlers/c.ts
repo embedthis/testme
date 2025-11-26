@@ -252,36 +252,43 @@ export class CTestHandler extends BaseTestHandler {
                 args.push(...libraryFlags)
             }
 
-            // Display config and compile command if showCommands is enabled
-            if (config.execution?.showCommands) {
-                console.log(`📄 Config used for ${file.name}:`)
-                console.log(this.formatConfig(config))
+            // Display compile command if showCommands or showWarnings is enabled
+            if (config.execution?.showCommands || config.execution?.showWarnings) {
+                // Show full config only for --show (-s), not for --warning (-w)
+                // showWarnings is only set by -w, showCommands alone is set by -s
+                const showFullConfig = config.execution?.showCommands && !config.execution?.showWarnings
+                if (showFullConfig) {
+                    console.log(`📄 Config used for ${file.name}:`)
+                    console.log(this.formatConfig(config))
+                }
                 console.log(`🔧 Compiler: ${compilerConfig.compiler} (${compilerConfig.type})`)
                 console.log(`📋 Compile command: ${compilerConfig.compiler} ${args.join(' ')}`)
 
-                // Show environment variables defined by TestMe
-                const compilerName =
-                    compilerConfig.type === CompilerType.GCC
-                        ? 'gcc'
-                        : compilerConfig.type === CompilerType.Clang
-                          ? 'clang'
-                          : compilerConfig.type === CompilerType.MSVC
-                            ? 'msvc'
-                            : undefined
-                const testEnv = await this.getTestEnvironment(config, file, compilerName)
-                if (Object.keys(testEnv).length > 0) {
-                    console.log(`\n🌍 TestMe environment variables:`)
-                    for (const [key, value] of Object.entries(testEnv)) {
-                        console.log(`   ${key}=${value}`)
+                // Show environment variables only for --show (-s), not for --warning (-w)
+                if (showFullConfig) {
+                    const compilerName =
+                        compilerConfig.type === CompilerType.GCC
+                            ? 'gcc'
+                            : compilerConfig.type === CompilerType.Clang
+                              ? 'clang'
+                              : compilerConfig.type === CompilerType.MSVC
+                                ? 'msvc'
+                                : undefined
+                    const testEnv = await this.getTestEnvironment(config, file, compilerName)
+                    if (Object.keys(testEnv).length > 0) {
+                        console.log(`\n🌍 TestMe environment variables:`)
+                        for (const [key, value] of Object.entries(testEnv)) {
+                            console.log(`   ${key}=${value}`)
+                        }
                     }
-                }
 
-                // Show full environment if verbose mode is enabled
-                if (config.output?.verbose) {
-                    console.log(`\n🌍 Full environment (${Object.keys(process.env).length} variables):`)
-                    const sortedKeys = Object.keys(process.env).sort()
-                    for (const key of sortedKeys) {
-                        console.log(`   ${key}=${process.env[key]}`)
+                    // Show full environment if verbose mode is enabled
+                    if (config.output?.verbose) {
+                        console.log(`\n🌍 Full environment (${Object.keys(process.env).length} variables):`)
+                        const sortedKeys = Object.keys(process.env).sort()
+                        for (const key of sortedKeys) {
+                            console.log(`   ${key}=${process.env[key]}`)
+                        }
                     }
                 }
             }
@@ -320,8 +327,8 @@ export class CTestHandler extends BaseTestHandler {
         // Build compilation output
         let output = result.stdout || 'Compilation completed'
 
-        // If --show and --verbose are both enabled, include full compilation output (stdout + stderr with warnings)
-        if (config.execution?.showCommands && config.output?.verbose && success) {
+        // If --warning is enabled, or both --show and --verbose are enabled, include full compilation output
+        if ((config.execution?.showWarnings || (config.execution?.showCommands && config.output?.verbose)) && success) {
             const compileOutput: string[] = []
             if (result.stdout && result.stdout.trim()) {
                 compileOutput.push(`STDOUT:\n${result.stdout}`)

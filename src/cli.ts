@@ -24,6 +24,7 @@ export class CliParser {
             version: false,
             quiet: false,
             show: false,
+            warning: false,
             init: false,
             continue: false,
             noServices: false,
@@ -127,7 +128,7 @@ export class CliParser {
                     break
 
                 case '--workers':
-                case '-w':
+                case '-W':
                     if (i + 1 < args.length) {
                         const workersValue = parseInt(args[i + 1]!, 10)
                         if (isNaN(workersValue) || workersValue < 1) {
@@ -138,6 +139,12 @@ export class CliParser {
                     } else {
                         throw new Error(`${arg} requires a number value`)
                     }
+                    break
+
+                case '--warning':
+                case '-w':
+                    options.warning = true
+                    i++
                     break
 
                 case '--profile':
@@ -315,13 +322,13 @@ OPTIONS:
     -p, --profile <NAME>     Set build profile (overrides config and env.PROFILE)
     -q, --quiet              Run silently with no output, only exit codes
     -s, --show               Display test configuration and environment variables
-                             When combined with -v, shows compiler output including warnings
         --step               Run tests one at a time with prompts (forces serial mode)
         --stop               Stop immediately when a test fails (fast-fail mode)
     -t, --timeout <SECONDS>  Set test timeout in seconds (overrides config)
     -v, --verbose            Enable verbose mode with detailed output and TESTME_VERBOSE
     -V, --version            Show version information
-    -w, --workers <NUMBER>   Number of parallel workers (overrides config)
+    -w, --warning            Show compiler warnings and compile command line for C tests
+    -W, --workers <NUMBER>   Number of parallel workers (overrides config)
 
 EXAMPLES:
     # Getting Started
@@ -345,8 +352,8 @@ EXAMPLES:
     tm --depth 5               # Run tests with depth requirement <= 5
     tm --debug math            # Debug math.tst.c with GDB/Xcode
     tm -s "*.tst.c"            # Display test configuration and environment
-    tm -s -v "*.tst.c"         # Show configuration and compiler warnings
-    tm -w 8                    # Use 8 parallel workers (overrides config)
+    tm -w "*.tst.c"            # Show compiler warnings and compile command
+    tm -W 8                    # Use 8 parallel workers (overrides config)
     tm --quiet                 # Run silently with no output, only exit codes
     tm -n                      # Run tests without any service commands (run services externally)
 

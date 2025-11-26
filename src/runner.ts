@@ -529,6 +529,9 @@ export class TestRunner {
                         ...(globalConfig.execution?.showCommands && {
                             showCommands: globalConfig.execution.showCommands,
                         }),
+                        ...(globalConfig.execution?.showWarnings && {
+                            showWarnings: globalConfig.execution.showWarnings,
+                        }),
                         ...(globalConfig.execution?.debugMode && {debugMode: globalConfig.execution.debugMode}),
                         ...(globalConfig.execution?.keepArtifacts && {
                             keepArtifacts: globalConfig.execution.keepArtifacts,
