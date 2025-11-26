@@ -99,7 +99,9 @@
 
         // Windows-specific patterns (added to base patterns on Windows)
         windows: {
-            include: ['**/*.tst.ps1', '**/*.tst.bat', '**/*.tst.cmd'],
+            include: ['**/*.tst.sh', '**/*.tst.ps1', '**/*.tst.bat', '**/*.tst.cmd'],
+            // Exclude Unix-only tests that intentionally fail on Windows
+            exclude: ['**/unix.tst.sh'],
         },
 
         // macOS-specific patterns (added to base patterns on macOS)

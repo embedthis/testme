@@ -4,6 +4,7 @@ import {GlobExpansion} from './utils/glob-expansion.ts'
 import {ProcessManager} from './platform/process.ts'
 import {PlatformDetector} from './platform/detector.ts'
 import {HealthCheckManager} from './services/health-check.ts'
+import {ShellDetector} from './platform/shell.ts'
 
 /**
  * Manages setup and cleanup services for test execution
@@ -97,7 +98,7 @@ export class ServiceManager {
 
         try {
             // Parse command and arguments
-            const [command, ...args] = this.parseCommand(skipCommand, config.configDir)
+            const [command, ...args] = await this.parseCommand(skipCommand, config.configDir)
 
             // In verbose mode, inherit stdout/stderr to show service output
             // Otherwise pipe it so we can capture on errors
@@ -182,7 +183,7 @@ export class ServiceManager {
 
         try {
             // Parse command and arguments
-            const [command, ...args] = this.parseCommand(environmentCommand, config.configDir)
+            const [command, ...args] = await this.parseCommand(environmentCommand, config.configDir)
 
             // Always pipe stdout to capture environment variables
             // Pipe stderr in quiet mode, inherit in verbose mode
@@ -288,7 +289,7 @@ export class ServiceManager {
 
         try {
             // Parse command and arguments
-            const [command, ...args] = this.parseCommand(globalPrepCommand, config.configDir)
+            const [command, ...args] = await this.parseCommand(globalPrepCommand, config.configDir)
 
             // In verbose mode, inherit stdout/stderr to show service output
             // Otherwise pipe it so we can capture on errors
@@ -367,7 +368,7 @@ export class ServiceManager {
 
         try {
             // Parse command and arguments
-            const [command, ...args] = this.parseCommand(prepCommand, config.configDir)
+            const [command, ...args] = await this.parseCommand(prepCommand, config.configDir)
 
             // In verbose mode, inherit stdout/stderr to show service output
             // Otherwise pipe it so we can capture on errors
@@ -447,7 +448,7 @@ export class ServiceManager {
 
         try {
             // Parse command and arguments
-            const [command, ...args] = this.parseCommand(setupCommand, config.configDir, true)
+            const [command, ...args] = await this.parseCommand(setupCommand, config.configDir, true)
 
             // Always pipe stdout/stderr for setup services to prevent output from appearing
             // after test results. Service output is only shown if there's an error or
@@ -687,7 +688,7 @@ export class ServiceManager {
 
         try {
             // Parse command and arguments
-            const [command, ...args] = this.parseCommand(globalCleanupCommand, config.configDir)
+            const [command, ...args] = await this.parseCommand(globalCleanupCommand, config.configDir)
 
             // In verbose mode, inherit stdout/stderr to show service output
             // Otherwise pipe it so we can capture on errors
@@ -781,7 +782,7 @@ export class ServiceManager {
 
         try {
             // Parse command and arguments
-            const [command, ...args] = this.parseCommand(cleanupCommand, config.configDir)
+            const [command, ...args] = await this.parseCommand(cleanupCommand, config.configDir)
 
             // In verbose mode, inherit stdout/stderr to show service output
             // Otherwise pipe it so we can capture on errors
@@ -888,7 +889,7 @@ export class ServiceManager {
      @param isBackgroundService Whether this is for a background service (affects Windows batch handling)
      @returns Array with command as first element and arguments as rest
      */
-    private parseCommand(commandString: string, cwd?: string, isBackgroundService: boolean = false): string[] {
+    private async parseCommand(commandString: string, cwd?: string, isBackgroundService: boolean = false): Promise<string[]> {
         // Simple parsing - split on spaces (doesn't handle quoted arguments)
         // For more complex parsing, could use a proper shell parser
         const parts = commandString.trim().split(/\s+/)
@@ -950,10 +951,11 @@ export class ServiceManager {
             }
 
             // Shell scripts need to be executed via bash
-            // On Windows: bash from Git for Windows
+            // On Windows: use Git Bash (avoiding WSL bash)
             // On Unix: bash to handle scripts without shebang or without execute permissions
             if (ext === '.sh') {
-                return ['bash', resolvedCommand, ...parts.slice(1)]
+                const bashCommand = await ShellDetector.findGitBash()
+                return [bashCommand, resolvedCommand, ...parts.slice(1)]
             }
 
             parts[0] = resolvedCommand

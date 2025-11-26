@@ -35,6 +35,25 @@
     - **Files Modified**:
         - [src/services/health-check.ts](../../src/services/health-check.ts) - Added Connection: close header
 
+### Fixed Git Bash Detection on Windows (Avoiding WSL)
+
+- **FIX**: Shell scripts and service scripts now correctly use Git Bash instead of WSL bash on Windows
+    - **Issue**: On Windows systems with WSL installed, `bash` in PATH resolves to WSL's bash first, causing "Windows Subsystem for Linux has no installed distributions" errors
+    - **Root Cause**: Both `ShellDetector.detectShell()` and `ServiceManager.parseCommand()` used generic `bash` command which found WSL bash before Git Bash
+    - **Fix**: Added `ShellDetector.findGitBash()` method that:
+        1. Checks common Git Bash installation paths (`C:\Program Files\Git\bin\bash.exe`, etc.)
+        2. Uses `where bash.exe` to find all bash executables
+        3. Filters out WSL paths (WindowsApps, System32, wsl) from results
+    - **Implementation**:
+        - Added `findGitBash()` in [src/platform/shell.ts:223-274](../../src/platform/shell.ts#L223-L274)
+        - Updated `detectShell()` to use `findGitBash()` on Windows
+        - Updated `parseCommand()` in [src/services.ts](../../src/services.ts) to use `findGitBash()` (made async)
+    - **Impact**: Service scripts (prep, setup, cleanup) and shell tests now work correctly on Windows CI with WSL installed
+    - **Files Modified**:
+        - [src/platform/shell.ts](../../src/platform/shell.ts) - Added findGitBash() and fileExists() methods
+        - [src/services.ts](../../src/services.ts) - Made parseCommand async, use ShellDetector.findGitBash()
+        - [test/testme.json5](../../test/testme.json5) - Excluded unix.tst.sh on Windows (Unix-only test)
+
 ## 2025-11-25
 
 ### Added Shell Script Test Support on Windows

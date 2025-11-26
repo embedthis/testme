@@ -38,9 +38,8 @@ export class ShellDetector {
 
             // Fall back to system default for .sh files
             if (PlatformDetector.isWindows()) {
-                // On Windows, look for Git Bash
-                const bash = await this.findInPath('bash.exe')
-                return bash || 'sh'
+                // On Windows, find Git Bash (avoiding WSL bash)
+                return await this.findGitBash()
             } else {
                 return await this.detectUnixShell()
             }
@@ -213,6 +212,78 @@ export class ShellDetector {
             return null
         } catch {
             return null
+        }
+    }
+
+    /*
+     Finds Git Bash on Windows, avoiding WSL bash
+     Checks common installation paths and filters out WSL bash from PATH search
+     @returns Promise resolving to Git Bash path or 'bash' as fallback
+     */
+    static async findGitBash(): Promise<string> {
+        if (!PlatformDetector.isWindows()) {
+            return 'bash'
+        }
+
+        // Common Git Bash installation paths
+        const gitBashPaths = [
+            'C:\\Program Files\\Git\\bin\\bash.exe',
+            'C:\\Program Files (x86)\\Git\\bin\\bash.exe',
+            `${process.env.LOCALAPPDATA}\\Programs\\Git\\bin\\bash.exe`,
+            `${process.env.ProgramFiles}\\Git\\bin\\bash.exe`,
+            `${process.env['ProgramFiles(x86)']}\\Git\\bin\\bash.exe`,
+        ]
+
+        // Check each known path first
+        for (const bashPath of gitBashPaths) {
+            if (bashPath && (await this.fileExists(bashPath))) {
+                return bashPath
+            }
+        }
+
+        // Use 'where' to find bash.exe and filter out WSL paths
+        try {
+            const proc = Bun.spawn(['where', 'bash.exe'], {
+                stdout: 'pipe',
+                stderr: 'pipe',
+            })
+
+            const result = await proc.exited
+            if (result === 0) {
+                const stdout = await new Response(proc.stdout).text()
+                const paths = stdout.trim().split('\n').map((p) => p.trim())
+
+                // Filter out WSL paths (they contain 'WindowsApps' or 'System32')
+                for (const path of paths) {
+                    const lowerPath = path.toLowerCase()
+                    if (
+                        !lowerPath.includes('windowsapps') &&
+                        !lowerPath.includes('system32') &&
+                        !lowerPath.includes('wsl')
+                    ) {
+                        return path
+                    }
+                }
+            }
+        } catch {
+            // Ignore errors
+        }
+
+        // Fallback to just 'bash' and hope it works
+        return 'bash'
+    }
+
+    /*
+     Checks if a file exists
+     @param path File path to check
+     @returns Promise resolving to true if file exists
+     */
+    private static async fileExists(path: string): Promise<boolean> {
+        try {
+            const file = Bun.file(path)
+            return await file.exists()
+        } catch {
+            return false
         }
     }
 }
