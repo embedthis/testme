@@ -196,7 +196,7 @@ export class TestDiscovery {
      @param rootDir Root directory for relative path calculation
      @returns true if file should be included (not excluded)
      */
-    private static matchesExcludePatterns(filePath: string, excludePatterns: string[], rootDir: string): boolean {
+    static matchesExcludePatterns(filePath: string, excludePatterns: string[], rootDir: string): boolean {
         if (!excludePatterns.length) return true
 
         // Calculate relative path and normalize separators (like matchesIncludePatterns)

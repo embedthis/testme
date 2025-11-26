@@ -658,6 +658,7 @@ class TestMeApp {
 
     /*
      Groups tests by their nearest configuration directory
+     Applies each config's exclude patterns to filter out platform-specific exclusions
      @param tests Array of discovered test files
      @returns Map of config directory to tests in that directory
      */
@@ -669,10 +670,17 @@ class TestMeApp {
             const configResult = await ConfigManager.findConfigFile(test.directory)
             const configDir = configResult.configDir || test.directory
 
-            // Load config to check if test is marked as manual
+            // Load config to check if test is marked as manual and get exclude patterns
             const config = await ConfigManager.findConfig(test.directory)
             test.isManual = config.enable === 'manual'
             test.configDir = configDir
+
+            // Check if test should be excluded by config's patterns (e.g., platform-specific excludes)
+            const excludePatterns = config.patterns?.exclude || []
+            if (!TestDiscovery.matchesExcludePatterns(test.path, excludePatterns, configDir)) {
+                // Test matches an exclude pattern, skip it
+                continue
+            }
 
             if (!groups.has(configDir)) {
                 groups.set(configDir, [])
