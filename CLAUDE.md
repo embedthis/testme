@@ -335,7 +335,7 @@ The configuration file uses this hierarchy:
 - Parallel execution with max 4 concurrent tests
 - Simple colored output format
 - Default patterns discover: `**/*.tst.c`, `**/*.tst.js`, `**/*.tst.ts`, `**/*.tst.py`, `**/*.tst.go`, `**/*.tst.es`
-- Platform-specific defaults: `**/*.tst.sh` (macOS/Linux), `**/*.tst.ps1` (Windows)
+- Platform-specific defaults: `**/*.tst.sh` (all platforms via bash), `**/*.tst.ps1` (Windows)
 - Excludes: node_modules, .testme, hidden directories
 - Tests enabled by default with depth requirement of 0
 

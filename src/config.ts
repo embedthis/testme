@@ -100,7 +100,7 @@ export class ConfigManager {
             include: ['**/*.tst.c', '**/*.tst.js', '**/*.tst.ts', '**/*.tst.py', '**/*.tst.go', '**/*.tst.es'],
             exclude: ['**/node_modules/**', '**/.testme/**', '**/.*/**'],
             windows: {
-                include: ['**/*.tst.ps1', '**/*.tst.bat', '**/*.tst.cmd'],
+                include: ['**/*.tst.sh', '**/*.tst.ps1', '**/*.tst.bat', '**/*.tst.cmd'],
             },
             macosx: {
                 include: ['**/*.tst.sh'],
