@@ -120,6 +120,7 @@ export type ExecutionConfig = {
     parallel: boolean
     workers?: number
     keepArtifacts?: boolean
+    rebuild?: boolean // Force recompilation of C tests even if binary is up-to-date
     stepMode?: boolean
     depth?: number
     debugMode?: boolean
@@ -234,6 +235,7 @@ export type CliOptions = {
     list: boolean
     verbose: boolean
     keep: boolean
+    rebuild: boolean // Force recompilation of C tests even if binary is up-to-date
     step: boolean
     depth?: number
     debug: boolean

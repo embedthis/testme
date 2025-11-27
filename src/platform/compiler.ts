@@ -35,47 +35,79 @@ export interface CompileResult {
  Handles compiler detection, flag translation, and compilation
  */
 export class CompilerManager {
+    // Cache for compiler configuration, keyed by compiler name (undefined key = auto-detect)
+    private static compilerConfigCache = new Map<string | undefined, CompilerConfig>()
+
+    // Cache for best detected compiler
+    private static cachedBestCompiler: CompilerInfo | null | undefined = undefined
+
     /*
      Detects the best available C compiler for the platform
+     Caches result for the lifetime of the process
      @returns Promise resolving to compiler information
      */
     static async detectBestCompiler(): Promise<CompilerInfo | null> {
+        // Return cached result if available (undefined means not yet checked, null means no compiler found)
+        if (this.cachedBestCompiler !== undefined) {
+            return this.cachedBestCompiler
+        }
+
         const compilers = await PlatformDetector.detectCompilers()
 
         if (compilers.length === 0) {
+            this.cachedBestCompiler = null
             return null
         }
+
+        let result: CompilerInfo | null = null
 
         // Priority order differs by platform
         if (PlatformDetector.isWindows()) {
             // Windows: prefer MSVC > MinGW > Clang
             const msvc = compilers.find((c) => c.type === 'msvc')
-            if (msvc) return msvc
-
-            const mingw = compilers.find((c) => c.type === 'mingw')
-            if (mingw) return mingw
-
-            const clang = compilers.find((c) => c.type === 'clang')
-            if (clang) return clang
+            if (msvc) result = msvc
+            else {
+                const mingw = compilers.find((c) => c.type === 'mingw')
+                if (mingw) result = mingw
+                else {
+                    const clang = compilers.find((c) => c.type === 'clang')
+                    if (clang) result = clang
+                }
+            }
         } else {
             // Unix: prefer GCC > Clang
             const gcc = compilers.find((c) => c.type === 'gcc')
-            if (gcc) return gcc
-
-            const clang = compilers.find((c) => c.type === 'clang')
-            if (clang) return clang
+            if (gcc) result = gcc
+            else {
+                const clang = compilers.find((c) => c.type === 'clang')
+                if (clang) result = clang
+            }
         }
 
-        // Return first available as fallback
-        return compilers[0]
+        // Fallback to first available
+        if (!result) {
+            result = compilers[0]
+        }
+
+        // Cache and return result
+        this.cachedBestCompiler = result
+        return result
     }
 
     /*
      Gets the default compiler configuration for the platform
+     Caches result for each unique compiler name to avoid repeated detection
      @param compilerName Optional compiler name to use
      @returns Compiler configuration with appropriate defaults
      */
     static async getDefaultCompilerConfig(compilerName?: string): Promise<CompilerConfig> {
+        // Check cache first (use 'default' as key for undefined/null)
+        const cacheKey = compilerName === 'default' ? undefined : compilerName
+        const cached = this.compilerConfigCache.get(cacheKey)
+        if (cached) {
+            return cached
+        }
+
         let compiler = compilerName
         let type = CompilerType.Unknown
         let env
@@ -123,12 +155,16 @@ export class CompilerManager {
 
         const flags = this.getDefaultFlags(type)
 
-        return {
+        const result: CompilerConfig = {
             compiler,
             type,
             flags,
             env,
         }
+
+        // Cache the result
+        this.compilerConfigCache.set(cacheKey, result)
+        return result
     }
 
     /*

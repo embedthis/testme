@@ -18,6 +18,7 @@ export class CliParser {
             list: false,
             verbose: false,
             keep: false,
+            rebuild: false,
             step: false,
             debug: false,
             help: false,
@@ -94,6 +95,12 @@ export class CliParser {
                 case '--keep':
                 case '-k':
                     options.keep = true
+                    i++
+                    break
+
+                case '--rebuild':
+                case '-R':
+                    options.rebuild = true
                     i++
                     break
 
@@ -314,13 +321,14 @@ OPTIONS:
     -h, --help               Show this help message
     -i, --iterations <N>     Set iteration count (exports TESTME_ITERATIONS for tests to use, TestMe does not repeat execution)
         --init               Create testme.json5 configuration file in current directory
-    -k, --keep               Keep .testme artifacts after successful tests (failed tests always keep)
+    -k, --keep               Keep .testme artifacts (default; use --clean to remove)
     -l, --list               List discovered tests without running them
     -m, --monitor            Stream test output in real-time to console (requires TTY)
     -n, --no-services        Skip all service commands (skip, prep, setup, cleanup)
         --new <NAME>         Create new test file from template (e.g., --new math.c)
     -p, --profile <NAME>     Set build profile (overrides config and env.PROFILE)
     -q, --quiet              Run silently with no output, only exit codes
+    -R, --rebuild            Force recompilation of C tests (default: skip if binary is newer)
     -s, --show               Display test configuration and environment variables
         --step               Run tests one at a time with prompts (forces serial mode)
         --stop               Stop immediately when a test fails (fast-fail mode)

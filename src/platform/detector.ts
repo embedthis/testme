@@ -6,6 +6,9 @@
 import {join} from 'path'
 import {readdir} from 'fs/promises'
 
+// Cache for findInPath results to avoid repeated subprocess spawns
+const findInPathCache = new Map<string, string | null>()
+
 export enum Platform {
     Windows = 'windows',
     MacOS = 'macos',
@@ -405,10 +408,16 @@ export class PlatformDetector {
 
     /*
      Finds an executable in the system PATH
+     Caches results to avoid repeated subprocess spawns
      @param executable Name of the executable to find
      @returns Promise resolving to full path if found, null otherwise
      */
     private static async findInPath(executable: string): Promise<string | null> {
+        // Check cache first
+        if (findInPathCache.has(executable)) {
+            return findInPathCache.get(executable)!
+        }
+
         try {
             const which = this.isWindows() ? 'where' : 'which'
             const proc = Bun.spawn([which, executable], {
@@ -420,10 +429,14 @@ export class PlatformDetector {
             if (result === 0) {
                 const stdout = await new Response(proc.stdout).text()
                 const firstPath = stdout.trim().split('\n')[0].trim()
-                return firstPath || null
+                const pathResult = firstPath || null
+                findInPathCache.set(executable, pathResult)
+                return pathResult
             }
+            findInPathCache.set(executable, null)
             return null
         } catch {
+            findInPathCache.set(executable, null)
             return null
         }
     }

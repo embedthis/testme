@@ -72,6 +72,13 @@ export class ConfigManager {
     private static readonly CONFIG_FILENAME = 'testme.json5'
 
     /**
+     * Cache for loaded configurations indexed by starting directory
+     * Avoids repeated file system walks and parsing for the same directory
+     * @internal
+     */
+    private static configCache = new Map<string, TestConfig>()
+
+    /**
      * Default configuration values used as fallback
      * @internal
      */
@@ -131,18 +138,32 @@ export class ConfigManager {
      * the first testme.json5 file. The found configuration is merged with default
      * values to ensure all required properties are present. If the config specifies
      * inheritance, parent configs are loaded and merged.
+     *
+     * Results are cached for the lifetime of the process to avoid repeated file system
+     * walks and parsing for the same directory.
      */
     static async findConfig(startDir: string): Promise<TestConfig> {
+        // Check cache first
+        const cached = this.configCache.get(startDir)
+        if (cached) {
+            return cached
+        }
+
         const {config, configDir} = await this.findConfigFile(startDir)
 
+        let result: TestConfig
         // If config has inherit field, load parent config and merge
         if (config && config.inherit !== undefined && config.inherit !== false) {
             const parentConfig = configDir ? await this.loadParentConfig(configDir) : null
             const inheritedConfig = this.mergeInheritedConfig(config, parentConfig)
-            return this.mergeWithDefaults(inheritedConfig, configDir)
+            result = this.mergeWithDefaults(inheritedConfig, configDir)
+        } else {
+            result = this.mergeWithDefaults(config, configDir)
         }
 
-        return this.mergeWithDefaults(config, configDir)
+        // Cache the result
+        this.configCache.set(startDir, result)
+        return result
     }
 
     /**

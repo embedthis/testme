@@ -1,7 +1,7 @@
 import type {TestFile, DiscoveryOptions} from './types.ts'
 import {TestType} from './types.ts'
 import {join, dirname, basename, extname} from 'path'
-import {readdir, stat} from 'node:fs/promises'
+import {readdir} from 'node:fs/promises'
 
 /*
  TestDiscovery - Pattern-driven test file discovery engine
@@ -78,27 +78,27 @@ export class TestDiscovery {
     /*
      Recursively searches a directory for test files
      Pattern-driven: Only files matching include patterns are analyzed
+     Uses readdir with withFileTypes to avoid extra stat() calls
      @param dirPath Directory path to search
      @param options Discovery options
      @param tests Array to accumulate found test files
      */
     private static async searchDirectory(dirPath: string, options: DiscoveryOptions, tests: TestFile[]): Promise<void> {
         try {
-            const entries = await readdir(dirPath)
+            const entries = await readdir(dirPath, {withFileTypes: true})
 
             for (const entry of entries) {
-                const fullPath = join(dirPath, entry)
-                const stats = await stat(fullPath)
+                const fullPath = join(dirPath, entry.name)
 
-                if (stats.isDirectory()) {
+                if (entry.isDirectory()) {
                     // Skip excluded directories
-                    if (this.shouldSkipDirectory(entry)) {
+                    if (this.shouldSkipDirectory(entry.name)) {
                         continue
                     }
 
                     // Recursively search subdirectories
                     await this.searchDirectory(fullPath, options, tests)
-                } else if (stats.isFile()) {
+                } else if (entry.isFile()) {
                     // First check if file matches include patterns
                     if (this.matchesIncludePatterns(fullPath, options.patterns, options.rootDir)) {
                         // Then check if it's excluded

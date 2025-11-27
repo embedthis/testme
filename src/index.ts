@@ -816,6 +816,15 @@ class TestMeApp {
             }
         }
 
+        if (options.rebuild) {
+            mergedConfig.execution = {
+                ...mergedConfig.execution,
+                timeout: mergedConfig.execution?.timeout ?? 30,
+                parallel: mergedConfig.execution?.parallel ?? true,
+                rebuild: true,
+            }
+        }
+
         if (options.profile !== undefined) {
             mergedConfig.profile = options.profile
         }

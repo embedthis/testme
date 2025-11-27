@@ -42,7 +42,7 @@ Show help message with usage information and examples.
 Create testme.json5 configuration file in the current directory with sensible defaults. Exits with error if file already exists.
 .TP
 .BR \-k ", " \-\-keep
-Keep .testme artifact directories after successful tests. By default, TestMe removes artifacts after passing tests but preserves them for failed tests to aid debugging. This flag prevents cleanup of artifacts from successful tests as well.
+Keep .testme artifact directories (default behavior). By default, TestMe keeps artifacts after passing tests to enable C binary caching. Failed tests always preserve artifacts to aid debugging. Use \fB\-\-clean\fR to remove all artifact directories.
 .TP
 .BR \-l ", " \-\-list
 List discovered tests without running them. Shows all test files that would be executed.
@@ -62,6 +62,9 @@ Set build profile (overrides configuration and PROFILE environment variable). Us
 .BR \-q ", " \-\-quiet
 Run silently with no output, only exit codes. Useful for scripting and automation.
 .TP
+.BR \-R ", " \-\-rebuild
+Force recompilation of C tests even if binary is up-to-date. By default, TestMe compares source file and binary modification times (mtime) - if source is newer, it recompiles; if binary is newer, it skips compilation for faster execution.
+.TP
 .BR \-s ", " \-\-show
 Display test configuration and environment variables. Shows the full test configuration, compiler commands (for C tests), and all environment variables passed to tests. When combined with \fB\-\-verbose\fR, also displays full compilation output including compiler warnings from stderr. Useful for debugging test execution and environment setup.
 .TP
@@ -80,7 +83,10 @@ Enable verbose mode with detailed output. Sets TESTME_VERBOSE environment variab
 .BR \-V ", " \-\-version
 Show version information.
 .TP
-.BR \-w ", " \-\-workers " " \fINUMBER\fR
+.BR \-w ", " \-\-warning
+Show compiler warnings and compile command for C tests. Provides focused output showing compiler name, full compile command, and any warnings from successful compilations without the full configuration dump.
+.TP
+.BR \-W ", " \-\-workers " " \fINUMBER\fR
 Number of parallel workers (overrides configuration). Must be a positive integer.
 
 .SH PATTERNS
@@ -633,8 +639,8 @@ Debug builds include .dSYM directories on macOS for debugging support.
 .B Xcode projects
 Debug mode creates Xcode project files for integrated debugging on macOS.
 .TP
-.B Automatic cleanup
-By default, TestMe removes \fB.testme\fR directories after successful test execution. Failed tests always preserve artifacts to aid debugging. Use \fB\-\-keep\fR to prevent cleanup of successful test artifacts, or \fB\-\-clean\fR to remove all artifact directories.
+.B C Binary Caching
+By default, TestMe keeps compiled binaries and uses modification time (mtime) comparison to determine when recompilation is needed. If the source file is newer than the compiled binary, TestMe automatically recompiles. If the binary is up-to-date, compilation is skipped for faster test execution. Use \fB\-\-rebuild\fR to force recompilation regardless of timestamps, or \fB\-\-clean\fR to remove all artifact directories and binaries.
 
 .SH PARALLEL EXECUTION
 TestMe executes tests in parallel by default with configurable concurrency:

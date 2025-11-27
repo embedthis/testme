@@ -144,8 +144,37 @@ function installSupportFiles() {
     }
 
     // Link JavaScript testme module via bun link
+    const jsModuleSrc = path.join(__dirname, '..', 'src', 'modules', 'js')
+
+    // On UNC paths (network drives), copy to local directory first since symlinks don't work
+    let jsModuleDir = jsModuleSrc
+    const isUncPath = jsModuleSrc.startsWith('\\\\')
+
+    if (isUncPath) {
+        const localModuleDir = path.join(os.homedir(), '.local', 'lib', 'testme-js')
+        log('Network drive detected - copying JS module to local directory...')
+        try {
+            // Create directory and copy files
+            if (!fs.existsSync(localModuleDir)) {
+                fs.mkdirSync(localModuleDir, {recursive: true})
+            }
+            // Copy all files from src/modules/js to local directory
+            const files = fs.readdirSync(jsModuleSrc)
+            for (const file of files) {
+                const srcFile = path.join(jsModuleSrc, file)
+                const destFile = path.join(localModuleDir, file)
+                if (fs.statSync(srcFile).isFile()) {
+                    fs.copyFileSync(srcFile, destFile)
+                }
+            }
+            jsModuleDir = localModuleDir
+            log(`Copied JS module to ${localModuleDir}`)
+        } catch (err) {
+            error(`Could not copy JS module to local directory: ${err.message}`)
+        }
+    }
+
     try {
-        const jsModuleDir = path.join(__dirname, '..', 'src', 'modules', 'js')
         log('Linking JavaScript testme module via bun link...')
         execSync('bun link', {
             cwd: jsModuleDir,
@@ -154,7 +183,7 @@ function installSupportFiles() {
         log('JavaScript testme module linked successfully')
     } catch (err) {
         error('Could not link JavaScript testme module. You may need to run "bun link" manually.')
-        error(`  cd ${path.join(__dirname, '..', 'src', 'modules', 'js')} && bun link`)
+        error(`  cd ${jsModuleDir} && bun link`)
         if (err.stderr) {
             error(`  Error: ${err.stderr.toString().trim()}`)
         } else if (err.message) {

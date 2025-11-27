@@ -43,20 +43,21 @@ export class ProcessManager {
                 await gracefulKill.exited
 
                 // Poll for process exit with configurable timeout
+                // Use 200ms interval to reduce tasklist process spawns on Windows
                 // Even with shutdownTimeout=0, do at least one check to give signal handlers a chance
-                const pollInterval = 100 // ms
+                const pollInterval = 200 // ms
                 const maxPolls = shutdownTimeout > 0 ? Math.ceil(shutdownTimeout / pollInterval) : 1
 
                 for (let i = 0; i < maxPolls; i++) {
+                    // Wait before checking (gives process time to exit)
+                    await new Promise((resolve) => setTimeout(resolve, pollInterval))
+
                     // Check if process is still running
                     const stillRunning = await this.isProcessRunning(pid)
                     if (!stillRunning) {
                         // Process exited gracefully - no need to force kill
                         return
                     }
-
-                    // Wait before next poll (or before force kill)
-                    await new Promise((resolve) => setTimeout(resolve, pollInterval))
                 }
 
                 // If we get here, process didn't exit within timeout
@@ -93,20 +94,21 @@ export class ProcessManager {
                 await termKill.exited
 
                 // Poll for process exit with configurable timeout
+                // Use 200ms interval to reduce process spawns
                 // Even with shutdownTimeout=0, do at least one check to give signal handlers a chance
-                const pollInterval = 100 // ms
+                const pollInterval = 200 // ms
                 const maxPolls = shutdownTimeout > 0 ? Math.ceil(shutdownTimeout / pollInterval) : 1
 
                 for (let i = 0; i < maxPolls; i++) {
+                    // Wait before checking (gives process time to exit)
+                    await new Promise((resolve) => setTimeout(resolve, pollInterval))
+
                     // Check if process is still running
                     const stillRunning = await this.isProcessRunning(pid)
                     if (!stillRunning) {
                         // Process exited gracefully - no need to SIGKILL
                         return
                     }
-
-                    // Wait before next poll (or before SIGKILL)
-                    await new Promise((resolve) => setTimeout(resolve, pollInterval))
                 }
 
                 // If we get here, process didn't exit within timeout
@@ -127,33 +129,17 @@ export class ProcessManager {
 
     /*
      Checks if a process is running
+     Uses process.kill(pid, 0) which is cross-platform and zero-overhead
+     Signal 0 checks existence without actually sending a signal
      @param pid Process ID to check
      @returns Promise resolving to true if process is running
      */
     static async isProcessRunning(pid: number): Promise<boolean> {
         try {
-            if (PlatformDetector.isWindows()) {
-                const proc = Bun.spawn(['tasklist', '/FI', `PID eq ${pid}`, '/NH'], {
-                    stdout: 'pipe',
-                    stderr: 'pipe',
-                })
-
-                const result = await proc.exited
-                if (result === 0) {
-                    const stdout = await new Response(proc.stdout).text()
-                    return stdout.includes(pid.toString())
-                }
-                return false
-            } else {
-                // On Unix, kill -0 checks if process exists without killing it
-                const proc = Bun.spawn(['kill', '-0', pid.toString()], {
-                    stdout: 'pipe',
-                    stderr: 'pipe',
-                })
-
-                const result = await proc.exited
-                return result === 0
-            }
+            // process.kill(pid, 0) checks if process exists without killing it
+            // Works on both Windows and Unix - throws if process doesn't exist
+            process.kill(pid, 0)
+            return true
         } catch {
             return false
         }

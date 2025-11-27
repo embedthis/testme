@@ -1,7 +1,7 @@
 import type {TestFile, ArtifactManager as IArtifactManager, TestConfig} from './types.ts'
 import {join, basename, relative, dirname} from 'path'
 import * as path from 'path'
-import {mkdir, rmdir, readdir, unlink, stat} from 'node:fs/promises'
+import {mkdir, rmdir, readdir, unlink} from 'node:fs/promises'
 import {existsSync} from 'node:fs'
 import {GlobExpansion} from './utils/glob-expansion.ts'
 
@@ -189,18 +189,18 @@ export class ArtifactManager implements IArtifactManager {
     /*
      Recursively removes a directory and all its contents
      Includes retry logic for Windows file locking issues
+     Uses readdir with withFileTypes to avoid extra stat() calls
      @param dirPath Path to directory to remove
      */
     private async removeDirectory(dirPath: string): Promise<void> {
         try {
-            const entries = await readdir(dirPath)
+            const entries = await readdir(dirPath, {withFileTypes: true})
 
             // Remove all files and subdirectories
             for (const entry of entries) {
-                const fullPath = join(dirPath, entry)
-                const stats = await stat(fullPath)
+                const fullPath = join(dirPath, entry.name)
 
-                if (stats.isDirectory()) {
+                if (entry.isDirectory()) {
                     await this.removeDirectory(fullPath)
                 } else {
                     // Windows may lock executables briefly after process exit
@@ -222,10 +222,10 @@ export class ArtifactManager implements IArtifactManager {
     /*
      Removes a file with retry logic for Windows file locking
      @param filePath Path to file to remove
-     @param maxRetries Maximum number of retry attempts (default: 10 for better Windows compatibility)
-     @param delayMs Initial delay in milliseconds (default: 100)
+     @param maxRetries Maximum number of retry attempts (default: 5)
+     @param delayMs Initial delay in milliseconds (default: 50)
      */
-    private async removeFileWithRetry(filePath: string, maxRetries: number = 10, delayMs: number = 100): Promise<void> {
+    private async removeFileWithRetry(filePath: string, maxRetries: number = 5, delayMs: number = 50): Promise<void> {
         let lastError: any
 
         for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -243,8 +243,8 @@ export class ArtifactManager implements IArtifactManager {
                 // Only retry on Windows EPERM/EBUSY errors (file locked)
                 if (error.code === 'EPERM' || error.code === 'EBUSY') {
                     if (attempt < maxRetries) {
-                        // Exponential backoff: 100ms, 200ms, 400ms, 800ms, 1.6s, 3.2s (capped at 2s)
-                        const delay = Math.min(delayMs * Math.pow(2, attempt), 2000)
+                        // Exponential backoff: 50ms, 100ms, 200ms, 400ms (capped at 500ms)
+                        const delay = Math.min(delayMs * Math.pow(2, attempt), 500)
                         await new Promise((resolve) => setTimeout(resolve, delay))
                         continue
                     }
@@ -265,21 +265,21 @@ export class ArtifactManager implements IArtifactManager {
 
     /*
      Recursively finds and removes all .testme artifact directories
+     Uses readdir with withFileTypes to avoid extra stat() calls
      @param dirPath Directory to search for artifact directories
      */
     private async findAndRemoveArtifactDirs(dirPath: string): Promise<void> {
         try {
-            const entries = await readdir(dirPath)
+            const entries = await readdir(dirPath, {withFileTypes: true})
 
             for (const entry of entries) {
-                const fullPath = join(dirPath, entry)
-                const stats = await stat(fullPath)
+                if (entry.isDirectory()) {
+                    const fullPath = join(dirPath, entry.name)
 
-                if (stats.isDirectory()) {
-                    if (entry === '.testme') {
+                    if (entry.name === '.testme') {
                         // Found an artifact directory, remove it
                         await this.removeDirectory(fullPath)
-                    } else if (!this.shouldSkipDirectory(entry)) {
+                    } else if (!this.shouldSkipDirectory(entry.name)) {
                         // Recursively search subdirectories
                         await this.findAndRemoveArtifactDirs(fullPath)
                     }

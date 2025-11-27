@@ -16,6 +16,15 @@ export enum ShellType {
  Cross-platform shell detection and execution
  */
 export class ShellDetector {
+    // Cache for Git Bash path on Windows (null means not yet detected, string means cached result)
+    private static cachedGitBashPath: string | null = null
+
+    // Cache for Unix shell detection (null means not yet detected)
+    private static cachedUnixShell: string | null = null
+
+    // Cache for PowerShell path (null means not yet detected)
+    private static cachedPowerShellPath: string | null = null
+
     /*
      Detects the appropriate shell for a script file
      @param filePath Path to the script file
@@ -80,35 +89,52 @@ export class ShellDetector {
 
     /*
      Detects the default Unix shell
+     Caches result for the lifetime of the process
      @returns Shell command to use
      */
     private static async detectUnixShell(): Promise<string> {
+        // Return cached result if available
+        if (this.cachedUnixShell !== null) {
+            return this.cachedUnixShell
+        }
+
+        let shell = 'sh' // Default fallback
+
         // Check SHELL environment variable
         if (process.env.SHELL) {
             const shellPath = process.env.SHELL
-            if (shellPath.includes('bash')) return 'bash'
-            if (shellPath.includes('zsh')) return 'zsh'
-            if (shellPath.includes('fish')) return 'fish'
+            if (shellPath.includes('bash')) shell = 'bash'
+            else if (shellPath.includes('zsh')) shell = 'zsh'
+            else if (shellPath.includes('fish')) shell = 'fish'
         }
 
-        // Ultimate fallback to POSIX shell
-        return 'sh'
+        // Cache and return
+        this.cachedUnixShell = shell
+        return shell
     }
 
     /*
      Finds PowerShell on the system
+     Caches result for the lifetime of the process
      @returns PowerShell command to use
      */
     private static async findPowerShell(): Promise<string> {
+        // Return cached result if available
+        if (this.cachedPowerShellPath !== null) {
+            return this.cachedPowerShellPath
+        }
+
         // Try PowerShell Core first (cross-platform)
         const pwsh = await this.findInPath(PlatformDetector.isWindows() ? 'pwsh.exe' : 'pwsh')
         if (pwsh) {
-            return PlatformDetector.isWindows() ? 'pwsh.exe' : 'pwsh'
+            this.cachedPowerShellPath = PlatformDetector.isWindows() ? 'pwsh.exe' : 'pwsh'
+            return this.cachedPowerShellPath
         }
 
         // Fall back to Windows PowerShell
         if (PlatformDetector.isWindows()) {
-            return 'powershell.exe'
+            this.cachedPowerShellPath = 'powershell.exe'
+            return this.cachedPowerShellPath
         }
 
         throw new Error('PowerShell not found on this system')
@@ -218,11 +244,17 @@ export class ShellDetector {
     /*
      Finds Git Bash on Windows, avoiding WSL bash
      Checks common installation paths and filters out WSL bash from PATH search
+     Caches result for the lifetime of the process to avoid repeated file system checks
      @returns Promise resolving to Git Bash path or 'bash' as fallback
      */
     static async findGitBash(): Promise<string> {
         if (!PlatformDetector.isWindows()) {
             return 'bash'
+        }
+
+        // Return cached result if available
+        if (this.cachedGitBashPath !== null) {
+            return this.cachedGitBashPath
         }
 
         // Common Git Bash installation paths
@@ -237,6 +269,7 @@ export class ShellDetector {
         // Check each known path first
         for (const bashPath of gitBashPaths) {
             if (bashPath && (await this.fileExists(bashPath))) {
+                this.cachedGitBashPath = bashPath
                 return bashPath
             }
         }
@@ -261,6 +294,7 @@ export class ShellDetector {
                         !lowerPath.includes('system32') &&
                         !lowerPath.includes('wsl')
                     ) {
+                        this.cachedGitBashPath = path
                         return path
                     }
                 }
@@ -270,6 +304,7 @@ export class ShellDetector {
         }
 
         // Fallback to just 'bash' and hope it works
+        this.cachedGitBashPath = 'bash'
         return 'bash'
     }
 

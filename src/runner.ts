@@ -243,11 +243,12 @@ export class TestRunner {
             const result = await handler.execute(testFile, testSpecificConfig)
 
             // Cleanup (if needed)
-            // Only cleanup artifacts on successful tests (unless --keep flag is set)
-            // Failed tests preserve artifacts for debugging
+            // Artifacts are kept by default to enable compilation caching for C tests
+            // Use --clean to remove all artifacts when desired
+            // Only cleanup if keepArtifacts is explicitly false (not undefined/true)
             if (handler.cleanup) {
                 const shouldCleanup =
-                    result.status === TestStatus.Passed && !testSpecificConfig.execution?.keepArtifacts
+                    result.status === TestStatus.Passed && testSpecificConfig.execution?.keepArtifacts === false
                 if (shouldCleanup) {
                     try {
                         await handler.cleanup(testFile, testSpecificConfig)
@@ -548,6 +549,7 @@ export class TestRunner {
                         ...(globalConfig.execution?.duration !== undefined && {
                             duration: globalConfig.execution.duration,
                         }),
+                        ...(globalConfig.execution?.rebuild && {rebuild: globalConfig.execution.rebuild}),
                     },
                     // Preserve output settings that may have CLI overrides
                     output: {

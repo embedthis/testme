@@ -175,8 +175,8 @@ async function testSetupCleanupService(): Promise<TestResult[]> {
     const setupScript = await createScript(
         'setup',
         isWindows
-            ? `@echo setup > ${setupMarker}\n@ping -n 6 127.0.0.1 > nul`
-            : `echo 'setup' > ${setupMarker}\nsleep 5`
+            ? `@echo setup > ${setupMarker}\n@ping -n 3 127.0.0.1 > nul`
+            : `echo 'setup' > ${setupMarker}\nsleep 2`
     )
 
     const config: TestConfig = {
@@ -194,7 +194,7 @@ async function testSetupCleanupService(): Promise<TestResult[]> {
         await serviceManager.runSetup(config)
 
         // Give it a moment to create the marker
-        await new Promise((resolve) => setTimeout(resolve, 1500))
+        await new Promise((resolve) => setTimeout(resolve, 300))
 
         // Check if setup ran
         const file = Bun.file(setupMarker)
@@ -218,7 +218,7 @@ async function testSetupCleanupService(): Promise<TestResult[]> {
         await serviceManager.runCleanup(config)
 
         // Wait a moment for cleanup
-        await new Promise((resolve) => setTimeout(resolve, 500))
+        await new Promise((resolve) => setTimeout(resolve, 200))
 
         // Check if service stopped
         const isStillRunning = serviceManager.isSetupServiceRunning()
@@ -259,8 +259,8 @@ async function testFullLifecycle(): Promise<TestResult[]> {
     const setupScript = await createScript(
         'full-setup',
         isWindows
-            ? `@echo setup > ${setupMarker}\n@ping -n 6 127.0.0.1 > nul`
-            : `echo 'setup' > ${setupMarker}\nsleep 5`
+            ? `@echo setup > ${setupMarker}\n@ping -n 3 127.0.0.1 > nul`
+            : `echo 'setup' > ${setupMarker}\nsleep 2`
     )
     const cleanupMarker = join(testDir, 'full-cleanup.txt')
     const cleanupScript = await createScript(
@@ -291,7 +291,7 @@ async function testFullLifecycle(): Promise<TestResult[]> {
         })
 
         await serviceManager.runPrep(config)
-        await new Promise((resolve) => setTimeout(resolve, 500))
+        await new Promise((resolve) => setTimeout(resolve, 100))
 
         const prepFile = Bun.file(prepMarker)
         const prepExists = await prepFile.exists()
@@ -302,7 +302,7 @@ async function testFullLifecycle(): Promise<TestResult[]> {
         })
 
         await serviceManager.runSetup(config)
-        await new Promise((resolve) => setTimeout(resolve, 1500))
+        await new Promise((resolve) => setTimeout(resolve, 300))
 
         const setupFile = Bun.file(setupMarker)
         const setupExists = await setupFile.exists()
@@ -313,7 +313,7 @@ async function testFullLifecycle(): Promise<TestResult[]> {
         })
 
         await serviceManager.runCleanup(config)
-        await new Promise((resolve) => setTimeout(resolve, 500))
+        await new Promise((resolve) => setTimeout(resolve, 200))
 
         const cleanupFile = Bun.file(cleanupMarker)
         const cleanupExists = await cleanupFile.exists()

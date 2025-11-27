@@ -8,6 +8,7 @@ import {PermissionManager} from '../platform/permissions.ts'
 import {PlatformDetector} from '../platform/detector.ts'
 import {ErrorMessages} from '../utils/error-messages.ts'
 import {basename, resolve, isAbsolute, join} from 'path'
+import {stat} from 'fs/promises'
 import os from 'os'
 
 /*
@@ -101,6 +102,7 @@ export class CTestHandler extends BaseTestHandler {
 
     /*
      Compiles C source file to executable binary
+     Skips compilation if binary exists and is newer than source (unless --rebuild is set)
      @param file C test file to compile
      @param config Test configuration with compiler settings
      @returns Compilation result with success status, duration, and output
@@ -114,9 +116,38 @@ export class CTestHandler extends BaseTestHandler {
         output: string
         error?: string
         compiler?: string
+        skipped?: boolean
     }> {
+        const binaryPath = this.getBinaryPath(file)
+
+        // Check if we can skip compilation (binary exists and is newer than source)
+        if (!config.execution?.rebuild) {
+            const needsCompile = await this.needsRecompilation(file.path, binaryPath)
+            if (!needsCompile) {
+                // Get compiler info for environment setup (still needed for execution)
+                const compilerConfig = await CompilerManager.getDefaultCompilerConfig(
+                    this.resolveCompilerName(config.compiler?.c?.compiler)
+                )
+                const compilerName =
+                    compilerConfig.type === CompilerType.GCC
+                        ? 'gcc'
+                        : compilerConfig.type === CompilerType.Clang
+                          ? 'clang'
+                          : compilerConfig.type === CompilerType.MSVC
+                            ? 'msvc'
+                            : undefined
+
+                return {
+                    success: true,
+                    duration: 0,
+                    output: 'Using cached binary (source unchanged)',
+                    compiler: compilerName,
+                    skipped: true,
+                }
+            }
+        }
+
         const {result, duration} = await this.measureExecution(async () => {
-            const binaryPath = this.getBinaryPath(file)
             const baseDir = config.configDir || file.directory
 
             // Get compiler configuration (auto-detect if not specified)
@@ -406,6 +437,24 @@ ${result.stderr}`
         const baseName = basename(file.name, '.tst.c')
         const binaryName = PermissionManager.addBinaryExtension(baseName)
         return this.artifactManager.getArtifactPath(file, binaryName)
+    }
+
+    /*
+     Checks if the C source file needs to be recompiled
+     Compares modification times of source file and compiled binary
+     @param sourceFile Path to the C source file
+     @param binaryPath Path to the compiled binary
+     @returns Promise resolving to true if recompilation is needed
+     */
+    private async needsRecompilation(sourceFile: string, binaryPath: string): Promise<boolean> {
+        try {
+            const [sourceStat, binaryStat] = await Promise.all([stat(sourceFile), stat(binaryPath)])
+            // Rebuild if source is newer than binary
+            return sourceStat.mtimeMs > binaryStat.mtimeMs
+        } catch {
+            // Binary doesn't exist or other error, needs compilation
+            return true
+        }
     }
 
     /*
