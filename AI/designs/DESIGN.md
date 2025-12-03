@@ -440,6 +440,36 @@ tm --duration 1day "endurance-test"     # 86400 seconds
 - **Value**: Always in seconds (integer or decimal)
 - **Availability**: Only set when `--duration` flag is provided (not set by default)
 
+#### Class Flag (--class)
+
+**Purpose**: Set a class identifier that is exported to tests and service scripts for test class filtering
+
+**Implementation**:
+- CLI flag `--class <STRING>` accepts any string value
+- Exported as `TESTME_CLASS` environment variable
+- Available in all test types (C, Shell, JavaScript, TypeScript, Python, Go, Ejscript)
+- Available in all service scripts (skip, environment, prep, setup, cleanup)
+- Included in Xcode project configurations when using `--debug` mode
+
+**Usage Examples**:
+```bash
+tm --class "unit" "*.tst.c"           # Set class to "unit"
+tm --class "integration" test/api     # Set class to "integration"
+tm --class "smoke" --debug math       # Class available in Xcode debugging
+```
+
+**Use Cases**:
+- Tests that need to identify their test class at runtime
+- Filtering test behavior based on class (e.g., smoke vs full tests)
+- Test frameworks that organize tests by class
+- CI/CD pipelines that run different test classes
+
+**Environment Variable Export**:
+- **Test Execution**: `BaseTestHandler.getTestEnvironment()` exports `TESTME_CLASS` when `config.execution.testClass` is set
+- **Service Scripts**: `ServiceManager.getServiceEnvironment()` exports `TESTME_CLASS` for skip, prep, setup, cleanup scripts
+- **Xcode Projects**: `ArtifactManager.generateXcodeProjectConfig()` includes `TESTME_CLASS` in scheme environment
+- **Availability**: Only set when `--class` flag is provided (not set by default)
+
 ### Test Discovery Process
 
 1. **Recursive Directory Walking**: Starting from root, traverse all subdirectories

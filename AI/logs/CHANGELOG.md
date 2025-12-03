@@ -1,5 +1,27 @@
 # TestMe Changelog
 
+## 2025-12-03
+
+### Added --class Argument for Test Class Filtering
+
+- **FEATURE**: Added `--class <STRING>` CLI argument to set TESTME_CLASS environment variable
+    - **Background**: Tests may need to filter or identify test classes at runtime
+    - **Implementation**:
+        - Added `--class` argument to CLI parser
+        - Added `testClass` field to `CliOptions` and `ExecutionConfig` types
+        - `TESTME_CLASS` environment variable passed to all test scripts and compiled tests
+        - Included in Xcode project configurations when using `--debug` mode
+        - Available in service scripts (prep, setup, cleanup, etc.)
+    - **Usage**: `tm --class "MyClassName" test.tst.c`
+    - **Files Modified**:
+        - [src/cli.ts](../../src/cli.ts) - Added `--class` argument parsing and help text
+        - [src/types.ts](../../src/types.ts) - Added `testClass` to `CliOptions` and `ExecutionConfig`
+        - [src/index.ts](../../src/index.ts) - Pass `testClass` from CLI options to execution config
+        - [src/handlers/base.ts](../../src/handlers/base.ts) - Set `TESTME_CLASS` in test environment
+        - [src/artifacts.ts](../../src/artifacts.ts) - Include `TESTME_CLASS` in Xcode project environment
+        - [src/services.ts](../../src/services.ts) - Export `TESTME_CLASS` to service scripts
+        - [doc/tm.1](../../doc/tm.1) - Updated man page with new option and environment variable
+
 ## 2025-11-27
 
 ### Windows Performance Optimizations
