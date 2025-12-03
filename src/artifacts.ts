@@ -318,13 +318,15 @@ export class ArtifactManager implements IArtifactManager {
      @param expandedFlags Compiler flags with ${vars} already expanded
      @param expandedLibraries Library names with ${vars} already expanded
      @param config Test configuration containing environment variables
+     @param compiler Compiler name for TESTME_CC variable
      @returns Content of the project.yml file for xcodegen
      */
     async generateXcodeProjectConfig(
         testFile: TestFile,
         expandedFlags: string[],
         expandedLibraries: string[],
-        config: TestConfig
+        config: TestConfig,
+        compiler?: string
     ): Promise<string> {
         const testBaseName = basename(testFile.name, '.tst.c')
         const relativePath = relative(testFile.artifactDir, testFile.path)
@@ -351,22 +353,58 @@ export class ArtifactManager implements IArtifactManager {
         }
 
         // Generate environment variables for the scheme
-        // Note: We can't use getTestEnvironment() here as it's in BaseTestHandler
-        // So we replicate the logic for platform-specific env var merging
-        let environmentVariables = ''
-        if (config.env) {
-            const baseDir = config.configDir || testFile.directory
-            const envVars: string[] = []
+        const baseDir = config.configDir || testFile.directory
+        const allEnvVars: Record<string, string> = {}
 
+        // 1. First, capture any TESTME_* variables from the current process environment
+        for (const [key, value] of Object.entries(process.env)) {
+            if (key.startsWith('TESTME_') && value !== undefined) {
+                allEnvVars[key] = value
+            }
+        }
+
+        // 2. Add TESTME_* variables derived from CLI options/config
+        allEnvVars.TESTME_VERBOSE = config.output?.verbose === true ? '1' : '0'
+        allEnvVars.TESTME_QUIET = config.output?.quiet === true ? '1' : '0'
+        allEnvVars.TESTME_KEEP = config.execution?.keepArtifacts === true ? '1' : '0'
+        allEnvVars.TESTME_STOP = config.execution?.stopOnFailure === true ? '1' : '0'
+        allEnvVars.TESTME_ITERATIONS = (config.execution?.iterations ?? 1).toString()
+
+        if (config.execution?.depth !== undefined) {
+            allEnvVars.TESTME_DEPTH = config.execution.depth.toString()
+        }
+        if (config.execution?.duration !== undefined) {
+            allEnvVars.TESTME_DURATION = config.execution.duration.toString()
+        }
+        if (config.execution?.testClass !== undefined) {
+            allEnvVars.TESTME_CLASS = config.execution.testClass
+        }
+
+        // 3. Add special variables (PLATFORM, PROFILE, OS, ARCH, CC, TESTDIR, CONFIGDIR)
+        const specialVars = GlobExpansion.createSpecialVariables(
+            testFile.artifactDir,
+            testFile.directory,
+            config.configDir || testFile.directory,
+            compiler,
+            config.profile
+        )
+        if (specialVars.PLATFORM !== undefined) allEnvVars.TESTME_PLATFORM = specialVars.PLATFORM
+        if (specialVars.PROFILE !== undefined) allEnvVars.TESTME_PROFILE = specialVars.PROFILE
+        if (specialVars.OS !== undefined) allEnvVars.TESTME_OS = specialVars.OS
+        if (specialVars.ARCH !== undefined) allEnvVars.TESTME_ARCH = specialVars.ARCH
+        if (specialVars.CC !== undefined) allEnvVars.TESTME_CC = specialVars.CC
+        if (specialVars.TESTDIR !== undefined) allEnvVars.TESTME_TESTDIR = specialVars.TESTDIR
+        if (specialVars.CONFIGDIR !== undefined) allEnvVars.TESTME_CONFIGDIR = specialVars.CONFIGDIR
+
+        // 4. Add user-defined environment variables from config (config.environment or config.env)
+        const configEnv = config.environment || config.env
+        if (configEnv) {
             // Determine current platform
             const platform =
                 process.platform === 'darwin' ? 'macosx' : process.platform === 'win32' ? 'windows' : 'linux'
 
-            // Collect all environment variables (base + platform-specific)
-            const allEnvVars: Record<string, string> = {}
-
             // First, add base environment variables
-            for (const [key, value] of Object.entries(config.env)) {
+            for (const [key, value] of Object.entries(configEnv)) {
                 // Skip platform-specific keys and non-string values
                 if (key === 'windows' || key === 'macosx' || key === 'linux' || typeof value !== 'string') {
                     continue
@@ -375,7 +413,7 @@ export class ArtifactManager implements IArtifactManager {
             }
 
             // Then, merge platform-specific environment variables
-            const platformEnv = config.env[platform]
+            const platformEnv = configEnv[platform]
             if (platformEnv) {
                 for (const [key, value] of Object.entries(platformEnv)) {
                     // Skip non-string values
@@ -385,18 +423,22 @@ export class ArtifactManager implements IArtifactManager {
                     allEnvVars[key] = value
                 }
             }
+        }
 
-            // Expand ${...} references in environment variable values
-            for (const [key, value] of Object.entries(allEnvVars)) {
-                const expandedValue = await GlobExpansion.expandSingle(value, baseDir)
-                envVars.push(`        ${key}: "${expandedValue}"`)
-            }
+        // Build the environment variables YAML block
+        let environmentVariables = ''
+        const envVars: string[] = []
 
-            if (envVars.length > 0) {
-                environmentVariables = `
+        // Expand ${...} references in environment variable values and format for YAML
+        for (const [key, value] of Object.entries(allEnvVars)) {
+            const expandedValue = await GlobExpansion.expandSingle(value, baseDir)
+            envVars.push(`        ${key}: "${expandedValue}"`)
+        }
+
+        if (envVars.length > 0) {
+            environmentVariables = `
       environmentVariables:
 ${envVars.join('\n')}`
-            }
         }
 
         return `name: ${testBaseName}
@@ -425,13 +467,15 @@ schemes:
      @param expandedFlags Compiler flags with ${vars} already expanded
      @param expandedLibraries Library names with ${vars} already expanded
      @param config Test configuration containing environment variables
+     @param compiler Compiler name for TESTME_CC variable
      @throws Error if project creation fails
      */
     async createXcodeProject(
         testFile: TestFile,
         expandedFlags: string[],
         expandedLibraries: string[],
-        config: TestConfig
+        config: TestConfig,
+        compiler?: string
     ): Promise<void> {
         try {
             const testBaseName = basename(testFile.name, '.tst.c')
@@ -439,7 +483,8 @@ schemes:
                 testFile,
                 expandedFlags,
                 expandedLibraries,
-                config
+                config,
+                compiler
             )
             const configFileName = `${testBaseName}.yml`
 

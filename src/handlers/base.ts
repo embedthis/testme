@@ -298,6 +298,11 @@ Original error: ${error}`
             env.TESTME_DURATION = config.execution.duration.toString()
         }
 
+        // Set TESTME_CLASS if specified
+        if (config.execution?.testClass !== undefined) {
+            env.TESTME_CLASS = config.execution.testClass
+        }
+
         // Create special variables for expansion if we have file context
         let specialVars
         if (file) {

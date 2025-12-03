@@ -129,6 +129,7 @@ export type ExecutionConfig = {
     iterations?: number
     stopOnFailure?: boolean // Stop testing as soon as a test fails
     duration?: number // Duration in seconds (exported as TESTME_DURATION)
+    testClass?: string // Test class filter (exported as TESTME_CLASS)
 }
 
 /*
@@ -256,6 +257,7 @@ export type CliOptions = {
     live: boolean
     duration?: number // Duration in seconds
     timeout?: number // Timeout in seconds (overrides config)
+    testClass?: string // Test class filter (exports TESTME_CLASS)
 }
 
 /*

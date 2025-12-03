@@ -17,6 +17,9 @@ By default, TestMe shows test names as they execute and displays a summary of re
 .BR \-\-chdir " " \fIDIR\fR
 Change to directory before running tests. Useful for running tests from different locations.
 .TP
+.BR \-\-class " " \fISTRING\fR
+Set TESTME_CLASS environment variable for tests. This value is passed to all test scripts and compiled tests, and is included in Xcode project configurations for debugging.
+.TP
 .BR \-\-clean
 Clean all .testme artifact directories and exit. Removes all compilation outputs and temporary files from the project tree.
 .TP
@@ -680,6 +683,9 @@ Set to "1" when verbose mode is enabled. Tests can check this for detailed outpu
 .TP
 .B TESTME_DEPTH
 Set to the value provided by \fB\-\-depth\fR option. Used for nested test execution control.
+.TP
+.B TESTME_CLASS
+Set to the value provided by \fB\-\-class\fR option. Tests can use this to filter or identify test classes.
 .TP
 .B PROFILE
 Read as the default build profile if not specified in config or via \fB\-\-profile\fR. Used in ${PROFILE} variable expansion.

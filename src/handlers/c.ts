@@ -638,7 +638,13 @@ ${result.stderr}`
             const resolvedLibraries = this.resolveRelativePaths(expandedLibraries, baseDir)
 
             // Create Xcode project configuration with proper flags and libraries
-            await this.artifactManager.createXcodeProject(file, resolvedFlags, resolvedLibraries, config)
+            await this.artifactManager.createXcodeProject(
+                file,
+                resolvedFlags,
+                resolvedLibraries,
+                config,
+                compilerConfig.compiler
+            )
 
             const configFileName = `${testBaseName}.yml`
             const projectName = `${testBaseName}.xcodeproj`

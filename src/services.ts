@@ -1129,6 +1129,9 @@ export class ServiceManager {
         if (config.execution?.duration !== undefined) {
             env.TESTME_DURATION = String(config.execution.duration)
         }
+        if (config.execution?.testClass !== undefined) {
+            env.TESTME_CLASS = config.execution.testClass
+        }
 
         // Add environment variables from configuration with expansion
         // Support both 'environment' (new) and 'env' (legacy) keys

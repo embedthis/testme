@@ -31,6 +31,7 @@ export class CliParser {
             noServices: false,
             stop: false,
             live: false,
+            testClass: undefined,
         }
 
         let i = 0
@@ -161,6 +162,15 @@ export class CliParser {
                         i += 2
                     } else {
                         throw new Error(`${arg} requires a profile name`)
+                    }
+                    break
+
+                case '--class':
+                    if (i + 1 < args.length) {
+                        options.testClass = args[i + 1]!
+                        i += 2
+                    } else {
+                        throw new Error(`${arg} requires a class name`)
                     }
                     break
 
@@ -310,6 +320,7 @@ ARGUMENTS:
 
 OPTIONS:
         --chdir <DIR>        Change to directory before running tests
+        --class <STRING>     Set TESTME_CLASS environment variable for tests
         --clean              Clean all .testme artifact directories and exit
     -c, --config <FILE>      Use specific configuration file
         --continue           Continue running tests even if some fail, always exit with 0

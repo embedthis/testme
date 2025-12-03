@@ -808,6 +808,15 @@ class TestMeApp {
             }
         }
 
+        if (options.testClass !== undefined) {
+            mergedConfig.execution = {
+                ...mergedConfig.execution,
+                timeout: mergedConfig.execution?.timeout ?? 30000,
+                parallel: mergedConfig.execution?.parallel ?? true,
+                testClass: options.testClass,
+            }
+        }
+
         if (options.timeout !== undefined) {
             mergedConfig.execution = {
                 ...mergedConfig.execution,
@@ -993,6 +1002,16 @@ class TestMeApp {
                     timeout: config.execution?.timeout ?? 30,
                     parallel: config.execution?.parallel ?? true,
                     duration: options.duration,
+                }
+            }
+
+            // Apply testClass flag from CLI - sets TESTME_CLASS
+            if (options.testClass !== undefined) {
+                config.execution = {
+                    ...config.execution,
+                    timeout: config.execution?.timeout ?? 30,
+                    parallel: config.execution?.parallel ?? true,
+                    testClass: options.testClass,
                 }
             }
 
