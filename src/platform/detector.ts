@@ -79,9 +79,20 @@ export class PlatformDetector {
 
     /*
      Detects the current architecture
+     Note: Bun on Windows ARM64 reports process.arch as 'x64' due to x64 emulation
+     Check PROCESSOR_IDENTIFIER env var on Windows for accurate ARM64 detection
      @returns Architecture enum value
      */
     static detectArchitecture(): Architecture {
+        // On Windows, check PROCESSOR_IDENTIFIER for accurate ARM64 detection
+        // Bun runs in x64 emulation on Windows ARM64 and reports wrong arch
+        if (process.platform === 'win32') {
+            const procId = process.env.PROCESSOR_IDENTIFIER || ''
+            if (procId.includes('ARM')) {
+                return Architecture.ARM64
+            }
+        }
+
         switch (process.arch) {
             case 'x64':
                 return Architecture.X64
@@ -535,12 +546,28 @@ export class PlatformDetector {
                 const latestVersion = versions[0]
 
                 // Check for cl.exe in various architecture combinations
-                const archCombos = [
-                    ['Hostx64', 'x64'],
-                    ['Hostx86', 'x86'],
-                    ['Hostx64', 'x86'],
-                    ['Hostx86', 'x64'],
-                ]
+                // Prefer native architecture first, then cross-compilation options
+                const arch = this.detectArchitecture()
+                let archCombos: string[][]
+
+                if (arch === Architecture.ARM64) {
+                    // On ARM64 Windows, prefer ARM64 native compiler
+                    archCombos = [
+                        ['Hostarm64', 'arm64'],
+                        ['Hostx64', 'arm64'],
+                        ['Hostarm64', 'x64'],
+                        ['Hostx64', 'x64'],
+                        ['Hostx86', 'x86'],
+                    ]
+                } else {
+                    // On x64/x86 Windows
+                    archCombos = [
+                        ['Hostx64', 'x64'],
+                        ['Hostx86', 'x86'],
+                        ['Hostx64', 'x86'],
+                        ['Hostx86', 'x64'],
+                    ]
+                }
 
                 for (const [hostArch, targetArch] of archCombos) {
                     const clPath = join(vcToolsPath, latestVersion, 'bin', hostArch, targetArch, 'cl.exe')

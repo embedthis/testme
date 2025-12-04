@@ -146,10 +146,23 @@ export class GlobExpansion {
         else if (process.platform === 'win32') os = 'windows'
 
         // Detect architecture
+        // Note: Bun on Windows ARM64 reports process.arch as 'x64' due to x64 emulation
+        // Check PROCESSOR_IDENTIFIER env var on Windows for accurate ARM64 detection
         let arch = 'unknown'
-        if (process.arch === 'arm64') arch = 'arm64'
-        else if (process.arch === 'x64') arch = 'x64'
-        else if (process.arch === 'ia32') arch = 'x86'
+        if (process.platform === 'win32') {
+            const procId = process.env.PROCESSOR_IDENTIFIER || ''
+            if (procId.includes('ARM')) {
+                arch = 'arm64'
+            } else if (process.arch === 'x64') {
+                arch = 'x64'
+            } else if (process.arch === 'ia32') {
+                arch = 'x86'
+            }
+        } else {
+            if (process.arch === 'arm64') arch = 'arm64'
+            else if (process.arch === 'x64') arch = 'x64'
+            else if (process.arch === 'ia32') arch = 'x86'
+        }
 
         // Combine OS and architecture
         const platform = `${os}-${arch}`
