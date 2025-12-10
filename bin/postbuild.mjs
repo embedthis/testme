@@ -6,11 +6,13 @@
  */
 
 import { execSync, spawnSync } from 'child_process'
-import { existsSync, mkdirSync, rmSync, cpSync, lstatSync } from 'fs'
-import { join, resolve } from 'path'
+import { existsSync, mkdirSync, rmSync, cpSync } from 'fs'
+import { dirname, join, resolve } from 'path'
+import { fileURLToPath } from 'url'
 
 const isWindows = process.platform === 'win32'
-const rootDir = resolve(import.meta.dirname, '..')
+const __dirname = dirname(fileURLToPath(import.meta.url))
+const rootDir = resolve(__dirname, '..')
 const modulesJsDir = join(rootDir, 'src', 'modules', 'js')
 const testDir = join(rootDir, 'test')
 const testNodeModules = join(testDir, 'node_modules')

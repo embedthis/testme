@@ -1,5 +1,41 @@
 # TestMe Changelog
 
+## 2025-12-10
+
+### Node.js 18 Compatibility for Postbuild Script
+
+- **FIX**: Fixed `bin/postbuild.mjs` to work with Node.js 18.x on Linux
+    - **Issue**: Used `import.meta.dirname` which is only available in Bun and Node.js 20.11+
+    - **Fix**: Replaced with `fileURLToPath(import.meta.url)` for cross-platform ESM compatibility
+    - **Files Modified**:
+        - [bin/postbuild.mjs](../../bin/postbuild.mjs)
+
+### --clean Now Runs Cleanup Service Scripts
+
+- **FEATURE**: `tm --clean` now runs cleanup service scripts before removing artifact directories
+    - **Background**: The `--clean` flag only removed `.testme` artifact directories but did not run cleanup scripts that might clean up other test-generated files (temp files, logs, etc.)
+    - **Implementation**:
+        - Added `findAllConfigDirs()` method to recursively find all `testme.json5` files
+        - Updated `--clean` handler to run each config's cleanup script before removing artifacts
+    - **Impact**: Full test environment cleanup including user-defined cleanup scripts
+    - **Files Modified**:
+        - [src/config.ts](../../src/config.ts) - Added `findAllConfigDirs()` static method
+        - [src/index.ts](../../src/index.ts) - Updated `--clean` handler to run cleanup scripts
+
+### Visual Studio Project Generation for --debug on Windows
+
+- **FEATURE**: `tm --debug` on Windows now generates proper `.vcxproj` and `.vcxproj.user` files with environment variables
+    - **Background**: The previous implementation used `devenv /UseEnv /DebugExe`, but `/UseEnv` only affects compilation, not the debugger. This caused DLLs to fail to load because PATH wasn't available to the debugger.
+    - **Implementation**:
+        - Added `generateVisualStudioProject()` method to create `.vcxproj` XML with compiler settings
+        - Added `createVisualStudioProject()` method to write project files to artifact directory
+        - Added helper methods for MSVC flag processing and environment variable formatting
+        - Modified `launchVisualStudioDebugger()` to generate project and open it in VS
+    - **Impact**: DLLs now load correctly when debugging on Windows. Environment variables are persisted in the project.
+    - **Files Modified**:
+        - [src/artifacts.ts](../../src/artifacts.ts) - Added VS project generation methods
+        - [src/handlers/c.ts](../../src/handlers/c.ts) - Updated `launchVisualStudioDebugger()` to use project generation
+
 ## 2025-12-03
 
 ### Added --class Argument for Test Class Filtering
