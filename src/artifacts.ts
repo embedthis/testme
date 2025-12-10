@@ -519,6 +519,19 @@ schemes:
         // Generate a deterministic GUID from the test name
         const guid = this.generateGuid(testFile.path)
 
+        // Detect platform architecture for VS project
+        // On Windows ARM64, Bun reports process.arch as 'x64' due to emulation
+        // Use PROCESSOR_IDENTIFIER to detect actual ARM64
+        let vsPlatform = 'x64'
+        if (process.platform === 'win32') {
+            const procId = process.env.PROCESSOR_IDENTIFIER || ''
+            if (procId.includes('ARM')) {
+                vsPlatform = 'ARM64'
+            } else if (process.arch === 'ia32') {
+                vsPlatform = 'Win32'
+            }
+        }
+
         // Process compiler flags for MSVC
         const {includePaths, libraryPaths} = this.processCompilerFlagsForMSVC(expandedFlags, testFile)
 
@@ -529,9 +542,9 @@ schemes:
         const vcxproj = `<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
-    <ProjectConfiguration Include="Debug|x64">
+    <ProjectConfiguration Include="Debug|${vsPlatform}">
       <Configuration>Debug</Configuration>
-      <Platform>x64</Platform>
+      <Platform>${vsPlatform}</Platform>
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -540,7 +553,7 @@ schemes:
     <ProjectName>${testBaseName}</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\\Microsoft.Cpp.default.props" />
-  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Debug|${vsPlatform}'">
     <ConfigurationType>Application</ConfigurationType>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
@@ -548,15 +561,15 @@ schemes:
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings" />
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|${vsPlatform}'">
     <Import Project="$(UserRootDir)\\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|${vsPlatform}'">
     <OutDir>$(ProjectDir)</OutDir>
     <IntDir>$(ProjectDir)obj\\</IntDir>
     <TargetName>${testBaseName}</TargetName>
   </PropertyGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|${vsPlatform}'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>${includePaths}%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -587,7 +600,7 @@ schemes:
         // Build the vcxproj.user content
         const vcxprojUser = `<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|${vsPlatform}'">
     <LocalDebuggerWorkingDirectory>${workingDirectory}</LocalDebuggerWorkingDirectory>
     <LocalDebuggerEnvironment>${envString}</LocalDebuggerEnvironment>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
@@ -674,19 +687,24 @@ schemes:
         const includePaths: string[] = []
         const libraryPaths: string[] = []
 
-        // Always include the test directory for headers
-        includePaths.push(testFile.directory.replace(/\//g, '\\'))
+        // Always include the test directory for headers (relative from artifact dir)
+        const testDirFromArtifact = this.makePathRelativeIfLocal(testFile.directory, testFile.artifactDir)
+        includePaths.push(testDirFromArtifact.replace(/\//g, '\\'))
 
         for (const flag of flags) {
             if (flag.startsWith('-I') || flag.startsWith('/I')) {
                 const pathValue = flag.startsWith('-I') ? flag.substring(2) : flag.substring(2)
                 if (pathValue && pathValue !== '.') {
-                    includePaths.push(pathValue.replace(/\//g, '\\'))
+                    // Adjust path to be relative from artifact directory (where vcxproj lives)
+                    const relativePath = this.makePathRelativeIfLocal(pathValue, testFile.artifactDir)
+                    includePaths.push(relativePath.replace(/\//g, '\\'))
                 }
             } else if (flag.startsWith('-L') || flag.startsWith('/LIBPATH:')) {
                 const pathValue = flag.startsWith('-L') ? flag.substring(2) : flag.substring(9)
                 if (pathValue) {
-                    libraryPaths.push(pathValue.replace(/\//g, '\\'))
+                    // Adjust path to be relative from artifact directory (where vcxproj lives)
+                    const relativePath = this.makePathRelativeIfLocal(pathValue, testFile.artifactDir)
+                    libraryPaths.push(relativePath.replace(/\//g, '\\'))
                 }
             }
         }
@@ -709,10 +727,9 @@ schemes:
         }
 
         // Convert library names to .lib format
+        // Preserve the name as-is, just add .lib suffix if not present
         const libs = libraries.map((lib) => {
-            // Remove "lib" prefix if present, add .lib suffix
-            const libName = lib.startsWith('lib') ? lib.slice(3) : lib
-            return libName.endsWith('.lib') ? libName : `${libName}.lib`
+            return lib.endsWith('.lib') ? lib : `${lib}.lib`
         })
 
         return libs.join(';') + ';'
