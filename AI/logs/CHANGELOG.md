@@ -2,6 +2,32 @@
 
 ## 2025-12-10
 
+### VS/Xcode Project Environment Variable Expansion Fix
+
+- **FIX**: Special variables (`${PLATFORM}`, `${PROFILE}`, `${ARCH}`, etc.) now properly expand in IDE project environment settings
+    - **Issue**: Environment variables in PATH and other settings were showing unexpanded `${PLATFORM}` instead of actual values like `windows-arm64`
+    - **Fix**: Pass `specialVars` to `GlobExpansion.expandSingle()` in both Xcode and VS project generation
+    - **Files Modified**:
+        - [src/artifacts.ts](../../src/artifacts.ts) - Added specialVars parameter to expansion calls
+
+### Windows ARM64 Platform Detection for VS Projects
+
+- **FIX**: VS projects now use correct platform (ARM64) on Windows ARM64 systems
+    - **Issue**: Hardcoded `x64` platform caused wrong architecture builds; Bun reports `x64` due to emulation
+    - **Fix**: Detect ARM64 using `PROCESSOR_IDENTIFIER` environment variable
+    - **Impact**: VS projects correctly target ARM64, x64, or Win32 based on actual platform
+    - **Files Modified**:
+        - [src/artifacts.ts](../../src/artifacts.ts) - Added platform detection logic
+
+### Library Name Preservation for VS Projects
+
+- **FIX**: Library names now preserved as-is in VS project generation
+    - **Issue**: Libraries like `libwebsock` were incorrectly output as `websock.lib` (stripping `lib` prefix)
+    - **Fix**: `processLibrariesForMSVC()` now only adds `.lib` suffix, doesn't modify the name
+    - **Impact**: Linker can find libraries with `lib` prefix (e.g., `libwebsock.lib`)
+    - **Files Modified**:
+        - [src/artifacts.ts](../../src/artifacts.ts) - Simplified library name processing
+
 ### Node.js 18 Compatibility for Postbuild Script
 
 - **FIX**: Fixed `bin/postbuild.mjs` to work with Node.js 18.x on Linux
