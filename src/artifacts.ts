@@ -431,7 +431,7 @@ export class ArtifactManager implements IArtifactManager {
 
         // Expand ${...} references in environment variable values and format for YAML
         for (const [key, value] of Object.entries(allEnvVars)) {
-            const expandedValue = await GlobExpansion.expandSingle(value, baseDir)
+            const expandedValue = await GlobExpansion.expandSingle(value, baseDir, specialVars)
             envVars.push(`        ${key}: "${expandedValue}"`)
         }
 
@@ -800,7 +800,7 @@ schemes:
         // Expand ${...} references and build newline-separated KEY=VALUE string
         const envLines: string[] = []
         for (const [key, value] of Object.entries(allEnvVars)) {
-            const expandedValue = await GlobExpansion.expandSingle(value, baseDir)
+            const expandedValue = await GlobExpansion.expandSingle(value, baseDir, specialVars)
             // Convert forward slashes to backslashes for Windows paths
             const windowsValue = expandedValue.replace(/\//g, '\\')
             envLines.push(`${key}=${windowsValue}`)
