@@ -934,6 +934,65 @@ export class ConfigManager {
     }
 
     /**
+     * Recursively finds all directories containing testme.json5 files
+     *
+     * @param rootDir - Directory to start searching from
+     * @returns Array of config directories that contain testme.json5
+     *
+     * @remarks
+     * Recursively walks the directory tree to find all testme.json5 files.
+     * Skips common directories like node_modules, .git, etc.
+     * Results are sorted alphabetically for consistent ordering.
+     */
+    static async findAllConfigDirs(rootDir: string): Promise<string[]> {
+        const configDirs: string[] = []
+        const skipDirs = ['node_modules', '.git', '.svn', '.hg', '__pycache__', '.pytest_cache', 'coverage', 'dist']
+
+        const walk = async (dir: string): Promise<void> => {
+            try {
+                const entries = await readdir(dir, {withFileTypes: true})
+
+                for (const entry of entries) {
+                    if (!entry.isDirectory()) continue
+                    if (skipDirs.includes(entry.name)) continue
+                    if (entry.name.startsWith('.') && entry.name !== '.testme') continue
+
+                    const entryPath = join(dir, entry.name)
+                    const configPath = join(entryPath, this.CONFIG_FILENAME)
+
+                    try {
+                        const file = Bun.file(configPath)
+                        if (await file.exists()) {
+                            configDirs.push(entryPath)
+                        }
+                    } catch {
+                        // Skip if we can't check the config file
+                    }
+
+                    // Recursively search subdirectories
+                    await walk(entryPath)
+                }
+            } catch {
+                // Skip directories we can't read
+            }
+        }
+
+        // Check if root dir itself has a config
+        try {
+            const rootConfigPath = join(rootDir, this.CONFIG_FILENAME)
+            const file = Bun.file(rootConfigPath)
+            if (await file.exists()) {
+                configDirs.push(rootDir)
+            }
+        } catch {
+            // Skip if we can't check root config
+        }
+
+        await walk(rootDir)
+        return configDirs.sort()
+    }
+
+    /**
      * Searches for testme.json5 files in immediate subdirectories
      *
      * @param rootDir - Directory to search subdirectories of

@@ -498,6 +498,318 @@ schemes:
     }
 
     /*
+     Generates Visual Studio project configuration for debugging on Windows
+     @param testFile C test file to create project for
+     @param expandedFlags Compiler flags with ${vars} already expanded
+     @param expandedLibraries Library names with ${vars} already expanded
+     @param config Test configuration containing environment variables
+     @param compiler Compiler name for TESTME_CC variable
+     @returns Object containing vcxproj and vcxproj.user content
+     */
+    async generateVisualStudioProject(
+        testFile: TestFile,
+        expandedFlags: string[],
+        expandedLibraries: string[],
+        config: TestConfig,
+        compiler?: string
+    ): Promise<{vcxproj: string; vcxprojUser: string}> {
+        const testBaseName = basename(testFile.name, '.tst.c')
+        const relativePath = relative(testFile.artifactDir, testFile.path).replace(/\//g, '\\')
+
+        // Generate a deterministic GUID from the test name
+        const guid = this.generateGuid(testFile.path)
+
+        // Process compiler flags for MSVC
+        const {includePaths, libraryPaths} = this.processCompilerFlagsForMSVC(expandedFlags, testFile)
+
+        // Process libraries for MSVC
+        const additionalDependencies = this.processLibrariesForMSVC(expandedLibraries)
+
+        // Build the vcxproj content
+        const vcxproj = `<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{${guid}}</ProjectGuid>
+    <RootNamespace>${testBaseName}</RootNamespace>
+    <ProjectName>${testBaseName}</ProjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\\Microsoft.Cpp.default.props" />
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+    <UseDebugLibraries>true</UseDebugLibraries>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings" />
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutDir>$(ProjectDir)</OutDir>
+    <IntDir>$(ProjectDir)obj\\</IntDir>
+    <TargetName>${testBaseName}</TargetName>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>${includePaths}%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>${libraryPaths}%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>${additionalDependencies}%(AdditionalDependencies)</AdditionalDependencies>
+      <SubSystem>Console</SubSystem>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="${relativePath}" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets" />
+</Project>`
+
+        // Build environment variables for the .user file
+        const envString = await this.buildEnvironmentVariablesForMSVC(testFile, config, compiler)
+
+        // Convert working directory to Windows path format
+        const workingDirectory = testFile.directory.replace(/\//g, '\\')
+
+        // Build the vcxproj.user content
+        const vcxprojUser = `<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LocalDebuggerWorkingDirectory>${workingDirectory}</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerEnvironment>${envString}</LocalDebuggerEnvironment>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+  </PropertyGroup>
+</Project>`
+
+        return {vcxproj, vcxprojUser}
+    }
+
+    /*
+     Creates Visual Studio project files for debugging a C test file on Windows
+     @param testFile C test file to create project for
+     @param expandedFlags Compiler flags with ${vars} already expanded
+     @param expandedLibraries Library names with ${vars} already expanded
+     @param config Test configuration containing environment variables
+     @param compiler Compiler name for TESTME_CC variable
+     @returns Path to the generated .vcxproj file
+     @throws Error if project creation fails
+     */
+    async createVisualStudioProject(
+        testFile: TestFile,
+        expandedFlags: string[],
+        expandedLibraries: string[],
+        config: TestConfig,
+        compiler?: string
+    ): Promise<string> {
+        try {
+            const testBaseName = basename(testFile.name, '.tst.c')
+            const {vcxproj, vcxprojUser} = await this.generateVisualStudioProject(
+                testFile,
+                expandedFlags,
+                expandedLibraries,
+                config,
+                compiler
+            )
+
+            // Write the project files
+            const vcxprojFileName = `${testBaseName}.vcxproj`
+            const vcxprojUserFileName = `${testBaseName}.vcxproj.user`
+
+            await this.writeArtifact(testFile, vcxprojFileName, vcxproj)
+            await this.writeArtifact(testFile, vcxprojUserFileName, vcxprojUser)
+
+            console.log(`📝 Created Visual Studio project: ${vcxprojFileName}`)
+
+            return join(testFile.artifactDir, vcxprojFileName)
+        } catch (error) {
+            throw new Error(`Failed to create Visual Studio project: ${error}`)
+        }
+    }
+
+    /*
+     Generates a deterministic GUID from a string
+     @param input String to generate GUID from
+     @returns GUID string in format XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
+     */
+    private generateGuid(input: string): string {
+        // Simple hash function to generate deterministic values
+        let hash = 0
+        for (let i = 0; i < input.length; i++) {
+            const char = input.charCodeAt(i)
+            hash = ((hash << 5) - hash) + char
+            hash = hash & hash // Convert to 32bit integer
+        }
+
+        // Use absolute value and pad to create GUID-like structure
+        const hex = Math.abs(hash).toString(16).padStart(8, '0')
+        const hex2 = Math.abs(hash * 31).toString(16).padStart(12, '0')
+
+        return `${hex.slice(0, 8)}-${hex2.slice(0, 4)}-4${hex2.slice(4, 7)}-a${hex2.slice(7, 10)}-${hex2.slice(0, 12)}`
+            .toUpperCase()
+    }
+
+    /*
+     Processes compiler flags to extract MSVC-compatible include and library paths
+     @param flags Array of compiler flags
+     @param testFile TestFile object to determine paths from
+     @returns Object with include paths and library paths formatted for vcxproj
+     */
+    private processCompilerFlagsForMSVC(
+        flags: string[],
+        testFile: TestFile
+    ): {includePaths: string; libraryPaths: string} {
+        const includePaths: string[] = []
+        const libraryPaths: string[] = []
+
+        // Always include the test directory for headers
+        includePaths.push(testFile.directory.replace(/\//g, '\\'))
+
+        for (const flag of flags) {
+            if (flag.startsWith('-I') || flag.startsWith('/I')) {
+                const pathValue = flag.startsWith('-I') ? flag.substring(2) : flag.substring(2)
+                if (pathValue && pathValue !== '.') {
+                    includePaths.push(pathValue.replace(/\//g, '\\'))
+                }
+            } else if (flag.startsWith('-L') || flag.startsWith('/LIBPATH:')) {
+                const pathValue = flag.startsWith('-L') ? flag.substring(2) : flag.substring(9)
+                if (pathValue) {
+                    libraryPaths.push(pathValue.replace(/\//g, '\\'))
+                }
+            }
+        }
+
+        // Format as semicolon-separated with trailing semicolon
+        const includeStr = includePaths.length > 0 ? includePaths.join(';') + ';' : ''
+        const libraryStr = libraryPaths.length > 0 ? libraryPaths.join(';') + ';' : ''
+
+        return {includePaths: includeStr, libraryPaths: libraryStr}
+    }
+
+    /*
+     Processes library names for MSVC linker
+     @param libraries Array of library names
+     @returns Formatted library dependencies for vcxproj
+     */
+    private processLibrariesForMSVC(libraries: string[]): string {
+        if (libraries.length === 0) {
+            return ''
+        }
+
+        // Convert library names to .lib format
+        const libs = libraries.map((lib) => {
+            // Remove "lib" prefix if present, add .lib suffix
+            const libName = lib.startsWith('lib') ? lib.slice(3) : lib
+            return libName.endsWith('.lib') ? libName : `${libName}.lib`
+        })
+
+        return libs.join(';') + ';'
+    }
+
+    /*
+     Builds environment variables string for MSVC debugger
+     @param testFile TestFile object
+     @param config Test configuration
+     @param compiler Compiler name
+     @returns Newline-separated KEY=VALUE string for LocalDebuggerEnvironment
+     */
+    private async buildEnvironmentVariablesForMSVC(
+        testFile: TestFile,
+        config: TestConfig,
+        compiler?: string
+    ): Promise<string> {
+        const baseDir = config.configDir || testFile.directory
+        const allEnvVars: Record<string, string> = {}
+
+        // 1. First, capture any TESTME_* variables from the current process environment
+        for (const [key, value] of Object.entries(process.env)) {
+            if (key.startsWith('TESTME_') && value !== undefined) {
+                allEnvVars[key] = value
+            }
+        }
+
+        // 2. Add TESTME_* variables derived from CLI options/config
+        allEnvVars.TESTME_VERBOSE = config.output?.verbose === true ? '1' : '0'
+        allEnvVars.TESTME_QUIET = config.output?.quiet === true ? '1' : '0'
+        allEnvVars.TESTME_KEEP = config.execution?.keepArtifacts === true ? '1' : '0'
+        allEnvVars.TESTME_STOP = config.execution?.stopOnFailure === true ? '1' : '0'
+        allEnvVars.TESTME_ITERATIONS = (config.execution?.iterations ?? 1).toString()
+
+        if (config.execution?.depth !== undefined) {
+            allEnvVars.TESTME_DEPTH = config.execution.depth.toString()
+        }
+        if (config.execution?.duration !== undefined) {
+            allEnvVars.TESTME_DURATION = config.execution.duration.toString()
+        }
+        if (config.execution?.testClass !== undefined) {
+            allEnvVars.TESTME_CLASS = config.execution.testClass
+        }
+
+        // 3. Add special variables (PLATFORM, PROFILE, OS, ARCH, CC, TESTDIR, CONFIGDIR)
+        const specialVars = GlobExpansion.createSpecialVariables(
+            testFile.artifactDir,
+            testFile.directory,
+            config.configDir || testFile.directory,
+            compiler,
+            config.profile
+        )
+        if (specialVars.PLATFORM !== undefined) allEnvVars.TESTME_PLATFORM = specialVars.PLATFORM
+        if (specialVars.PROFILE !== undefined) allEnvVars.TESTME_PROFILE = specialVars.PROFILE
+        if (specialVars.OS !== undefined) allEnvVars.TESTME_OS = specialVars.OS
+        if (specialVars.ARCH !== undefined) allEnvVars.TESTME_ARCH = specialVars.ARCH
+        if (specialVars.CC !== undefined) allEnvVars.TESTME_CC = specialVars.CC
+        if (specialVars.TESTDIR !== undefined) allEnvVars.TESTME_TESTDIR = specialVars.TESTDIR
+        if (specialVars.CONFIGDIR !== undefined) allEnvVars.TESTME_CONFIGDIR = specialVars.CONFIGDIR
+
+        // 4. Add user-defined environment variables from config (config.environment or config.env)
+        const configEnv = config.environment || config.env
+        if (configEnv) {
+            // First, add base environment variables
+            for (const [key, value] of Object.entries(configEnv)) {
+                // Skip platform-specific keys and non-string values
+                if (key === 'windows' || key === 'macosx' || key === 'linux' || typeof value !== 'string') {
+                    continue
+                }
+                allEnvVars[key] = value
+            }
+
+            // Then, merge Windows-specific environment variables
+            const platformEnv = (configEnv as any).windows
+            if (platformEnv) {
+                for (const [key, value] of Object.entries(platformEnv)) {
+                    if (typeof value !== 'string') {
+                        continue
+                    }
+                    allEnvVars[key] = value
+                }
+            }
+        }
+
+        // Expand ${...} references and build newline-separated KEY=VALUE string
+        const envLines: string[] = []
+        for (const [key, value] of Object.entries(allEnvVars)) {
+            const expandedValue = await GlobExpansion.expandSingle(value, baseDir)
+            // Convert forward slashes to backslashes for Windows paths
+            const windowsValue = expandedValue.replace(/\//g, '\\')
+            envLines.push(`${key}=${windowsValue}`)
+        }
+
+        return envLines.join('\n')
+    }
+
+    /*
      Converts absolute paths to relative paths when they're within the project structure
      @param absolutePath The absolute path to convert
      @param fromDirectory The directory to calculate relative path from (artifact directory)

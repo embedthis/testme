@@ -840,22 +840,73 @@ To debug:
         config: TestConfig,
         compileDuration: number
     ): Promise<TestResult> {
-        const binaryPath = this.getBinaryPath(file)
+        const testBaseName = basename(file.name, '.tst.c')
 
         try {
-            console.log('🛠️  Preparing Visual Studio debugger...')
-            console.log(`📁 Binary: ${binaryPath}`)
+            console.log('🛠️  Preparing Visual Studio project...')
             console.log(`📄 Source: ${file.path}`)
             console.log(`📂 Working Directory: ${file.directory}`)
 
-            // Get compiler config to find devenv path from MSVC installation
+            // Get expanded flags and libraries (same as used for compilation)
+            const baseDir = config.configDir || file.directory
             const compilerConfig = await CompilerManager.getDefaultCompilerConfig(
                 this.resolveCompilerName(config.compiler?.c?.compiler)
             )
 
-            let devenvPath = 'devenv'
+            // Get compiler-specific or default user flags and libraries
+            let userFlags: string[] = []
+            let rawLibraries: string[] = []
 
-            // If we have MSVC compiler path, derive devenv path from it
+            const cConfig = config.compiler?.c
+            if (cConfig) {
+                // Try MSVC-specific config first
+                if (compilerConfig.type === CompilerType.MSVC && cConfig.msvc) {
+                    userFlags = [...(cConfig.msvc.flags || [])]
+                    rawLibraries = [...(cConfig.msvc.libraries || [])]
+                    // Check for Windows-specific overrides
+                    const platformSettings = cConfig.msvc.windows
+                    if (platformSettings) {
+                        if (platformSettings.flags) userFlags.push(...platformSettings.flags)
+                        if (platformSettings.libraries) rawLibraries.push(...platformSettings.libraries)
+                    }
+                } else {
+                    // Fall back to default flags
+                    userFlags = cConfig.flags || []
+                    rawLibraries = cConfig.libraries || []
+                }
+            }
+
+            // Merge compiler defaults with user flags
+            const rawFlags = [...compilerConfig.flags, ...userFlags]
+
+            // Create special variables for expansion
+            const specialVars = GlobExpansion.createSpecialVariables(
+                file.artifactDir,
+                file.directory,
+                config.configDir,
+                compilerConfig.compiler,
+                config.profile
+            )
+
+            // Expand ${...} references in flags and libraries
+            const expandedFlags = await GlobExpansion.expandArray(rawFlags, baseDir, specialVars)
+            const expandedLibraries = await GlobExpansion.expandArray(rawLibraries, baseDir, specialVars)
+
+            // Convert relative paths to absolute paths for VS project
+            const resolvedFlags = this.resolveRelativePaths(expandedFlags, baseDir)
+            const resolvedLibraries = this.resolveRelativePaths(expandedLibraries, baseDir)
+
+            // Create Visual Studio project with proper flags, libraries, and environment
+            const projectPath = await this.artifactManager.createVisualStudioProject(
+                file,
+                resolvedFlags,
+                resolvedLibraries,
+                config,
+                compilerConfig.compiler
+            )
+
+            // Find devenv path from MSVC installation
+            let devenvPath = 'devenv'
             if (compilerConfig.type === CompilerType.MSVC && compilerConfig.compiler) {
                 const derivedDevenv = this.findDevenvFromCompiler(compilerConfig.compiler)
                 if (derivedDevenv) {
@@ -864,43 +915,20 @@ To debug:
                 }
             }
 
-            // Get test environment - we need the PATH for DLL loading
-            const compilerName = compilerConfig.type === CompilerType.MSVC ? 'msvc' : undefined
-            const testEnv = await this.getTestEnvironment(config, file, compilerName)
-
-            // Try to launch Visual Studio with debugger
+            // Try to launch Visual Studio with the project
             let vsOpened = false
             try {
                 console.log('🚀 Launching Visual Studio...')
 
-                // Build environment for Visual Studio
-                // We only pass the PATH from testEnv, not the full environment
-                // This prevents environment pollution while ensuring DLLs can be found
-                const vsEnv: Record<string, string> = {}
-                for (const [key, value] of Object.entries(process.env)) {
-                    if (value !== undefined) {
-                        vsEnv[key] = value
-                    }
-                }
-                if (testEnv.PATH) {
-                    vsEnv.PATH = testEnv.PATH
-                }
-
-                /*
-                    The detached option actually works, but isn't defined yet in the
-                    official Bun.spawn API.
-                    /UseEnv tells Visual Studio to use environment variables from the launching process
-                 */
-                const proc = Bun.spawn([devenvPath, '/UseEnv', binaryPath], {
-                    cwd: file.directory,
+                const proc = Bun.spawn([devenvPath, projectPath], {
+                    cwd: file.artifactDir,
                     stdout: 'ignore',
                     stderr: 'ignore',
                     stdin: 'ignore',
-                    env: vsEnv,
                     detached: true,
                 } as any)
 
-                // Unref so the cmd process doesn't keep the test runner alive
+                // Unref so the process doesn't keep the test runner alive
                 proc.unref()
 
                 // Give it a moment to start
@@ -911,21 +939,23 @@ To debug:
             } catch (error) {
                 // Visual Studio devenv command not available
                 console.log('📋 Could not launch Visual Studio automatically')
-                console.log(`   Manually open Visual Studio and debug: ${binaryPath}`)
+                console.log(`   Manually open: ${projectPath}`)
             }
 
-            const output = `Visual Studio debug setup completed.
-Binary: ${binaryPath}
-Source: ${file.path}
+            const output = `Visual Studio project '${testBaseName}' created and opened.
+Project location: ${projectPath}
 
 To debug:
 ${
     vsOpened
-        ? '1. Visual Studio should be open with the debugger ready'
-        : `1. Open Visual Studio\n2. File > Open > Project/Solution, or run: "${devenvPath}" /DebugExe "${binaryPath}"`
+        ? '1. Visual Studio should be open with the project loaded'
+        : `1. Open Visual Studio\n2. File > Open > Project/Solution\n3. Open: ${projectPath}`
 }
-${vsOpened ? '2' : '3'}. Set breakpoints in the source: ${file.path}
-${vsOpened ? '3' : '4'}. Start debugging (F5)`
+${vsOpened ? '2' : '4'}. Build the project (Ctrl+Shift+B)
+${vsOpened ? '3' : '5'}. Set breakpoints in: ${file.path}
+${vsOpened ? '4' : '6'}. Start debugging (F5)
+
+Note: Environment variables including PATH are configured in the project.`
 
             return this.createTestResult(file, TestStatus.Passed, compileDuration, output)
         } catch (error) {

@@ -1020,6 +1020,18 @@ class TestMeApp {
             // Handle clean option
             if (options.clean) {
                 console.log('Cleaning test artifacts...')
+
+                // Find all testme.json5 configs and run their cleanup scripts
+                const configDirs = await ConfigManager.findAllConfigDirs(rootDir)
+                for (const configDir of configDirs) {
+                    const config = await ConfigManager.findConfig(configDir)
+                    if (config.services?.cleanup) {
+                        const serviceManager = new ServiceManager(rootDir)
+                        await serviceManager.runCleanup(config)
+                    }
+                }
+
+                // Remove .testme artifact directories
                 await this.runner.cleanArtifacts(rootDir)
                 console.log('✓ All test artifacts cleaned')
                 return 0
