@@ -1,5 +1,23 @@
 # TestMe Changelog
 
+## 2026-07-14
+
+### Package Entry Points Fixed — `@embedthis/testme` Was Not Importable
+
+- **FIX**: `import {tget, ttrue} from '@embedthis/testme'` failed with a module-not-found error
+    - **Issue**: `main`, `module`, `types` and `exports` all pointed at `src/pkg/testme.js`, but no
+      such file exists — `src/pkg/` is not in the repo and no build step generates it. The published
+      tarball therefore carried entry points referencing a missing file, so the package could not be
+      imported by name. Consumers had to rely on the `bun link` run by the post-install script, which
+      registers the nested `src/modules/js` package under the bare name `testme`.
+    - **Fix**: Point the entry points at `src/modules/js/index.js`, the module that is actually
+      shipped and that exports the `t*` assertions plus the `describe`/`it`/`expect` API.
+    - **Impact**: Projects can now depend on `@embedthis/testme` through npm alone and import it by
+      package name, with no `bun link` step. The bare `testme` specifier still works for existing
+      consumers via the post-install link.
+    - **Files Modified**:
+        - [package.json](../../package.json) - main, module, types, exports
+
 ## 2025-12-10
 
 ### VS/Xcode Project Environment Variable Expansion Fix

@@ -13,15 +13,15 @@
     "bugs": {
         "url": "https://github.com/embedthis/testme/issues"
     },
-    "main": "src/pkg/testme.js",
-    "module": "src/pkg/testme.js",
-    "types": "src/pkg/testme.d.ts",
+    "main": "src/modules/js/index.js",
+    "module": "src/modules/js/index.js",
+    "types": "src/modules/js/index.d.ts",
     "type": "module",
     "private": false,
     "exports": {
         ".": {
-            "import": "./src/pkg/testme.js",
-            "types": "./src/pkg/testme.d.ts"
+            "import": "./src/modules/js/index.js",
+            "types": "./src/modules/js/index.d.ts"
         }
     },
     "files": [
