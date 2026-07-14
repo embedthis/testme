@@ -1,3 +1,0 @@
-# Ignore context directory contents (temporary work in progress)
-context/*
-!context/.gitkeep
