@@ -187,7 +187,7 @@ Add validation for testme.json5:
 **Effort**: Medium
 **Status**: Proposed
 
-Replace arbitrary `setupDelay` with active health checking to start tests as soon as services are ready. See detailed plan: [HEALTHCHECK.md](HEALTHCHECK.md)
+Replace arbitrary `setupDelay` with active health checking to start tests as soon as services are ready. See detailed plan: [HEALTHCHECK.md](../archive/features/HEALTHCHECK.md)
 
 **Phase 1** (HTTP + TCP):
 

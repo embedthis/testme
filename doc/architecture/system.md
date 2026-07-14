@@ -11,7 +11,7 @@
     -   [C Test Compilation Pipeline](#c-test-compilation-pipeline)
     -   [Integrated Debugging Support](#integrated-debugging-support)
     -   [Platform Abstraction Layer](#platform-abstraction-layer)
--   [Jest/Vitest API](JEST_API.md) - Jest/Vitest-compatible API for JavaScript/TypeScript tests
+-   [Jest/Vitest API](components/jest_api.md) - Jest/Vitest-compatible API for JavaScript/TypeScript tests
 
 ## Overview
 

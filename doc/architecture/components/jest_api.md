@@ -344,4 +344,4 @@ See comprehensive test examples in the `test/jest-api/` directory:
 - `test/jest-api/jest-api-async.tst.ts` - Async/promise support
 - `test/jest-api/jest-api-compat.tst.ts` - API compatibility
 
-For the full TestMe documentation, see [README.md](../README.md).
+For the full TestMe documentation, see [README.md](../../../README.md).

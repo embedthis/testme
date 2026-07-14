@@ -589,25 +589,25 @@ npm publish
 
 ## Project Documentation
 
-This module maintains structured documentation in the `AI/` directory to assist Claude Code and developers:
+This module maintains structured documentation in the `doc/` directory to assist Claude Code and developers:
 
-- **AI/designs/** - Architectural and design documentation
-- **AI/context/** - Current status and progress (CONTEXT.md)
-- **AI/plans/** - Implementation plans and roadmaps
-- **AI/procedures/** - Testing and development procedures
-- **AI/logs/** - Change logs and session activity logs
-- **AI/references/** - External documentation and resources
-- **AI/releases/** - Version release notes
-- **AI/agents/** - Claude sub-agent definitions
-- **AI/skills/** - Claude skill definitions
-- **AI/prompts/** - Reusable prompts
-- **AI/workflows/** - Development workflows
-- **AI/commands/** - Custom commands
+- **doc/MAP.md** - Entry point and navigation guide; start here
+- **doc/overview/** - Product overview (product.md) and roadmap (roadmap.md)
+- **doc/architecture/** - System design (system.md) and component designs (components/)
+- **doc/features/** - Feature-centric implementation units, indexed by INDEX.md
+- **doc/operations/** - Testing and development procedures
+- **doc/issues/** - Issue tickets (tickets/) and index
+- **doc/sessions/** - Change log (CHANGELOG.md) and session activity logs
+- **doc/references/** - External documentation and resources
+- **doc/releases/** - Version release notes
+- **doc/archive/** - Superseded designs, completed plans, and historical sessions
 
-See `AI/README.md` for detailed information about the documentation structure.
+Claude capabilities (agents, skills, prompts, workflows, commands) live under `.claude/`.
+
+See `doc/MAP.md` for navigation and `~/dev/doc/DIRECTORIES.md` for the full directory specification.
 
 ## Additional Resources
 
 - **Parent Project**: See `../CLAUDE.md` for general build commands, testing procedures, and overall EmbedThis architecture
 - **API Documentation**: Generated via `make doc` → `doc/index.html`
-- **Project Documentation**: See `AI/` directory for designs, plans, procedures, and context
+- **Project Documentation**: See `doc/MAP.md` for navigation across architecture, features, procedures, and history

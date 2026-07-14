@@ -263,7 +263,7 @@
     - **Files Modified**:
         - [src/config.ts](../../src/config.ts) - Added `.tst.sh` to Windows default patterns
         - [CLAUDE.md](../../CLAUDE.md) - Updated documentation
-        - [AI/designs/DESIGN.md](../../AI/designs/DESIGN.md) - Updated pattern examples
+        - [AI/designs/DESIGN.md](../architecture/system.md) - Updated pattern examples
 
 ## 2025-11-19
 
@@ -312,12 +312,12 @@
     - **Documentation**:
         - Updated man page [doc/tm.1:65-66,77-78](../../doc/tm.1#L65-L66) to document the combined flag behavior
         - Updated CLI help text [src/cli.ts:317-318](../../src/cli.ts#L317-L318) with usage example
-        - Added design documentation section [AI/designs/DESIGN.md:610-649](../../AI/designs/DESIGN.md#L610-L649)
+        - Added design documentation section [AI/designs/DESIGN.md:610-649](../architecture/system.md#L610-L649)
     - **Files Modified**:
         - [src/handlers/c.ts](../../src/handlers/c.ts) - Compilation output handling
         - [src/cli.ts](../../src/cli.ts) - CLI help text
         - [doc/tm.1](../../doc/tm.1) - Man page documentation
-        - [AI/designs/DESIGN.md](../../AI/designs/DESIGN.md) - Design documentation
+        - [AI/designs/DESIGN.md](../architecture/system.md) - Design documentation
 
 ## 2025-11-18
 
@@ -637,7 +637,7 @@
     -   **Files Modified**:
         -   [src/config.ts](../../src/config.ts:187-266) - `findRootConfig()` now takes test directories array
         -   [src/index.ts](../../src/index.ts:414-428) - Extract test directories and pass to findRootConfig()
-        -   [CLAUDE.md](../../CLAUDE.md), [README.md](../../README.md), [.agent/designs/DESIGN.md](../designs/DESIGN.md) - Updated documentation
+        -   [CLAUDE.md](../../CLAUDE.md), [README.md](../../README.md), [.agent/designs/DESIGN.md](../architecture/system.md) - Updated documentation
 
 ### Health Check Configuration Backward Compatibility
 
@@ -693,7 +693,7 @@
         -   [README.md](../../README.md) - Documentation and examples
         -   [doc/tm.1](../../doc/tm.1) - Man page updates
         -   [doc/testme.json5](../../doc/testme.json5) - Configuration examples
-        -   [.agent/designs/DESIGN.md](../designs/DESIGN.md) - Design documentation
+        -   [.agent/designs/DESIGN.md](../architecture/system.md) - Design documentation
         -   [CLAUDE.md](../../CLAUDE.md) - Project instructions
 
 ## 2025-10-21
@@ -750,7 +750,7 @@
     -   **Proposal**: Active health checking to start tests as soon as services are ready
     -   **Types**: HTTP/HTTPS, TCP port, script-based, file/socket existence
     -   **Benefits**: Faster test execution, more reliable tests, backward compatible
-    -   **Status**: Documented in [.agent/plans/HEALTHCHECK.md](../plans/HEALTHCHECK.md)
+    -   **Status**: Documented in [.agent/plans/HEALTHCHECK.md](../archive/features/HEALTHCHECK.md)
     -   **Priority**: Medium
     -   **Estimated Effort**: 9-13 hours (Phase 1: HTTP+TCP 4-6h, Phase 2: Script+File 2-3h, Phase 3: Docs+Tests 3-4h)
 
@@ -1238,7 +1238,7 @@
         -   [test/portable/new-macros.tst.c](../../test/portable/new-macros.tst.c) - 60+ assertions testing all new functionality
         -   All 28 existing tests continue to pass
     -   Files modified: [src/modules/c/testme.h](../../src/modules/c/testme.h), [src/modules/js/index.js](../../src/modules/js/index.js)
-    -   Created design document: [.agent/designs/MACRO_IMPROVEMENTS.md](../designs/MACRO_IMPROVEMENTS.md)
+    -   Created design document: [.agent/designs/MACRO_IMPROVEMENTS.md](../archive/architecture/MACRO_IMPROVEMENTS.md)
 
 ### Benefits of New Macro System
 
