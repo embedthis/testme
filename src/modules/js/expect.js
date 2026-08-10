@@ -352,7 +352,7 @@ class ExpectMatcher {
         toEqual(expected) - Deep equality comparison
         @param {*} expected Expected value
     */
-    async toEqual(expected) {
+    toEqual(expected) {
         return this.handleAsync((received) => {
             const pass = deepEqual(received, expected, false)
             const message = pass
@@ -366,7 +366,7 @@ class ExpectMatcher {
         toStrictEqual(expected) - Strict deep equality (checks undefined props and types)
         @param {*} expected Expected value
     */
-    async toStrictEqual(expected) {
+    toStrictEqual(expected) {
         return this.handleAsync((received) => {
             const pass = deepEqual(received, expected, true)
             const message = pass
@@ -381,7 +381,7 @@ class ExpectMatcher {
     /**
         toBeTruthy() - Value is truthy
     */
-    async toBeTruthy() {
+    toBeTruthy() {
         return this.handleAsync((received) => {
             const pass = Boolean(received)
             const message = pass
@@ -394,7 +394,7 @@ class ExpectMatcher {
     /**
         toBeFalsy() - Value is falsy
     */
-    async toBeFalsy() {
+    toBeFalsy() {
         return this.handleAsync((received) => {
             const pass = !Boolean(received)
             const message = pass
@@ -407,7 +407,7 @@ class ExpectMatcher {
     /**
         toBeNull() - Value is null
     */
-    async toBeNull() {
+    toBeNull() {
         return this.handleAsync((received) => {
             const pass = received === null
             const message = pass
@@ -420,7 +420,7 @@ class ExpectMatcher {
     /**
         toBeUndefined() - Value is undefined
     */
-    async toBeUndefined() {
+    toBeUndefined() {
         return this.handleAsync((received) => {
             const pass = received === undefined
             const message = pass
@@ -433,7 +433,7 @@ class ExpectMatcher {
     /**
         toBeDefined() - Value is not undefined
     */
-    async toBeDefined() {
+    toBeDefined() {
         return this.handleAsync((received) => {
             const pass = received !== undefined
             const message = pass
@@ -446,7 +446,7 @@ class ExpectMatcher {
     /**
         toBeNaN() - Value is NaN
     */
-    async toBeNaN() {
+    toBeNaN() {
         return this.handleAsync((received) => {
             const pass = Number.isNaN(received)
             const message = pass
@@ -462,7 +462,7 @@ class ExpectMatcher {
         toBeInstanceOf(expected) - Value is instance of class
         @param {Function} expected Constructor function
     */
-    async toBeInstanceOf(expected) {
+    toBeInstanceOf(expected) {
         return this.handleAsync((received) => {
             const pass = received instanceof expected
             const message = pass
@@ -476,7 +476,7 @@ class ExpectMatcher {
         toBeTypeOf(expected) - Value has specific typeof result
         @param {string} expected Type name ('string', 'number', 'object', etc.)
     */
-    async toBeTypeOf(expected) {
+    toBeTypeOf(expected) {
         return this.handleAsync((received) => {
             const pass = typeof received === expected
             const message = pass
@@ -492,7 +492,7 @@ class ExpectMatcher {
         toBeGreaterThan(expected) - received > expected
         @param {number} expected Number to compare against
     */
-    async toBeGreaterThan(expected) {
+    toBeGreaterThan(expected) {
         return this.handleAsync((received) => {
             const pass = received > expected
             const message = pass
@@ -506,7 +506,7 @@ class ExpectMatcher {
         toBeGreaterThanOrEqual(expected) - received >= expected
         @param {number} expected Number to compare against
     */
-    async toBeGreaterThanOrEqual(expected) {
+    toBeGreaterThanOrEqual(expected) {
         return this.handleAsync((received) => {
             const pass = received >= expected
             const message = pass
@@ -520,7 +520,7 @@ class ExpectMatcher {
         toBeLessThan(expected) - received < expected
         @param {number} expected Number to compare against
     */
-    async toBeLessThan(expected) {
+    toBeLessThan(expected) {
         return this.handleAsync((received) => {
             const pass = received < expected
             const message = pass
@@ -534,7 +534,7 @@ class ExpectMatcher {
         toBeLessThanOrEqual(expected) - received <= expected
         @param {number} expected Number to compare against
     */
-    async toBeLessThanOrEqual(expected) {
+    toBeLessThanOrEqual(expected) {
         return this.handleAsync((received) => {
             const pass = received <= expected
             const message = pass
@@ -549,7 +549,7 @@ class ExpectMatcher {
         @param {number} expected Expected value
         @param {number} precision Number of decimal places (default 2)
     */
-    async toBeCloseTo(expected, precision = 2) {
+    toBeCloseTo(expected, precision = 2) {
         return this.handleAsync((received) => {
             const multiplier = Math.pow(10, precision)
             const pass = Math.abs(received - expected) < 1 / multiplier / 2
@@ -566,7 +566,7 @@ class ExpectMatcher {
         toMatch(pattern) - String matches regex or string
         @param {RegExp|string} pattern Pattern to match
     */
-    async toMatch(pattern) {
+    toMatch(pattern) {
         return this.handleAsync((received) => {
             if (typeof received !== 'string') {
                 this.createResult('toMatch', false, `toMatch() expects a string, received ${typeof received}`)
@@ -585,7 +585,7 @@ class ExpectMatcher {
         toContain(item) - Array/string contains item/substring
         @param {*} item Item or substring to find
     */
-    async toContain(item) {
+    toContain(item) {
         return this.handleAsync((received) => {
             let pass = false
             if (typeof received === 'string') {
@@ -611,7 +611,7 @@ class ExpectMatcher {
         toContainEqual(item) - Array contains item with deep equality
         @param {*} item Item to find
     */
-    async toContainEqual(item) {
+    toContainEqual(item) {
         return this.handleAsync((received) => {
             if (!Array.isArray(received)) {
                 this.createResult(
@@ -633,7 +633,7 @@ class ExpectMatcher {
         toHaveLength(expected) - Array/string has specific length
         @param {number} expected Expected length
     */
-    async toHaveLength(expected) {
+    toHaveLength(expected) {
         return this.handleAsync((received) => {
             if (typeof received !== 'string' && !Array.isArray(received)) {
                 this.createResult(
@@ -656,7 +656,7 @@ class ExpectMatcher {
         @param {string|Array} keyPath Property path ('a.b.c' or ['a', 'b', 'c'])
         @param {*} value Optional expected value
     */
-    async toHaveProperty(keyPath, value) {
+    toHaveProperty(keyPath, value) {
         return this.handleAsync((received) => {
             if (typeof received !== 'object' || received === null) {
                 this.createResult(
@@ -694,7 +694,7 @@ class ExpectMatcher {
         toMatchObject(pattern) - Object contains all properties of pattern
         @param {object} pattern Pattern object to match
     */
-    async toMatchObject(pattern) {
+    toMatchObject(pattern) {
         return this.handleAsync((received) => {
             if (typeof received !== 'object' || received === null) {
                 this.createResult(
@@ -718,7 +718,7 @@ class ExpectMatcher {
         toThrow(error) - Function throws an error
         @param {string|RegExp|Error|Function} error Optional error matcher
     */
-    async toThrow(error) {
+    toThrow(error) {
         return this.handleAsync((received) => {
             let caughtError = null
 
@@ -778,7 +778,7 @@ class ExpectMatcher {
         toThrowError(error) - Alias for toThrow
         @param {string|RegExp|Error|Function} error Optional error matcher
     */
-    async toThrowError(error) {
+    toThrowError(error) {
         return this.toThrow(error)
     }
 }
