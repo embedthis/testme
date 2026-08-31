@@ -503,6 +503,19 @@ Original error: ${error}`
         // Count assertions in output (✓ and ✗ symbols from test macros)
         const assertions = countAssertions(output)
 
+        /*
+            A failed assertion fails its test, whatever the exit status says. Every handler derives
+            status from the exit code alone, and an assertion helper that reports a failure without
+            exiting non-zero therefore left the test reporting PASS -- the failure visible only as a
+            discrepancy between the passed and total assertion counts in the summary, and only to
+            someone who compared them. A real cross-platform defect sat green in a suite that way.
+         */
+        if (assertions && assertions.failed > 0 && status === TestStatus.Passed) {
+            const plural = assertions.failed === 1 ? 'assertion' : 'assertions'
+            status = TestStatus.Failed
+            error = error || `${assertions.failed} ${plural} failed`
+        }
+
         return {
             file,
             status,

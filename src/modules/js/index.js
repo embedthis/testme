@@ -140,6 +140,7 @@ function treport(success, stack, message, received, expected) {
         } else {
             console.error(`✗ ${message} at ${loc}\nExpected: ${expected}\nReceived: ${received}`)
         }
+        exitCode = 1
         process.exit(1)
     }
 }
@@ -594,9 +595,21 @@ function afterAll(fn) {
     testContext.afterAllHooks.push(fn)
 }
 
-// Process exit handler to return appropriate exit code
+/*
+    Process exit handler to return the Jest-style API's accumulated exit code.
+
+    It must not overwrite a code somebody else already set. Every other failure path here --
+    treport() for the traditional ttrue()/teq() API, the describe() error path, uncaughtException
+    and unhandledRejection -- reports the failure and calls process.exit(1), and this handler then
+    ran and set process.exitCode back to 0. So a failing ttrue() printed its ✗, stopped the test,
+    and exited **zero**: the runner takes a test's status from the exit code, so the test was
+    reported as passing. Every traditional-API assertion failure in every project using TestMe was
+    invisible that way, and one was found only as a two-assertion discrepancy in a release report.
+ */
 process.on('exit', () => {
-    process.exitCode = exitCode
+    if (exitCode !== 0) {
+        process.exitCode = exitCode
+    }
 })
 
 // Handle uncaught exceptions

@@ -1,0 +1,7 @@
+{
+    /*
+        Fixtures for ../assertion-exit.tst.ts. They are meant to fail, so they must never be
+        collected by an ordinary run -- "manual" means they run only when explicitly named.
+     */
+    enable: 'manual',
+}
