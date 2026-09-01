@@ -1,5 +1,30 @@
 # TestMe Changelog
 
+## 2026-09-01
+
+### Assertion Tally Pinned by Regression Tests (v0.8.34)
+
+- **TEST**: The `Assertions:` summary line is now covered by unit and end-to-end regression tests
+    - **Issue**: [#10004](../issues/tickets/10004.md) reported the aggregate assertion count as
+      unreproducible — the same suite appearing to report 12352 assertions on one run and 4348 on
+      another.
+    - **Finding**: `countAssertions()` is exact; no production code needed changing. A per-file
+      comparison of two back-to-back runs of a 93-file suite showed only four files moving, for two
+      reasons that both lie in the tests: a failing test exits at its first failing assertion and so
+      truncates its own tally, and a test whose work depends on state earlier tests left behind emits
+      a different number of markers alone than it does inside a suite.
+    - **Impact**: The number is the count of `✓`/`✗` result lines the tests printed. It is
+      reproducible for a fixed set of test outcomes, it is not compositional, and it is not a
+      coverage denominator.
+    - **Files Added**:
+        - [test/assertion-total.tst.ts](../../test/assertion-total.tst.ts) - end-to-end tally checks
+        - [test/assertions/](../../test/assertions/) - fixtures with a marker count fixed by construction
+    - **Files Modified**:
+        - [test/assertion-counter.tst.ts](../../test/assertion-counter.tst.ts) - seven new unit cases
+
+- **CHORE**: Filed [#10005](../issues/tickets/10005.md) — setup service teardown signals one pid
+  rather than the process group, so a backgrounded server survives the run and blocks the next one.
+
 ## 2026-07-14
 
 ### Package Entry Points Fixed — `@embedthis/testme` Was Not Importable
