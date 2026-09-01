@@ -1,0 +1,22 @@
+{
+    /*
+        Fixtures for assertion-total.tst.ts. They are named *.fixture.ts rather than *.tst.ts so the
+        parent suite's patterns never discover them: they exist to be run by tm as a subprocess, and
+        the number of assertion markers each one prints is fixed by construction.
+
+        Serial execution, because the point of the fixtures is that the reported tally is a function
+        of what they printed and of nothing else.
+     */
+    patterns: {
+        include: ['**/*.fixture.ts'],
+    },
+
+    execution: {
+        parallel: false,
+        timeout: 30,
+    },
+
+    output: {
+        colors: false,
+    },
+}
