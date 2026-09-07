@@ -627,6 +627,16 @@ class TestMeApp {
                 if (groupExitCode !== 0) {
                     totalExitCode = groupExitCode
                 }
+            } catch (error) {
+                /*
+                    A group whose environment, prep or setup fails must not discard the results of
+                    the groups that already ran. Without this the exception unwinds past the final
+                    report, so a suite that ran hundreds of tests prints no summary and no failure
+                    detail at all - the failing group's own error becomes the only output.
+                 */
+                console.error(`\n❌ Error: ${error instanceof Error ? error.message : String(error)}`)
+                groupExitCode = 1
+                totalExitCode = 1
             } finally {
                 // Cleanup for this configuration group
                 if (!options.noServices && mergedConfig.services?.cleanup) {
