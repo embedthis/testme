@@ -501,9 +501,16 @@ export class ServiceManager {
                         config.output?.verbose
                     )
                 } catch (error) {
-                    // Health check failed - kill the setup process
+                    /*
+                        Health check failed. Kill the service first so its pipes reach EOF, then
+                        drain them: a setup script that diagnoses its own failure writes that
+                        diagnosis to stdout or stderr, and without this it is captured into a pipe
+                        and discarded, leaving only "exited with code 1 during health check".
+                     */
+                    const proc = this.setupProcess
                     await this.killSetup(config)
-                    throw error
+                    const message = error instanceof Error ? error.message : String(error)
+                    throw new Error(message + (await this.readSetupOutput(proc, config)))
                 }
             } else {
                 // Fall back to setupDelay if no health check configured
@@ -550,51 +557,7 @@ export class ServiceManager {
                 const exitCode = typeof raceResult === 'number' ? raceResult : -1
                 let errorMessage = `Setup process exited immediately with code ${exitCode}`
 
-                // Try to read any output from the process (only if piped, not inherited)
-                if (!config.output?.verbose) {
-                    try {
-                        let stdout = ''
-                        let stderr = ''
-
-                        // Read stdout if it's a stream
-                        if (this.setupProcess.stdout && typeof this.setupProcess.stdout !== 'number') {
-                            const reader = this.setupProcess.stdout.getReader()
-                            const chunks: Uint8Array[] = []
-                            let done = false
-                            while (!done) {
-                                const result = await reader.read()
-                                if (result.value) chunks.push(result.value)
-                                done = result.done
-                            }
-                            const decoder = new TextDecoder()
-                            stdout = decoder.decode(Buffer.concat(chunks))
-                        }
-
-                        // Read stderr if it's a stream
-                        if (this.setupProcess.stderr && typeof this.setupProcess.stderr !== 'number') {
-                            const reader = this.setupProcess.stderr.getReader()
-                            const chunks: Uint8Array[] = []
-                            let done = false
-                            while (!done) {
-                                const result = await reader.read()
-                                if (result.value) chunks.push(result.value)
-                                done = result.done
-                            }
-                            const decoder = new TextDecoder()
-                            stderr = decoder.decode(Buffer.concat(chunks))
-                        }
-
-                        if (stdout || stderr) {
-                            errorMessage += '\n\nProcess output:'
-                            if (stdout) errorMessage += `\nSTDOUT:\n${stdout}`
-                            if (stderr) errorMessage += `\nSTDERR:\n${stderr}`
-                        }
-                    } catch (readError) {
-                        errorMessage += `\n(Could not read process output: ${readError})`
-                    }
-                } else {
-                    errorMessage += '\n(Output was displayed above in verbose mode)'
-                }
+                errorMessage += await this.readSetupOutput(this.setupProcess, config)
 
                 throw new Error(errorMessage)
             }
@@ -837,6 +800,51 @@ export class ServiceManager {
             }
         } catch (error) {
             console.error(`✗ Cleanup failed: ${error}`)
+        }
+    }
+
+    /**
+     * Drains the setup process's piped stdout and stderr and formats them for an error message
+     *
+     * @remarks
+     * Only call this once the process has exited or been killed. Draining a stream while the
+     * process still runs blocks until it does. Returns an empty string when there was nothing to
+     * report, so the caller can append it unconditionally.
+     */
+    private async readSetupOutput(proc: Bun.Subprocess | null, config?: TestConfig): Promise<string> {
+        if (config?.output?.verbose) {
+            return '\n(Output was displayed above in verbose mode)'
+        }
+        if (!proc) {
+            return ''
+        }
+        try {
+            const drain = async (stream: unknown): Promise<string> => {
+                if (!stream || typeof stream === 'number') {
+                    return ''
+                }
+                const reader = (stream as ReadableStream<Uint8Array>).getReader()
+                const chunks: Uint8Array[] = []
+                let done = false
+                while (!done) {
+                    const result = await reader.read()
+                    if (result.value) chunks.push(result.value)
+                    done = result.done
+                }
+                return new TextDecoder().decode(Buffer.concat(chunks))
+            }
+            const stdout = await drain(proc.stdout)
+            const stderr = await drain(proc.stderr)
+
+            let out = ''
+            if (stdout || stderr) {
+                out += '\n\nProcess output:'
+                if (stdout) out += `\nSTDOUT:\n${stdout}`
+                if (stderr) out += `\nSTDERR:\n${stderr}`
+            }
+            return out
+        } catch (readError) {
+            return `\n(Could not read process output: ${readError})`
         }
     }
 

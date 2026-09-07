@@ -7,7 +7,7 @@ import {ServiceManager} from './services.ts'
 import {TestDiscovery} from './discovery.ts'
 import {VERSION} from './version.ts'
 import type {TestConfig, TestFile} from './types.ts'
-import {TestStatus} from './types.ts'
+import {TestStatus, TestType} from './types.ts'
 import {resolve, relative, join, sep} from 'path'
 import {writeFile} from 'fs/promises'
 import {existsSync} from 'fs'
@@ -633,8 +633,28 @@ class TestMeApp {
                     the groups that already ran. Without this the exception unwinds past the final
                     report, so a suite that ran hundreds of tests prints no summary and no failure
                     detail at all - the failing group's own error becomes the only output.
+
+                    Record it as an Error result for the group rather than only setting the exit
+                    code, so the summary counts it. A run whose group never started must never
+                    print "Result: PASSED" merely because the tests it did run all passed.
                  */
-                console.error(`\n❌ Error: ${error instanceof Error ? error.message : String(error)}`)
+                const message = error instanceof Error ? error.message : String(error)
+                console.error(`\n❌ Error: ${message}`)
+                allResults.push({
+                    file: {
+                        path: configDir,
+                        name: relative(rootDir, configDir) || '.',
+                        extension: '',
+                        type: TestType.Shell,
+                        directory: configDir,
+                        artifactDir: configDir,
+                        configDir,
+                    },
+                    status: TestStatus.Error,
+                    duration: 0,
+                    output: '',
+                    error: message,
+                })
                 groupExitCode = 1
                 totalExitCode = 1
             } finally {
