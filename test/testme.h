@@ -300,8 +300,10 @@ TM_UNUSED static void tReport(int success, const char *loc, const char *expected
     Example: teqi(count, 5, "Should have processed 5 items");
  */
 #define teqi(a, b, ...)     if (1) { \
-                                int _r = (a) == (b); \
-                                tReportInt(_r, TM_LOC, a, b, __VA_ARGS__); \
+                                int _a = (a); \
+                                int _b = (b); \
+                                int _r = _a == _b; \
+                                tReportInt(_r, TM_LOC, _a, _b, __VA_ARGS__); \
                             } else
 
 /**
@@ -312,8 +314,10 @@ TM_UNUSED static void tReport(int success, const char *loc, const char *expected
     Example: teql(file_size, 1024L, "File should be 1024 bytes");
  */
 #define teql(a, b, ...)     if (1) { \
-                                int _r = (a) == (b); \
-                                tReportLong(_r, TM_LOC, a, b, __VA_ARGS__); \
+                                long _a = (a); \
+                                long _b = (b); \
+                                int _r = _a == _b; \
+                                tReportLong(_r, TM_LOC, _a, _b, __VA_ARGS__); \
                             } else
 
 /**
@@ -324,8 +328,10 @@ TM_UNUSED static void tReport(int success, const char *loc, const char *expected
     Example: teqll(timestamp, 1234567890LL, "Timestamp should match");
  */
 #define teqll(a, b, ...)    if (1) { \
-                                int _r = (a) == (b); \
-                                tReportLongLong(_r, TM_LOC, a, b, __VA_ARGS__); \
+                                long long _a = (a); \
+                                long long _b = (b); \
+                                int _r = _a == _b; \
+                                tReportLongLong(_r, TM_LOC, _a, _b, __VA_ARGS__); \
                             } else
 
 /**
@@ -336,8 +342,10 @@ TM_UNUSED static void tReport(int success, const char *loc, const char *expected
     Example: teqz(length, strlen(str), "Length should match");
  */
 #define teqz(a, b, ...)     if (1) { \
-                                int _r = (a) == (b); \
-                                tReportSize(_r, TM_LOC, a, b, __VA_ARGS__); \
+                                ptrdiff_t _a = (a); \
+                                ptrdiff_t _b = (b); \
+                                int _r = _a == _b; \
+                                tReportSize(_r, TM_LOC, _a, _b, __VA_ARGS__); \
                             } else
 
 /**
@@ -348,8 +356,10 @@ TM_UNUSED static void tReport(int success, const char *loc, const char *expected
     Example: tequ(flags, 0x0F, "Flags should be set correctly");
  */
 #define tequ(a, b, ...)     if (1) { \
-                                int _r = (a) == (b); \
-                                tReportUnsigned(_r, TM_LOC, a, b, __VA_ARGS__); \
+                                unsigned int _a = (a); \
+                                unsigned int _b = (b); \
+                                int _r = _a == _b; \
+                                tReportUnsigned(_r, TM_LOC, _a, _b, __VA_ARGS__); \
                             } else
 
 /**
@@ -360,8 +370,10 @@ TM_UNUSED static void tReport(int success, const char *loc, const char *expected
     Example: teqp(ptr, NULL, "Pointer should be NULL");
  */
 #define teqp(a, b, ...)     if (1) { \
-                                int _r = (a) == (b); \
-                                tReportPtr(_r, TM_LOC, a, b, __VA_ARGS__); \
+                                const void *_a = (const void*) (a); \
+                                const void *_b = (const void*) (b); \
+                                int _r = _a == _b; \
+                                tReportPtr(_r, TM_LOC, _a, _b, __VA_ARGS__); \
                             } else
 
 /**
@@ -375,8 +387,9 @@ TM_UNUSED static void tReport(int success, const char *loc, const char *expected
 #define tmatch(s, p, ...)   if (1) { \
                                 char *_s = (char*) (s); \
                                 char *_p = (char*) (p); \
-                                tReportString(((_s) == NULL && (_p) == NULL) || \
-                                ((_s) != NULL && (_p) != NULL && strcmp((char*) _s, (char*) _p) == 0), TM_LOC, s, p, __VA_ARGS__); \
+                                int _r = (_s == NULL && _p == NULL) || \
+                                    (_s != NULL && _p != NULL && strcmp(_s, _p) == 0); \
+                                tReportString(_r, TM_LOC, _s, _p, __VA_ARGS__); \
                             } else
 
 /**
@@ -387,8 +400,10 @@ TM_UNUSED static void tReport(int success, const char *loc, const char *expected
     Example: tneqi(status, ERROR_CODE, "Status should not be error");
  */
 #define tneqi(a, b, ...)    if (1) { \
-                                int _r = (a) != (b); \
-                                tReportInt(_r, TM_LOC, a, b, __VA_ARGS__); \
+                                int _a = (a); \
+                                int _b = (b); \
+                                int _r = _a != _b; \
+                                tReportInt(_r, TM_LOC, _a, _b, __VA_ARGS__); \
                             } else
 
 /**
@@ -399,8 +414,10 @@ TM_UNUSED static void tReport(int success, const char *loc, const char *expected
     Example: tneql(offset, 0L, "Offset should not be zero");
  */
 #define tneql(a, b, ...)    if (1) { \
-                                int _r = (a) != (b); \
-                                tReportLong(_r, TM_LOC, a, b, __VA_ARGS__); \
+                                long _a = (a); \
+                                long _b = (b); \
+                                int _r = _a != _b; \
+                                tReportLong(_r, TM_LOC, _a, _b, __VA_ARGS__); \
                             } else
 
 /**
@@ -411,8 +428,10 @@ TM_UNUSED static void tReport(int success, const char *loc, const char *expected
     Example: tneqll(id, 0LL, "ID should not be zero");
  */
 #define tneqll(a, b, ...)   if (1) { \
-                                int _r = (a) != (b); \
-                                tReportLongLong(_r, TM_LOC, a, b, __VA_ARGS__); \
+                                long long _a = (a); \
+                                long long _b = (b); \
+                                int _r = _a != _b; \
+                                tReportLongLong(_r, TM_LOC, _a, _b, __VA_ARGS__); \
                             } else
 
 /**
@@ -423,8 +442,10 @@ TM_UNUSED static void tReport(int success, const char *loc, const char *expected
     Example: tneqz(bytes_read, 0, "Should have read some bytes");
  */
 #define tneqz(a, b, ...)    if (1) { \
-                                int _r = (a) != (b); \
-                                tReportSize(_r, TM_LOC, a, b, __VA_ARGS__); \
+                                ptrdiff_t _a = (a); \
+                                ptrdiff_t _b = (b); \
+                                int _r = _a != _b; \
+                                tReportSize(_r, TM_LOC, _a, _b, __VA_ARGS__); \
                             } else
 
 /**
@@ -435,8 +456,10 @@ TM_UNUSED static void tReport(int success, const char *loc, const char *expected
     Example: tnequ(mask, 0, "Mask should not be empty");
  */
 #define tnequ(a, b, ...)    if (1) { \
-                                int _r = (a) != (b); \
-                                tReportUnsigned(_r, TM_LOC, a, b, __VA_ARGS__); \
+                                unsigned int _a = (a); \
+                                unsigned int _b = (b); \
+                                int _r = _a != _b; \
+                                tReportUnsigned(_r, TM_LOC, _a, _b, __VA_ARGS__); \
                             } else
 
 /**
@@ -447,8 +470,10 @@ TM_UNUSED static void tReport(int success, const char *loc, const char *expected
     Example: tneqp(buffer, NULL, "Buffer should be allocated");
  */
 #define tneqp(a, b, ...)    if (1) { \
-                                int _r = (a) != (b); \
-                                tReportPtr(_r, TM_LOC, a, b, __VA_ARGS__); \
+                                const void *_a = (const void*) (a); \
+                                const void *_b = (const void*) (b); \
+                                int _r = _a != _b; \
+                                tReportPtr(_r, TM_LOC, _a, _b, __VA_ARGS__); \
                             } else
 
 /**
@@ -470,8 +495,10 @@ TM_UNUSED static void tReport(int success, const char *loc, const char *expected
     Example: tgti(count, 0, "Count should be positive");
  */
 #define tgti(a, b, ...)     if (1) { \
-                                int _r = (a) > (b); \
-                                tReportInt(_r, TM_LOC, a, b, __VA_ARGS__); \
+                                int _a = (a); \
+                                int _b = (b); \
+                                int _r = _a > _b; \
+                                tReportInt(_r, TM_LOC, _a, _b, __VA_ARGS__); \
                             } else
 
 /**
@@ -482,8 +509,10 @@ TM_UNUSED static void tReport(int success, const char *loc, const char *expected
     Example: tgtl(file_size, 1024L, "File should be larger than 1KB");
  */
 #define tgtl(a, b, ...)     if (1) { \
-                                int _r = (a) > (b); \
-                                tReportLong(_r, TM_LOC, a, b, __VA_ARGS__); \
+                                long _a = (a); \
+                                long _b = (b); \
+                                int _r = _a > _b; \
+                                tReportLong(_r, TM_LOC, _a, _b, __VA_ARGS__); \
                             } else
 
 /**
@@ -494,8 +523,10 @@ TM_UNUSED static void tReport(int success, const char *loc, const char *expected
     Example: tgtll(timestamp, baseline, "Timestamp should be after baseline");
  */
 #define tgtll(a, b, ...)    if (1) { \
-                                int _r = (a) > (b); \
-                                tReportLongLong(_r, TM_LOC, a, b, __VA_ARGS__); \
+                                long long _a = (a); \
+                                long long _b = (b); \
+                                int _r = _a > _b; \
+                                tReportLongLong(_r, TM_LOC, _a, _b, __VA_ARGS__); \
                             } else
 
 /**
@@ -506,8 +537,10 @@ TM_UNUSED static void tReport(int success, const char *loc, const char *expected
     Example: tgtz(bytes_written, 0, "Should have written data");
  */
 #define tgtz(a, b, ...)     if (1) { \
-                                int _r = (a) > (b); \
-                                tReportSize(_r, TM_LOC, a, b, __VA_ARGS__); \
+                                ptrdiff_t _a = (a); \
+                                ptrdiff_t _b = (b); \
+                                int _r = _a > _b; \
+                                tReportSize(_r, TM_LOC, _a, _b, __VA_ARGS__); \
                             } else
 
 /**
@@ -518,8 +551,10 @@ TM_UNUSED static void tReport(int success, const char *loc, const char *expected
     Example: tgtei(score, 60, "Score should be passing");
  */
 #define tgtei(a, b, ...)    if (1) { \
-                                int _r = (a) >= (b); \
-                                tReportInt(_r, TM_LOC, a, b, __VA_ARGS__); \
+                                int _a = (a); \
+                                int _b = (b); \
+                                int _r = _a >= _b; \
+                                tReportInt(_r, TM_LOC, _a, _b, __VA_ARGS__); \
                             } else
 
 /**
@@ -530,8 +565,10 @@ TM_UNUSED static void tReport(int success, const char *loc, const char *expected
     Example: tgtel(timestamp, start_time, "Event should be after start");
  */
 #define tgtel(a, b, ...)    if (1) { \
-                                int _r = (a) >= (b); \
-                                tReportLong(_r, TM_LOC, a, b, __VA_ARGS__); \
+                                long _a = (a); \
+                                long _b = (b); \
+                                int _r = _a >= _b; \
+                                tReportLong(_r, TM_LOC, _a, _b, __VA_ARGS__); \
                             } else
 
 /**
@@ -542,8 +579,10 @@ TM_UNUSED static void tReport(int success, const char *loc, const char *expected
     Example: tgtell(counter, minimum, "Counter should be at least minimum");
  */
 #define tgtell(a, b, ...)   if (1) { \
-                                int _r = (a) >= (b); \
-                                tReportLongLong(_r, TM_LOC, a, b, __VA_ARGS__); \
+                                long long _a = (a); \
+                                long long _b = (b); \
+                                int _r = _a >= _b; \
+                                tReportLongLong(_r, TM_LOC, _a, _b, __VA_ARGS__); \
                             } else
 
 /**
@@ -554,8 +593,10 @@ TM_UNUSED static void tReport(int success, const char *loc, const char *expected
     Example: tgtez(buffer_size, required_size, "Buffer should be large enough");
  */
 #define tgtez(a, b, ...)    if (1) { \
-                                int _r = (a) >= (b); \
-                                tReportSize(_r, TM_LOC, a, b, __VA_ARGS__); \
+                                ptrdiff_t _a = (a); \
+                                ptrdiff_t _b = (b); \
+                                int _r = _a >= _b; \
+                                tReportSize(_r, TM_LOC, _a, _b, __VA_ARGS__); \
                             } else
 
 /**
@@ -566,8 +607,10 @@ TM_UNUSED static void tReport(int success, const char *loc, const char *expected
     Example: tlti(retries, MAX_RETRIES, "Should not exceed max retries");
  */
 #define tlti(a, b, ...)     if (1) { \
-                                int _r = (a) < (b); \
-                                tReportInt(_r, TM_LOC, a, b, __VA_ARGS__); \
+                                int _a = (a); \
+                                int _b = (b); \
+                                int _r = _a < _b; \
+                                tReportInt(_r, TM_LOC, _a, _b, __VA_ARGS__); \
                             } else
 
 /**
@@ -578,8 +621,10 @@ TM_UNUSED static void tReport(int success, const char *loc, const char *expected
     Example: tltl(elapsed_time, timeout, "Should complete before timeout");
  */
 #define tltl(a, b, ...)     if (1) { \
-                                int _r = (a) < (b); \
-                                tReportLong(_r, TM_LOC, a, b, __VA_ARGS__); \
+                                long _a = (a); \
+                                long _b = (b); \
+                                int _r = _a < _b; \
+                                tReportLong(_r, TM_LOC, _a, _b, __VA_ARGS__); \
                             } else
 
 /**
@@ -590,8 +635,10 @@ TM_UNUSED static void tReport(int success, const char *loc, const char *expected
     Example: tltll(value, maximum, "Value should be under maximum");
  */
 #define tltll(a, b, ...)    if (1) { \
-                                int _r = (a) < (b); \
-                                tReportLongLong(_r, TM_LOC, a, b, __VA_ARGS__); \
+                                long long _a = (a); \
+                                long long _b = (b); \
+                                int _r = _a < _b; \
+                                tReportLongLong(_r, TM_LOC, _a, _b, __VA_ARGS__); \
                             } else
 
 /**
@@ -602,8 +649,10 @@ TM_UNUSED static void tReport(int success, const char *loc, const char *expected
     Example: tltz(used_memory, max_memory, "Memory usage should be under limit");
  */
 #define tltz(a, b, ...)     if (1) { \
-                                int _r = (a) < (b); \
-                                tReportSize(_r, TM_LOC, a, b, __VA_ARGS__); \
+                                ptrdiff_t _a = (a); \
+                                ptrdiff_t _b = (b); \
+                                int _r = _a < _b; \
+                                tReportSize(_r, TM_LOC, _a, _b, __VA_ARGS__); \
                             } else
 
 /**
@@ -614,8 +663,10 @@ TM_UNUSED static void tReport(int success, const char *loc, const char *expected
     Example: tltei(index, array_size, "Index should be within bounds");
  */
 #define tltei(a, b, ...)    if (1) { \
-                                int _r = (a) <= (b); \
-                                tReportInt(_r, TM_LOC, a, b, __VA_ARGS__); \
+                                int _a = (a); \
+                                int _b = (b); \
+                                int _r = _a <= _b; \
+                                tReportInt(_r, TM_LOC, _a, _b, __VA_ARGS__); \
                             } else
 
 /**
@@ -626,8 +677,10 @@ TM_UNUSED static void tReport(int success, const char *loc, const char *expected
     Example: tltel(file_pos, file_size, "Position should not exceed file size");
  */
 #define tltel(a, b, ...)    if (1) { \
-                                int _r = (a) <= (b); \
-                                tReportLong(_r, TM_LOC, a, b, __VA_ARGS__); \
+                                long _a = (a); \
+                                long _b = (b); \
+                                int _r = _a <= _b; \
+                                tReportLong(_r, TM_LOC, _a, _b, __VA_ARGS__); \
                             } else
 
 /**
@@ -638,8 +691,10 @@ TM_UNUSED static void tReport(int success, const char *loc, const char *expected
     Example: tltell(value, limit, "Value should not exceed limit");
  */
 #define tltell(a, b, ...)   if (1) { \
-                                int _r = (a) <= (b); \
-                                tReportLongLong(_r, TM_LOC, a, b, __VA_ARGS__); \
+                                long long _a = (a); \
+                                long long _b = (b); \
+                                int _r = _a <= _b; \
+                                tReportLongLong(_r, TM_LOC, _a, _b, __VA_ARGS__); \
                             } else
 
 /**
@@ -650,8 +705,10 @@ TM_UNUSED static void tReport(int success, const char *loc, const char *expected
     Example: tltez(bytes_read, buffer_size, "Should not overflow buffer");
  */
 #define tltez(a, b, ...)    if (1) { \
-                                int _r = (a) <= (b); \
-                                tReportSize(_r, TM_LOC, a, b, __VA_ARGS__); \
+                                ptrdiff_t _a = (a); \
+                                ptrdiff_t _b = (b); \
+                                int _r = _a <= _b; \
+                                tReportSize(_r, TM_LOC, _a, _b, __VA_ARGS__); \
                             } else
 
 /**
@@ -661,8 +718,9 @@ TM_UNUSED static void tReport(int success, const char *loc, const char *expected
     Example: tnull(unused_ptr, "Pointer should not be allocated");
  */
 #define tnull(p, ...)       if (1) { \
-                                int _r = (p) == NULL; \
-                                tReportPtr(_r, TM_LOC, p, NULL, __VA_ARGS__); \
+                                const void *_p = (const void*) (p); \
+                                int _r = _p == NULL; \
+                                tReportPtr(_r, TM_LOC, _p, NULL, __VA_ARGS__); \
                             } else
 
 /**
@@ -672,8 +730,9 @@ TM_UNUSED static void tReport(int success, const char *loc, const char *expected
     Example: tnotnull(buffer, "Buffer should be allocated");
  */
 #define tnotnull(p, ...)    if (1) { \
-                                int _r = (p) != NULL; \
-                                tReportPtr(_r, TM_LOC, p, NULL, __VA_ARGS__); \
+                                const void *_p = (const void*) (p); \
+                                int _r = _p != NULL; \
+                                tReportPtr(_r, TM_LOC, _p, NULL, __VA_ARGS__); \
                             } else
 
 /******************************** Legacy/Deprecated Macros ********************/

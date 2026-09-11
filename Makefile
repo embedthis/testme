@@ -17,6 +17,7 @@ prep:
 build:
 	node bin/update-version.mjs
 	bun build ./testme.ts --compile --minify --outfile dist/tm
+	@cp src/modules/c/testme.h test/testme.h
 	@make -C src/modules/c build $(MFLAGS)
 	@make -C src/modules/js build $(MFLAGS)
 	@make -C src/modules/es build $(MFLAGS)
