@@ -171,6 +171,7 @@ TestMe provides runtime helpers for different test languages:
     - `teq(got, expected, msg)` - Test equality
     - `ttrue(condition, msg)` - Test boolean condition
     - `tinfo(msg, ...)` - Output test information
+    - `tskip(msg, ...)` - Skip the current test, giving the reason. Does not return: it exits with `TM_EXIT_SKIP` (77), the status a test in any language uses to report that it did not run, so TestMe counts it under `Skipped` rather than `Passed`. A shell, Python or Go test skips itself by exiting 77 directly.
     - Installed to `~/.local/include/testme.h` for user-local use
     - Copied to `test/testme.h` for local development
 

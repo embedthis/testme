@@ -1,5 +1,5 @@
 import type {TestFile, TestResult, TestConfig, TestHandler} from '../types.ts'
-import {TestStatus} from '../types.ts'
+import {TestStatus, TM_EXIT_SKIP, TM_SKIP_PREFIX} from '../types.ts'
 import {GlobExpansion} from '../utils/glob-expansion.ts'
 import {ErrorMessages} from '../utils/error-messages.ts'
 import {PlatformDetector} from '../platform/detector.ts'
@@ -504,6 +504,23 @@ Original error: ${error}`
         const assertions = countAssertions(output)
 
         /*
+            A test that exits with TM_EXIT_SKIP did not run. Every handler derives status from the
+            exit code alone, so without this a skipping test counts as a failure -- and before the
+            skip exit existed it counted as a pass, which silently credited every platform-gated
+            test with coverage it never provided.
+         */
+        if (exitCode === TM_EXIT_SKIP) {
+            return {
+                file,
+                status: TestStatus.Skipped,
+                duration,
+                output,
+                exitCode,
+                skipReason: this.extractSkipReason(output),
+            }
+        }
+
+        /*
             A failed assertion fails its test, whatever the exit status says. Every handler derives
             status from the exit code alone, and an assertion helper that reports a failure without
             exiting non-zero therefore left the test reporting PASS -- the failure visible only as a
@@ -525,6 +542,19 @@ Original error: ${error}`
             exitCode,
             assertions: assertions || undefined,
         }
+    }
+
+    /*
+     Extracts the reason a test skipped itself from its output
+     @param output Combined test output
+     @returns The reason text, or a generic message if the test gave none
+     */
+    private extractSkipReason(output: string): string {
+        const pattern = new RegExp(`^\\s*${TM_SKIP_PREFIX}\\s*(.*)$`, 'm')
+        const match = output.match(pattern)
+        const reason = match?.[1]?.trim()
+
+        return reason || 'Test skipped itself'
     }
 
     /*

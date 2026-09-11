@@ -1,0 +1,12 @@
+{
+    /*
+        Fixtures for ../skip-outcome.tst.ts. One fails on purpose and two skip themselves, so they
+        must never be collected by an ordinary run -- "manual" means they run only when explicitly
+        named. Serial, so the summary is a function of the fixtures and not of scheduling.
+     */
+    enable: 'manual',
+
+    execution: {
+        parallel: false,
+    },
+}

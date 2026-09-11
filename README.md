@@ -410,8 +410,11 @@ int main() {
 
 - `tinfo(fmt, ...)` - Print informational message (with auto-newline)
 - `tdebug(fmt, ...)` - Print debug message (with auto-newline)
-- `tskip(fmt, ...)` - Print skip message (with auto-newline)
 - `twrite(fmt, ...)` - Print output message (with auto-newline)
+
+**Skipping a Test:**
+
+- `tskip(fmt, ...)` - Skip the current test, giving the reason. Does not return: nothing after `tskip()` runs, and TestMe reports the test as skipped rather than passed, with the reason beside the result. A test in a language without a `tskip()` helper skips itself by exiting 77.
 
 **Legacy Functions (deprecated):**
 

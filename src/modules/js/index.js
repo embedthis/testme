@@ -10,6 +10,13 @@
 //  Import Jest/Vitest-compatible expect() API
 import {expect} from './expect.js'
 
+/*
+    Exit status a test uses to report that it did not run, and the prefix it prints so the reason
+    can be shown beside the result. Must match TM_EXIT_SKIP / TM_SKIP_PREFIX in src/types.ts.
+ */
+export const TM_EXIT_SKIP = 77
+export const TM_SKIP_PREFIX = 'SKIP:'
+
 let exitCode = 0
 let testContext = {
     nestLevel: 0,
@@ -304,8 +311,14 @@ function tdebug(...args) {
     console.log(...args)
 }
 
+/*
+    Skip the current test file. Records the reason and stops the file: nothing after tskip() runs,
+    and TestMe reports the file as skipped rather than passed. Exits with TM_EXIT_SKIP, the status
+    a test in any language uses to report that it did not run.
+ */
 function tskip(...args) {
-    console.log(...args)
+    console.log(TM_SKIP_PREFIX, ...args)
+    process.exit(TM_EXIT_SKIP)
 }
 
 function twrite(...args) {

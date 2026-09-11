@@ -187,8 +187,20 @@ export function tverbose(): boolean
 // Output functions
 export function tinfo(...args: any[]): void
 export function tdebug(...args: any[]): void
-export function tskip(...args: any[]): void
 export function twrite(...args: any[]): void
+
+/**
+    Exit status a test uses to report that it did not run, and the prefix it prints with the reason
+*/
+export const TM_EXIT_SKIP: number
+export const TM_SKIP_PREFIX: string
+
+/**
+    Skip the current test file. Records the reason, stops the file -- nothing after tskip() runs --
+    and makes TestMe report the file as skipped rather than passed.
+    @param args Reason the test did not run
+*/
+export function tskip(...args: any[]): never
 
 // Default export with all functions
 declare const _default: {

@@ -168,6 +168,9 @@ Get current test execution depth from TESTME_DEPTH environment variable.
 .TP
 .B tinfo(...), tdebug(...)
 Print informational messages (printf-style formatting).
+.TP
+.B tskip(...)
+Skip the current test, giving the reason. Does not return: nothing after \fBtskip()\fR runs.
 
 .SS JavaScript/TypeScript Testing Functions (testme.js)
 TestMe provides two testing APIs for JavaScript and TypeScript tests:
@@ -211,6 +214,9 @@ Get current test execution depth.
 .TP
 .B tinfo(...), tdebug(...)
 Print informational messages.
+.TP
+.B tskip(...)
+Skip the current test file, giving the reason. Does not return: nothing after \fBtskip()\fR runs.
 .TP
 .B tassert(expr, msg)
 Alias for ttrue() function.
@@ -703,6 +709,9 @@ One or more tests failed, had errors, or compilation failed.
 .TP
 .B 2
 Invalid command line arguments or configuration errors.
+
+.SS Test Exit Status
+A test reports its outcome to TestMe with its own exit status: 0 for pass, 77 to report that it did not run. A test that exits 77 is counted under \fBSkipped\fR rather than \fBPassed\fR, its reason is shown beside the result, and it does not fail the run. \fBtskip()\fR does this for you in C, JavaScript, TypeScript and Ejscript; a shell, Python or Go test skips itself by exiting 77 directly. Any other non-zero status is a failure.
 
 .SH EXAMPLES
 .SS Getting Started

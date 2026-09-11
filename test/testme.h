@@ -45,6 +45,13 @@ extern "C" {
 //  Maximum buffer size for test messages
 #define TM_MAX_BUFFER  4096
 
+/*
+    Exit status a test uses to report that it did not run, and the prefix it prints so the reason
+    can be shown beside the result. Must match TM_EXIT_SKIP / TM_SKIP_PREFIX in src/types.ts.
+ */
+#define TM_EXIT_SKIP   77
+#define TM_SKIP_PREFIX "SKIP:"
+
 //  Short sleep duration in microseconds (5ms)
 #define TM_SHORT_NAP   5000
 
@@ -794,7 +801,8 @@ static inline void tdebug(const char *fmt, ...) {
 }
 
 /**
-    Output message about skipped test conditions. Automatically appends a newline.
+    Skip the current test. Reports the reason and exits with TM_EXIT_SKIP, so TestMe records the
+    test as skipped rather than passed. Code after tskip() does not run.
     @param fmt Printf-style format string
     @param ... Arguments for format string
     Example: tskip("Skipping test on this platform");
@@ -806,8 +814,9 @@ static inline void tskip(const char *fmt, ...) {
     va_start(ap, fmt);
     vsnprintf(buf, sizeof(buf), fmt, ap);
     va_end(ap);
-    printf("%s\n", buf);
+    printf("%s %s\n", TM_SKIP_PREFIX, buf);
     fflush(stdout);
+    exit(TM_EXIT_SKIP);
 }
 
 /**

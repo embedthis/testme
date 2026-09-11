@@ -84,7 +84,7 @@ export class TestReporter {
             }
 
             // Print the completed test result
-            console.log(`${status} ${relativePath} (${duration})`)
+            console.log(`${status} ${relativePath} (${duration})${this.formatSkipReason(result)}`)
 
             // If there are still tests running, show the next one
             if (this.runningTests.size > 0) {
@@ -97,7 +97,7 @@ export class TestReporter {
             }
         } else {
             // Non-interactive mode or show mode: no animation
-            console.log(`${status} ${relativePath} (${duration})`)
+            console.log(`${status} ${relativePath} (${duration})${this.formatSkipReason(result)}`)
         }
     }
 
@@ -164,6 +164,7 @@ export class TestReporter {
                 duration: result.duration,
                 exitCode: result.exitCode,
                 error: result.error,
+                skipReason: result.skipReason,
             })),
         }
 
@@ -205,6 +206,9 @@ export class TestReporter {
         console.log(`\n${relativePath}`)
         console.log(`   Path:     ${relativePath}`)
         console.log(`   Status:   ${status}`)
+        if (result.skipReason) {
+            console.log(`   Reason:   ${result.skipReason}`)
+        }
         console.log(`   Duration: ${duration}`)
 
         if (result.exitCode !== undefined) {
@@ -243,6 +247,18 @@ export class TestReporter {
         for (const line of lines) {
             console.log(indent + line)
         }
+    }
+
+    /*
+     Formats the reason a skipped test gave, for display beside its result
+     @param result Test result to describe
+     @returns A " - reason" suffix, or an empty string when the test was not skipped
+     */
+    private formatSkipReason(result: TestResult): string {
+        if (result.status !== TestStatus.Skipped || !result.skipReason) {
+            return ''
+        }
+        return ` - ${result.skipReason}`
     }
 
     private formatStatus(status: TestStatus): string {

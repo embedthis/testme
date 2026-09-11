@@ -5,6 +5,14 @@
 
 module testme {
 
+    /*
+        Exit status a test uses to report that it did not run, and the prefix it prints so the
+        reason can be shown beside the result. Must match TM_EXIT_SKIP / TM_SKIP_PREFIX in
+        src/types.ts.
+     */
+    const TM_EXIT_SKIP = 77;
+    const TM_SKIP_PREFIX = "SKIP:";
+
     function tdepth() {
         return parseInt(tget("TESTME_DEPTH", "0"), 10);
     }
@@ -101,8 +109,13 @@ module testme {
         print(...args);
     }
 
+    /*
+        Skip the current test. Reports the reason and exits with TM_EXIT_SKIP, so TestMe records
+        the test as skipped rather than passed. Code after tskip() does not run.
+     */
     function tskip(...args) {
-        print(...args);
+        print(TM_SKIP_PREFIX, ...args);
+        App.exit(TM_EXIT_SKIP);
     }
 
     function twrite(...args) {

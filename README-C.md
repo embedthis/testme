@@ -592,13 +592,21 @@ void tdebug(const char *fmt, ...)
 ```c
 void tskip(const char *fmt, ...)
 ```
-**Description:** Print message about skipped test conditions. Automatically appends newline.
+**Description:** Skip the current test, giving the reason.
 
 **Parameters:** Same as `tinfo()`.
 
-**Behavior:** Same as `tinfo()`.
+**Behavior:** Prints the reason, then exits with `TM_EXIT_SKIP` (77). **Does not return** - nothing after `tskip()` runs. TestMe reports the test as skipped, counts it under `Skipped` rather than `Passed`, and prints the reason beside the result. A skipped test does not fail the run.
 
-**Usage:** Typically used to explain why a test was skipped or conditional logic was bypassed.
+**Usage:** Gate a test that cannot run in the current environment:
+
+```c
+if (!haveKettle()) {
+    tskip("no kettle on this platform");
+}
+```
+
+A test in a language without a `tskip()` helper reports the same outcome by exiting 77.
 
 ---
 

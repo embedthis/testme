@@ -1,4 +1,15 @@
 /*
+ Exit status a test uses to report that it did not run. Follows the Automake convention so a test
+ written in any language can skip itself with a plain exit, without a TestMe-specific protocol.
+ */
+export const TM_EXIT_SKIP = 77
+
+/*
+ Prefix a skipping test prints so its reason can be shown alongside the skip result
+ */
+export const TM_SKIP_PREFIX = 'SKIP:'
+
+/*
  Represents a discovered test file with metadata
  */
 export type TestFile = {
@@ -22,6 +33,7 @@ export type TestResult = {
     output: string
     error?: string
     exitCode?: number
+    skipReason?: string // Why the test did not run, when status is Skipped
     assertions?: {
         passed: number
         failed: number

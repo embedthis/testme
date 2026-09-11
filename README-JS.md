@@ -1438,13 +1438,25 @@ function tdebug(...args: any[]): void
 
 ### tskip()
 ```typescript
-function tskip(...args: any[]): void
+function tskip(...args: any[]): never
 ```
-**Description:** Print message about skipped conditions.
+**Description:** Skip the current test file, giving the reason.
 
 **Parameters:** Same as `tinfo()`.
 
-**Behavior:** Same as `tinfo()`.
+**Behavior:** Prints the reason, then exits with `TM_EXIT_SKIP` (77). **Does not return** - nothing after `tskip()` runs. TestMe reports the file as skipped, counts it under `Skipped` rather than `Passed`, and prints the reason beside the result. A skipped test does not fail the run.
+
+**Usage:** Gate a test that cannot run in the current environment:
+
+```typescript
+import {tskip} from 'testme'
+
+if (process.platform !== 'linux') {
+    tskip('valgrind runs on Linux only')
+}
+```
+
+A test in a language without a `tskip()` helper reports the same outcome by exiting 77.
 
 ---
 
