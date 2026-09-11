@@ -7,8 +7,9 @@ import {CompilerManager, CompilerType} from '../platform/compiler.ts'
 import {PermissionManager} from '../platform/permissions.ts'
 import {PlatformDetector} from '../platform/detector.ts'
 import {ErrorMessages} from '../utils/error-messages.ts'
+import {DependencyTracker} from '../utils/dependencies.ts'
 import {basename, resolve, isAbsolute, join} from 'path'
-import {stat} from 'fs/promises'
+import {stat, readFile} from 'fs/promises'
 import os from 'os'
 
 /*
@@ -102,7 +103,8 @@ export class CTestHandler extends BaseTestHandler {
 
     /*
      Compiles C source file to executable binary
-     Skips compilation if binary exists and is newer than source (unless --rebuild is set)
+     Skips compilation if the binary exists and is newer than every input the last compile recorded
+     -- the source, the headers it included and the libraries it linked (unless --rebuild is set)
      @param file C test file to compile
      @param config Test configuration with compiler settings
      @returns Compilation result with success status, duration, and output
@@ -120,9 +122,9 @@ export class CTestHandler extends BaseTestHandler {
     }> {
         const binaryPath = this.getBinaryPath(file)
 
-        // Check if we can skip compilation (binary exists and is newer than source)
+        // Check if we can skip compilation (binary exists and is newer than every input)
         if (!config.execution?.rebuild) {
-            const needsCompile = await this.needsRecompilation(file.path, binaryPath)
+            const needsCompile = await this.needsRecompilation(file, binaryPath)
             if (!needsCompile) {
                 // Get compiler info for environment setup (still needed for execution)
                 const compilerConfig = await CompilerManager.getDefaultCompilerConfig(
@@ -140,12 +142,17 @@ export class CTestHandler extends BaseTestHandler {
                 return {
                     success: true,
                     duration: 0,
-                    output: 'Using cached binary (source unchanged)',
+                    output: 'Using cached binary (inputs unchanged)',
                     compiler: compilerName,
                     skipped: true,
                 }
             }
         }
+
+        //  Recorded by the compile below so the next run can tell whether the binary is still current
+        const depfilePath = this.getDepfilePath(file)
+        let linkInputs: string[] = []
+        let compilerType: CompilerType | undefined
 
         const {result, duration} = await this.measureExecution(async () => {
             const baseDir = config.configDir || file.directory
@@ -230,6 +237,10 @@ export class CTestHandler extends BaseTestHandler {
             // Process libraries based on compiler type
             const libraryFlags = CompilerManager.processLibraries(libraries, compilerConfig.type)
 
+            // Record the link inputs so a rebuilt library invalidates the cached binary
+            compilerType = compilerConfig.type
+            linkInputs = DependencyTracker.resolveLinkInputs(flags, libraryFlags)
+
             // Build compiler arguments based on compiler type
             const args: string[] = []
 
@@ -250,6 +261,7 @@ export class CTestHandler extends BaseTestHandler {
 
                 // Add compiler flags
                 args.push(...compilerFlags)
+                args.push(...DependencyTracker.compileArgs(compilerConfig.type, depfilePath))
                 args.push(`/I${file.directory}`) // Include test directory
                 args.push(`/Fe:${binaryPath}`)
                 // Specify unique PDB file in artifact directory to avoid parallel build conflicts
@@ -277,6 +289,7 @@ export class CTestHandler extends BaseTestHandler {
             } else {
                 // GCC/Clang/MinGW syntax: gcc [flags] -I dir -o output input.c [libraries]
                 args.push(...flags)
+                args.push(...DependencyTracker.compileArgs(compilerConfig.type, depfilePath))
                 args.push('-I', file.directory)
                 args.push('-o', binaryPath)
                 args.push(file.path)
@@ -354,6 +367,21 @@ export class CTestHandler extends BaseTestHandler {
         })
 
         const success = result.exitCode === 0
+
+        /*
+            MSVC reports its includes on stdout. Lift them out before the output is shown or logged,
+            so the header list feeds the cache rather than the user's screen.
+         */
+        let msvcIncludes: string[] = []
+        if (compilerType === CompilerType.MSVC) {
+            const extracted = DependencyTracker.extractMsvcIncludes(result.stdout)
+            msvcIncludes = extracted.includes
+            result.stdout = extracted.output
+        }
+
+        if (success) {
+            await this.recordCompileInputs(file, depfilePath, msvcIncludes, linkInputs)
+        }
 
         // Build compilation output
         let output = result.stdout || 'Compilation completed'
@@ -440,21 +468,93 @@ ${result.stderr}`
     }
 
     /*
-     Checks if the C source file needs to be recompiled
-     Compares modification times of source file and compiled binary
-     @param sourceFile Path to the C source file
+     Records every file the binary just compiled depends on, for the next run's cache decision
+     @param file C test file
+     @param depfilePath Depfile the compiler wrote, for compilers that write one
+     @param msvcIncludes Headers parsed from MSVC output, for compilers that do not
+     @param linkInputs Resolved libraries and objects the link read
+     */
+    private async recordCompileInputs(
+        file: TestFile,
+        depfilePath: string,
+        msvcIncludes: string[],
+        linkInputs: string[]
+    ): Promise<void> {
+        let includes = msvcIncludes
+
+        if (includes.length === 0) {
+            try {
+                const content = await readFile(depfilePath, 'utf8')
+                includes = DependencyTracker.parseDepfile(content, file.directory)
+            } catch {
+                // No depfile: the compiler does not write one, so headers cannot be tracked
+                includes = []
+            }
+        }
+
+        try {
+            await DependencyTracker.record(this.getInputsPath(file), [...includes, ...linkInputs])
+        } catch {
+            // Ignore write errors - the next run rebuilds rather than trusting a missing record
+        }
+    }
+
+    /*
+     Path of the sidecar recording the inputs the cached binary was built from
+     @param file C test file
+     @returns Path inside the test's artifact directory
+     */
+    private getInputsPath(file: TestFile): string {
+        return this.artifactManager.getArtifactPath(file, DependencyTracker.sidecarName())
+    }
+
+    /*
+     Path of the depfile the compiler writes while compiling
+     @param file C test file
+     @returns Path inside the test's artifact directory
+     */
+    private getDepfilePath(file: TestFile): string {
+        return this.artifactManager.getArtifactPath(file, basename(file.name, '.tst.c') + '.d')
+    }
+
+    /*
+     Checks if the C test needs to be recompiled
+     Compares the binary against every input the previous compile recorded -- the source, the
+     headers it included, and the libraries it linked -- not against the .tst.c alone. A test is a
+     standalone translation unit, so its shared code lives in headers and in the library under test;
+     a cache that sees neither reports a pass for a binary built from code that no longer exists.
+     @param file C test file
      @param binaryPath Path to the compiled binary
      @returns Promise resolving to true if recompilation is needed
      */
-    private async needsRecompilation(sourceFile: string, binaryPath: string): Promise<boolean> {
+    private async needsRecompilation(file: TestFile, binaryPath: string): Promise<boolean> {
+        let binaryTime: number
+
         try {
-            const [sourceStat, binaryStat] = await Promise.all([stat(sourceFile), stat(binaryPath)])
-            // Rebuild if source is newer than binary
-            return sourceStat.mtimeMs > binaryStat.mtimeMs
+            binaryTime = (await stat(binaryPath)).mtimeMs
         } catch {
             // Binary doesn't exist or other error, needs compilation
             return true
         }
+
+        const recorded = await DependencyTracker.read(this.getInputsPath(file))
+        if (!recorded) {
+            // Built before inputs were recorded, or the record was lost: rebuild to establish one
+            return true
+        }
+
+        for (const input of [file.path, ...recorded]) {
+            try {
+                if ((await stat(input)).mtimeMs > binaryTime) {
+                    return true
+                }
+            } catch {
+                // An input the binary was built from has gone: rebuild and let the compiler say so
+                return true
+            }
+        }
+
+        return false
     }
 
     /*

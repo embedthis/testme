@@ -1,0 +1,8 @@
+{
+    /*
+        Fixture for ../compile-cache.tst.ts, which edits cachedep.h into something that cannot
+        compile. It must never be collected by an ordinary run -- "manual" means it runs only when
+        explicitly named.
+     */
+    enable: 'manual',
+}

@@ -66,7 +66,7 @@ Set build profile (overrides configuration and PROFILE environment variable). Us
 Run silently with no output, only exit codes. Useful for scripting and automation.
 .TP
 .BR \-R ", " \-\-rebuild
-Force recompilation of C tests even if binary is up-to-date. By default, TestMe compares source file and binary modification times (mtime) - if source is newer, it recompiles; if binary is newer, it skips compilation for faster execution.
+Force recompilation of C tests even if binary is up-to-date. By default, TestMe compares the binary's modification time against every input the last compile recorded - the source, the headers it included and the libraries it linked - and recompiles if any of them is newer.
 .TP
 .BR \-s ", " \-\-show
 Display test configuration and environment variables. Shows the full test configuration, compiler commands (for C tests), and all environment variables passed to tests. When combined with \fB\-\-verbose\fR, also displays full compilation output including compiler warnings from stderr. Useful for debugging test execution and environment setup.
@@ -649,7 +649,11 @@ Debug builds include .dSYM directories on macOS for debugging support.
 Debug mode creates Xcode project files for integrated debugging on macOS.
 .TP
 .B C Binary Caching
-By default, TestMe keeps compiled binaries and uses modification time (mtime) comparison to determine when recompilation is needed. If the source file is newer than the compiled binary, TestMe automatically recompiles. If the binary is up-to-date, compilation is skipped for faster test execution. Use \fB\-\-rebuild\fR to force recompilation regardless of timestamps, or \fB\-\-clean\fR to remove all artifact directories and binaries.
+By default, TestMe keeps compiled binaries and uses modification time (mtime) comparison to determine when recompilation is needed. The comparison covers every input the binary was built from, not the \fB.tst.c\fR alone: the compiler is asked to report the headers it included, and the libraries and object files the link read are resolved from the test's own \fB\-L\fR/\fB\-l\fR settings. Those paths are recorded in \fBinputs.json\fR beside the binary, and if any of them is newer than the binary TestMe recompiles.
+
+This matters because each \fB.tst.c\fR compiles as a standalone translation unit with no link step, so shared C between tests lives in a header, and the library under test is usually the whole point of the run. A cache that saw neither would rerun a binary built from code that no longer exists and report a pass.
+
+Only libraries reachable through the test's own \fB\-L\fR directories are tracked; system libraries are assumed not to change between runs. Use \fB\-\-rebuild\fR to force recompilation regardless of timestamps, or \fB\-\-clean\fR to remove all artifact directories and binaries.
 
 .SH PARALLEL EXECUTION
 TestMe executes tests in parallel by default with configurable concurrency:

@@ -1,0 +1,21 @@
+{
+    /*
+        Fixture for ../compile-cache.tst.ts, which builds the library it links before running it.
+        It must never be collected by an ordinary run -- "manual" means it runs only when
+        explicitly named.
+     */
+    enable: 'manual',
+
+    compiler: {
+        c: {
+            gcc: {
+                flags: ['-L${CONFIGDIR}/build'],
+                libraries: ['cacheprobe'],
+            },
+            clang: {
+                flags: ['-L${CONFIGDIR}/build'],
+                libraries: ['cacheprobe'],
+            },
+        },
+    },
+}

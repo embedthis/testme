@@ -157,7 +157,8 @@ Effective on macOS: `**/*.tst.c`, `**/*.tst.js`, `**/*.tst.sh`
 #### Artifact Management System
 
 - Each test gets a `.testme/` directory in the same location as the test file
-- C tests: stores compiled binaries and `compile.log`
+- C tests: stores compiled binaries, `compile.log`, the compiler's depfile, and `inputs.json`
+- **Compile cache**: a cached binary is reused only when it is newer than every input the last compile recorded. `inputs.json` lists the headers the compiler reported including (via `-MMD`, or `/showIncludes` under MSVC) and the libraries and object files the link read, resolved from the test's own `-L`/`-l` settings. System libraries are not tracked. `src/utils/dependencies.ts` owns this.
 - **Automatic cleanup**: Artifacts and empty `.testme` directories are removed after successful tests
 - **Failed tests**: Always preserve artifacts for debugging (`.testme` directory remains)
 - **`--keep` flag**: Prevents cleanup of artifacts after successful tests
