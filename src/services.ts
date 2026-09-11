@@ -722,6 +722,14 @@ export class ServiceManager {
      * Sets TESTME_SUCCESS=1 if allTestsPassed is true, 0 otherwise.
      */
     async runCleanup(config: TestConfig, allTestsPassed?: boolean): Promise<void> {
+        /*
+            Tear the setup service down first, and do it whether or not a cleanup script exists.
+            This used to sit after the early return below, so a group that started a service and
+            configured no cleanup script never tore it down at all: the service outlived the run
+            still holding its ports, and the next run could not start.
+         */
+        await this.killSetup(config)
+
         const cleanupCommand = config.services?.cleanup
         if (!cleanupCommand) {
             return
@@ -732,9 +740,6 @@ export class ServiceManager {
             return
         }
         this.cleanupHasRun = true
-
-        // First kill the setup process if it's running
-        await this.killSetup(config)
 
         const timeout = (config.services?.cleanupTimeout || 10) * 1000
 
@@ -980,10 +985,22 @@ export class ServiceManager {
             await this.killSetup()
         }
 
+        /*
+            An exit handler cannot await, so the async cleanup above would be abandoned mid-flight
+            and the service would survive the run. The exit path kills synchronously instead.
+         */
+        const cleanupSync = () => {
+            if (this.setupProcess?.pid && this.isSetupRunning) {
+                ProcessManager.killProcessTreeSync(this.setupProcess.pid)
+                this.isSetupRunning = false
+                this.setupProcess = null
+            }
+        }
+
         // Handle various exit scenarios
         process.on('SIGINT', cleanup) // Ctrl+C
         process.on('SIGTERM', cleanup) // Termination signal
-        process.on('exit', cleanup) // Normal exit
+        process.on('exit', cleanupSync) // Normal exit - no chance to await
         process.on('uncaughtException', async (error) => {
             console.error('Uncaught exception:', error)
             await cleanup()

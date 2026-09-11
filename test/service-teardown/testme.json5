@@ -1,0 +1,19 @@
+{
+    /*
+        Fixture for ../service-teardown.tst.ts, which runs it twice in a row and checks that nothing
+        the setup service started is left behind. It must never be collected by an ordinary run --
+        "manual" means it runs only when explicitly named.
+     */
+    enable: 'manual',
+
+    services: {
+        setup: 'bun setup.js',
+        healthCheck: {
+            type: 'tcp',
+            host: 'localhost',
+            port: 18099,
+            timeout: 10,
+        },
+        shutdownTimeout: 3,
+    },
+}

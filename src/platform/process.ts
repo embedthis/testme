@@ -1,6 +1,15 @@
 import {PlatformDetector} from './detector.ts'
 
 /*
+ A process as the system reports it, with enough to walk the tree and reach its group
+ */
+type UnixProcess = {
+    pid: number
+    ppid: number
+    pgid: number
+}
+
+/*
  Cross-platform process management abstraction
  Provides unified interface for spawning and killing processes across platforms
  */
@@ -77,21 +86,22 @@ export class ProcessManager {
     }
 
     /*
-     Kills a process on Unix using signals
+     Kills a process and everything it started on Unix, the counterpart of taskkill /T on Windows
+     Signalling the given pid alone is not enough: a setup script is a shell, and the server it
+     backgrounds is a separate process that a signal to the shell never reaches. The service then
+     outlives the run still holding its ports, and the next run cannot start.
      @param pid Process ID to kill
      @param graceful Whether to attempt graceful termination first
-     @returns Promise that resolves when process is killed
+     @param shutdownTimeout Time to wait for graceful shutdown in milliseconds (default: 0)
+     @returns Promise that resolves when the process and its descendants are gone
      */
     private static async killProcessUnix(pid: number, graceful: boolean, shutdownTimeout: number = 0): Promise<void> {
         try {
-            if (graceful) {
-                // Always try SIGTERM first for graceful shutdown
-                const termKill = Bun.spawn(['kill', '-TERM', pid.toString()], {
-                    stdout: 'pipe',
-                    stderr: 'pipe',
-                })
+            //  Deepest first, so a parent cannot start more work while its children are being killed
+            const targets = (await this.collectDescendantsUnix(pid)).reverse()
 
-                await termKill.exited
+            if (graceful) {
+                await this.signalUnix(targets, 'SIGTERM')
 
                 // Poll for process exit with configurable timeout
                 // Use 200ms interval to reduce process spawns
@@ -100,31 +110,188 @@ export class ProcessManager {
                 const maxPolls = shutdownTimeout > 0 ? Math.ceil(shutdownTimeout / pollInterval) : 1
 
                 for (let i = 0; i < maxPolls; i++) {
-                    // Wait before checking (gives process time to exit)
+                    // Wait before checking (gives processes time to exit)
                     await new Promise((resolve) => setTimeout(resolve, pollInterval))
 
-                    // Check if process is still running
-                    const stillRunning = await this.isProcessRunning(pid)
-                    if (!stillRunning) {
-                        // Process exited gracefully - no need to SIGKILL
+                    const running = await Promise.all(targets.map((target) => this.isProcessRunning(target.pid)))
+                    if (!running.some(Boolean)) {
+                        // Everything exited gracefully - no need to SIGKILL
                         return
                     }
                 }
 
-                // If we get here, process didn't exit within timeout
+                // If we get here, something didn't exit within timeout
                 // Fall through to SIGKILL
             }
 
-            // Force kill with SIGKILL (only if process still running)
-            const forceKill = Bun.spawn(['kill', '-KILL', pid.toString()], {
-                stdout: 'pipe',
-                stderr: 'pipe',
-            })
-
-            await forceKill.exited
+            await this.signalUnix(targets, 'SIGKILL')
         } catch (error) {
             // Process may already be dead, ignore errors
         }
+    }
+
+    /*
+     Sends a signal to each target, and to the group of any target that leads one
+     A shell that runs with job control puts each job in a process group of its own, so the job's
+     own children are reachable only through that group
+     @param targets Processes to signal, deepest first
+     @param signal Signal name to send
+     */
+    private static async signalUnix(targets: UnixProcess[], signal: NodeJS.Signals): Promise<void> {
+        const ownGroup = this.ownProcessGroup()
+
+        for (const target of targets) {
+            //  Signal the group first: its members include the target itself
+            if (target.pgid === target.pid && target.pgid !== ownGroup) {
+                try {
+                    process.kill(-target.pgid, signal)
+                    continue
+                } catch {
+                    // No such group, or it went away: fall back to the process itself
+                }
+            }
+            try {
+                process.kill(target.pid, signal)
+            } catch {
+                // Already gone
+            }
+        }
+    }
+
+    /*
+     Reads this process's own group, so it is never signalled by a teardown
+     @returns The process group id, or undefined if it cannot be determined
+     */
+    private static ownProcessGroup(): number | undefined {
+        try {
+            //  Available on Unix only; undefined elsewhere
+            return (process as any).getpgrp?.()
+        } catch {
+            return undefined
+        }
+    }
+
+    /*
+     Collects a process and everything descended from it
+     @param pid Root process id
+     @returns The root followed by its descendants, parents before children
+     */
+    private static async collectDescendantsUnix(pid: number): Promise<UnixProcess[]> {
+        let output = ''
+
+        try {
+            const ps = Bun.spawn(['ps', '-Ao', 'pid=,ppid=,pgid='], {stdout: 'pipe', stderr: 'pipe'})
+            const [text] = await Promise.all([new Response(ps.stdout).text(), ps.exited])
+            output = text
+        } catch {
+            // ps is unavailable: fall back to the root pid alone
+        }
+
+        return this.buildTree(this.parseProcessTable(output), pid)
+    }
+
+    /*
+     Parses "pid ppid pgid" lines from ps
+     @param output Raw ps output
+     @returns Every process by pid, with its parent and group
+     */
+    private static parseProcessTable(output: string): Map<number, UnixProcess> {
+        const table = new Map<number, UnixProcess>()
+
+        for (const line of output.split('\n')) {
+            const [pid, ppid, pgid] = line.trim().split(/\s+/).map(Number)
+            if (Number.isInteger(pid) && Number.isInteger(ppid) && Number.isInteger(pgid)) {
+                table.set(pid, {pid, ppid, pgid})
+            }
+        }
+
+        return table
+    }
+
+    /*
+     Walks a process table from a root outwards
+     @param table Every known process
+     @param pid Root process id
+     @returns The root followed by its descendants, parents before children
+     */
+    private static buildTree(table: Map<number, UnixProcess>, pid: number): UnixProcess[] {
+        const root = table.get(pid) || {pid, ppid: 0, pgid: pid}
+
+        const children = new Map<number, UnixProcess[]>()
+        for (const entry of table.values()) {
+            const siblings = children.get(entry.ppid) || []
+            siblings.push(entry)
+            children.set(entry.ppid, siblings)
+        }
+
+        const collected: UnixProcess[] = []
+        const seen = new Set<number>()
+        const queue: UnixProcess[] = [root]
+
+        while (queue.length > 0) {
+            const entry = queue.shift()!
+            if (seen.has(entry.pid)) {
+                continue
+            }
+            seen.add(entry.pid)
+            collected.push(entry)
+            queue.push(...(children.get(entry.pid) || []))
+        }
+
+        return collected
+    }
+
+    /*
+     Kills a process and everything it started, without awaiting anything
+     For the process exit path, which has no chance to await: the alternative is a service that
+     survives the run
+     @param pid Process ID to kill
+     */
+    static killProcessTreeSync(pid: number): void {
+        if (PlatformDetector.isWindows()) {
+            try {
+                Bun.spawnSync(['taskkill', '/PID', pid.toString(), '/T', '/F'], {stdout: 'pipe', stderr: 'pipe'})
+            } catch {
+                // Process may already be dead, ignore errors
+            }
+            return
+        }
+
+        const ownGroup = this.ownProcessGroup()
+
+        for (const target of this.collectDescendantsSync(pid).reverse()) {
+            if (target.pgid === target.pid && target.pgid !== ownGroup) {
+                try {
+                    process.kill(-target.pgid, 'SIGKILL')
+                    continue
+                } catch {
+                    // No such group: fall back to the process itself
+                }
+            }
+            try {
+                process.kill(target.pid, 'SIGKILL')
+            } catch {
+                // Already gone
+            }
+        }
+    }
+
+    /*
+     Collects a process and its descendants without awaiting
+     @param pid Root process id
+     @returns The root followed by its descendants, parents before children
+     */
+    private static collectDescendantsSync(pid: number): UnixProcess[] {
+        let output = ''
+
+        try {
+            const ps = Bun.spawnSync(['ps', '-Ao', 'pid=,ppid=,pgid='], {stdout: 'pipe', stderr: 'pipe'})
+            output = ps.stdout.toString()
+        } catch {
+            // ps is unavailable: fall back to the root pid alone
+        }
+
+        return this.buildTree(this.parseProcessTable(output), pid)
     }
 
     /*

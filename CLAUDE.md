@@ -392,7 +392,7 @@ The configuration file uses this hierarchy:
         - Polls every 100ms to check if process exited after SIGTERM/graceful taskkill
         - Skips force-kill if process exits gracefully within timeout
         - Default of 5 seconds provides optimal behavior: fast if service exits quickly, patient if it needs time
-- Cleanup: runs once per configuration group after tests (kills setup if running)
+- Cleanup: runs once per configuration group after tests. The setup service is torn down first, and that happens whether or not a cleanup script is configured. The teardown kills the setup process and every descendant it started, signalling through a descendant's own process group where it leads one (`ProcessManager.killProcessUnix`, `taskkill /T` on Windows); the process-exit safety net does the same synchronously, because an exit handler cannot await.
 - Global Cleanup: runs once after all test groups (project-wide teardown)
 
 **Platform-Specific Tests:**

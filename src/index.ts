@@ -658,8 +658,12 @@ class TestMeApp {
                 groupExitCode = 1
                 totalExitCode = 1
             } finally {
-                // Cleanup for this configuration group
-                if (!options.noServices && mergedConfig.services?.cleanup) {
+                /*
+                    Cleanup for this configuration group. Run unconditionally: runCleanup also tears
+                    down the setup service, and a group that starts one but configures no cleanup
+                    script still has to have it torn down.
+                 */
+                if (!options.noServices) {
                     const allTestsPassed = groupExitCode === 0
                     await this.getServiceManager(configDir, rootDir).runCleanup(mergedConfig, allTestsPassed)
                 }
@@ -1121,9 +1125,7 @@ class TestMeApp {
                     for (const [configDir, serviceManager] of this.serviceManagers) {
                         try {
                             const groupConfig = await ConfigManager.findConfig(configDir)
-                            if (groupConfig.services?.cleanup) {
-                                await serviceManager.runCleanup(groupConfig, false)
-                            }
+                            await serviceManager.runCleanup(groupConfig, false)
                         } catch (cleanupError) {
                             if (!isQuiet) {
                                 console.error(`❌ Cleanup failed for ${configDir}:`, cleanupError)

@@ -527,7 +527,9 @@ If \fBhealthCheck\fR is configured, TestMe actively polls the service to verify 
 
 If no health check is configured, \fBsetupDelay\fR (default: 1 second) is used to wait after the setup service starts before beginning test execution. The cleanup command runs after all tests complete to clean up resources.
 
-The \fBshutdownTimeout\fR (default: 5 seconds) controls graceful shutdown behavior. After sending SIGTERM (Unix) or graceful taskkill (Windows), TestMe polls every 100ms to check if the process exited. If the process exits gracefully within the timeout, SIGKILL is skipped. If still running after the timeout, SIGKILL is sent to force termination.
+The \fBshutdownTimeout\fR (default: 5 seconds) controls graceful shutdown behavior. After sending SIGTERM (Unix) or graceful taskkill (Windows), TestMe polls to check whether the processes exited. If they exit gracefully within the timeout, SIGKILL is skipped. If any is still running after the timeout, SIGKILL is sent to force termination.
+
+The teardown covers the setup script and everything it started, not the script alone: a setup script is usually a launcher, and the server holding the ports is a separate process. Descendants that a shell placed in a process group of its own, as job control does, are signalled through that group. The setup service is torn down whether or not a \fBcleanup\fR script is configured.
 
 .SS Environment Variables
 Configure environment variables available to all tests during execution. Supports platform-specific overrides via \fBwindows\fR, \fBmacosx\fR, and \fBlinux\fR keys:
