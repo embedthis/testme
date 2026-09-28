@@ -1,5 +1,15 @@
 # TestMe Changelog
 
+## 2026-09-29
+
+### Warning for a Test That Asserts Nothing
+
+- **DEV**: A test that exits 0 having made no assertions is now reported with `warning: no assertions` beside its result and counted on a `Warnings:` summary line, instead of a plain PASS. A test that skipped itself is exempt.
+    - **Issue**: [#10008](../issues/tickets/10008.md)
+    - **Config**: `execution.unasserted`: `warn` (default, advisory), `fail` (fails the test), `allow` (silent, for tests that rely on their exit status alone).
+    - **Files Modified**: `src/types.ts`, `src/runner.ts` (`checkUnasserted`), `src/reporter.ts`
+    - **Files Added**: [test/unasserted.tst.ts](../../test/unasserted.tst.ts) with fixtures under `test/unasserted/`
+
 ## 2026-09-01
 
 ### Assertion Tally Pinned by Regression Tests (v0.8.34)

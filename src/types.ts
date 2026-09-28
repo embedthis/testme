@@ -34,6 +34,7 @@ export type TestResult = {
     error?: string
     exitCode?: number
     skipReason?: string // Why the test did not run, when status is Skipped
+    warning?: string // Advisory shown beside a passing result, such as a test that asserted nothing
     assertions?: {
         passed: number
         failed: number
@@ -142,7 +143,14 @@ export type ExecutionConfig = {
     stopOnFailure?: boolean // Stop testing as soon as a test fails
     duration?: number // Duration in seconds (exported as TESTME_DURATION)
     testClass?: string // Test class filter (exported as TESTME_CLASS)
+    unasserted?: UnassertedPolicy // How to treat a passing test that made no assertions (default: 'warn')
 }
+
+/*
+ Treatment of a test that exits successfully having made no assertions: flag it with a warning,
+ fail it, or allow it silently for tests that rely on their exit status alone
+ */
+export type UnassertedPolicy = 'warn' | 'fail' | 'allow'
 
 /*
  Configuration for output formatting and display

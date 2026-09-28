@@ -84,7 +84,7 @@ export class TestReporter {
             }
 
             // Print the completed test result
-            console.log(`${status} ${relativePath} (${duration})${this.formatSkipReason(result)}`)
+            console.log(`${status} ${relativePath} (${duration})${this.formatNote(result)}`)
 
             // If there are still tests running, show the next one
             if (this.runningTests.size > 0) {
@@ -97,7 +97,7 @@ export class TestReporter {
             }
         } else {
             // Non-interactive mode or show mode: no animation
-            console.log(`${status} ${relativePath} (${duration})${this.formatSkipReason(result)}`)
+            console.log(`${status} ${relativePath} (${duration})${this.formatNote(result)}`)
         }
     }
 
@@ -125,6 +125,9 @@ export class TestReporter {
         }
 
         console.log(`Total:    ${stats.total}`)
+        if (stats.warnings > 0) {
+            console.log(`${this.yellow('Warnings:')} ${stats.warnings} passed with no assertions`)
+        }
 
         // Show assertion counts if any tests had assertions
         if (stats.filesWithAssertions > 0) {
@@ -165,6 +168,7 @@ export class TestReporter {
                 exitCode: result.exitCode,
                 error: result.error,
                 skipReason: result.skipReason,
+                warning: result.warning,
             })),
         }
 
@@ -209,6 +213,9 @@ export class TestReporter {
         if (result.skipReason) {
             console.log(`   Reason:   ${result.skipReason}`)
         }
+        if (result.warning) {
+            console.log(`   Warning:  ${result.warning}`)
+        }
         console.log(`   Duration: ${duration}`)
 
         if (result.exitCode !== undefined) {
@@ -250,15 +257,18 @@ export class TestReporter {
     }
 
     /*
-     Formats the reason a skipped test gave, for display beside its result
+     Formats the note shown beside a result: the reason a skipped test gave, or a warning
      @param result Test result to describe
-     @returns A " - reason" suffix, or an empty string when the test was not skipped
+     @returns A " - note" suffix, or an empty string when there is nothing to note
      */
-    private formatSkipReason(result: TestResult): string {
-        if (result.status !== TestStatus.Skipped || !result.skipReason) {
-            return ''
+    private formatNote(result: TestResult): string {
+        if (result.status === TestStatus.Skipped && result.skipReason) {
+            return ` - ${result.skipReason}`
         }
-        return ` - ${result.skipReason}`
+        if (result.warning) {
+            return ` - ${this.yellow(`warning: ${result.warning}`)}`
+        }
+        return ''
     }
 
     private formatStatus(status: TestStatus): string {
@@ -311,6 +321,10 @@ export class TestReporter {
                         break
                 }
 
+                if (result.warning) {
+                    stats.warnings++
+                }
+
                 // Accumulate assertion counts
                 if (result.assertions) {
                     stats.assertionsPassed += result.assertions.passed
@@ -326,6 +340,7 @@ export class TestReporter {
                 failed: 0,
                 errors: 0,
                 skipped: 0,
+                warnings: 0,
                 totalDuration: 0,
                 assertionsPassed: 0,
                 assertionsFailed: 0,

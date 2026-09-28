@@ -1033,6 +1033,7 @@ Environment variables in compiler flags and paths support `${...}` expansion:
 - `execution.timeout` - Test timeout in seconds (default: 30)
 - `execution.parallel` - Enable parallel execution (default: true)
 - `execution.workers` - Number of parallel workers (default: 4)
+- `execution.unasserted` - Treatment of a test that exits successfully having made no assertions: "warn" flags it with a warning beside its result and counts it in the summary, "fail" fails it, "allow" accepts it silently (default: "warn"). A test that runs to its end without asserting has usually skipped its own body by accident; use "allow" in a directory whose tests rely on their exit status alone. A test that skips itself is never warned about.
 
 #### Output Settings
 

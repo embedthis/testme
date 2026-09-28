@@ -431,6 +431,7 @@ Control test execution behavior:
         timeout: 30,           // Timeout per test (seconds)
         parallel: true,        // Run tests in parallel
         workers: 4,            // Number of parallel workers
+        unasserted: 'warn',    // Test that asserts nothing: warn, fail, allow
     }
 }
 .fi
@@ -718,6 +719,8 @@ Invalid command line arguments or configuration errors.
 
 .SS Test Exit Status
 A test reports its outcome to TestMe with its own exit status: 0 for pass, 77 to report that it did not run. A test that exits 77 is counted under \fBSkipped\fR rather than \fBPassed\fR, its reason is shown beside the result, and it does not fail the run. \fBtskip()\fR does this for you in C, JavaScript, TypeScript and Ejscript; a shell, Python or Go test skips itself by exiting 77 directly. Any other non-zero status is a failure.
+
+A test that exits 0 having made no assertions is flagged with a warning beside its result and counted on a \fBWarnings\fR line in the summary, since such a test has usually skipped its own body by accident. The \fBexecution.unasserted\fR setting controls this: \fBwarn\fR (default), \fBfail\fR to fail the test, or \fBallow\fR for tests that rely on their exit status alone.
 
 .SH EXAMPLES
 .SS Getting Started

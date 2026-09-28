@@ -1,0 +1,11 @@
+{
+    /*
+        Fixture for ../../unasserted.tst.ts: a test that asserts nothing, under a policy that fails it.
+        "manual" keeps it out of an ordinary run.
+     */
+    enable: 'manual',
+
+    execution: {
+        unasserted: 'fail',
+    },
+}

@@ -58,7 +58,7 @@ TestMe is a multi-language test runner built with Bun that discovers, compiles, 
 ### Data Flow
 
 1. **CLI Parsing** → **Configuration Loading** → **Test Discovery**
-2. **Test Execution** via **TestRunner** orchestrating **TestHandlers**
+2. **Test Execution** via **TestRunner** orchestrating **TestHandlers**. The handler derives the status from the exit code and assertion markers; the runner then applies the directory's `execution.unasserted` policy (`TestRunner.checkUnasserted`), so a test that passed without asserting carries a `warning` (default), fails, or is left alone
 3. **Artifact Management** creates `.testme` directories for build outputs
 4. **Result Reporting** formats output in simple/detailed/JSON formats
 

@@ -324,7 +324,7 @@ The configuration file uses this hierarchy:
 - `compiler.c` - C compilation settings (compiler, flags, libraries)
     - `compiler` - Can be: "default" (auto-detect), string (e.g., "gcc"), or platform map: `{ windows: 'msvc', macosx: 'clang', linux: 'gcc' }`
 - `compiler.es` - Ejscript settings (require modules)
-- `execution` - Runtime behavior (timeout in seconds, parallel, workers)
+- `execution` - Runtime behavior (timeout in seconds, parallel, workers, `unasserted` policy)
 - `output` - Display formatting (verbose, format, colors)
 - `patterns` - File discovery (include/exclude glob patterns) with platform-specific blending
 - `services` - Service scripts (skip, environment, prep, setup, cleanup)
@@ -340,6 +340,7 @@ The configuration file uses this hierarchy:
 - Platform-specific defaults: `**/*.tst.sh` (all platforms via bash), `**/*.tst.ps1` (Windows)
 - Excludes: node_modules, .testme, hidden directories
 - Tests enabled by default with depth requirement of 0
+- A test that exits 0 having made no assertions is reported with a warning (`execution.unasserted`: `warn` default, `fail`, `allow`)
 
 ### Key Features
 

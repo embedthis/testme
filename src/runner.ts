@@ -240,7 +240,7 @@ export class TestRunner {
             }
 
             // Execute the test with its specific config
-            const result = await handler.execute(testFile, testSpecificConfig)
+            const result = this.checkUnasserted(await handler.execute(testFile, testSpecificConfig), testSpecificConfig)
 
             // Cleanup (if needed)
             // Artifacts are kept by default to enable compilation caching for C tests
@@ -273,6 +273,29 @@ export class TestRunner {
                 error: `Test execution failed: ${error}`,
             }
         }
+    }
+
+    /*
+     Flags a test that passed without making a single assertion. Such a test has almost always
+     swallowed its own body: an early return, a gate that never opened, or a caught exception.
+     A test that skips itself reports Skipped and never reaches here.
+     @param result Result of the executed test
+     @param config Configuration governing the test
+     @returns The result, carrying a warning or failed as the test's unasserted policy directs
+     */
+    private checkUnasserted(result: TestResult, config: TestConfig): TestResult {
+        const policy = config.execution?.unasserted ?? 'warn'
+        if (result.status !== TestStatus.Passed || result.assertions || policy === 'allow') {
+            return result
+        }
+        // A debug run hands the test to a debugger rather than running it to completion
+        if (config.execution?.debugMode) {
+            return result
+        }
+        if (policy === 'fail') {
+            return {...result, status: TestStatus.Failed, error: 'Test completed without making any assertions'}
+        }
+        return {...result, warning: 'no assertions'}
     }
 
     /*

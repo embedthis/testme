@@ -172,6 +172,7 @@
         // depth: 0, // Minimum depth to run tests (CLI: --depth)
         // debugMode: false, // Run tests under debugger (CLI: --debug)
         // showCommands: false, // Show compiler/debugger commands (CLI: --show)
+        // unasserted: 'warn', // Test that exits 0 with no assertions: 'warn', 'fail' or 'allow'
     },
 
     // Output formatting options
