@@ -136,6 +136,23 @@ check(resolverRun, resolved.includes(join(probeDir, 'explicit.o')), 'an explicit
 check(resolverRun, resolved.every((path) => !path.includes('missing')), 'a library that does not exist is not recorded')
 rmSync(probeDir, {recursive: true, force: true})
 
+//  ==================== The MSVC include parser ====================
+
+/*
+    /showIncludes notes carry a localized label, then the path. On Windows the path starts with a
+    drive letter, whose colon must not be mistaken for the end of the label.
+ */
+const notes = [
+    `Note: including file:  ${DEPENDENT_HEADER}`,
+    `Remarque : inclusion du fichier :    ${UNRELATED_HEADER}\r`,
+    'cache-header.tst.c',
+].join('\n')
+const extracted = DependencyTracker.extractMsvcIncludes(notes)
+const parserRun: Run = {exitCode: 0, output: JSON.stringify(extracted)}
+check(parserRun, extracted.includes.includes(DEPENDENT_HEADER), 'an include note yields the full header path')
+check(parserRun, extracted.includes.includes(UNRELATED_HEADER), 'a localized include note is recognised')
+check(parserRun, extracted.output.trim() === 'cache-header.tst.c', 'include notes are removed from the output')
+
 //  ==================== The library case ====================
 
 /*

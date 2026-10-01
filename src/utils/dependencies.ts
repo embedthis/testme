@@ -35,7 +35,8 @@ export class DependencyTracker {
 
     /*
      Extracts included headers from MSVC /showIncludes output and removes those lines from it
-     The note prefix is localized, so a line is recognised by the source path it ends with
+     The note prefix is localized, so a line is recognised by the rooted path (drive, UNC or slash) it
+     ends with
      @param stdout Compiler standard output
      @returns The headers reported, and the output with the notes removed
      */
@@ -44,7 +45,7 @@ export class DependencyTracker {
         const kept: string[] = []
 
         for (const line of stdout.split('\n')) {
-            const match = line.match(/:\s*([^:]*\.(?:h|hpp|hxx|inl|c|cpp))\s*$/i)
+            const match = line.match(/:\s+((?:[A-Za-z]:[\\/]|\\\\|\/).*?)\s*$/)
             const path = match?.[1]?.trim()
             if (path && isAbsolute(path) && existsSync(path)) {
                 includes.push(path)
