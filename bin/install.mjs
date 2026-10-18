@@ -40,6 +40,49 @@ function checkEjsc() {
     }
 }
 
+function compareVersions(a, b) {
+    const pa = a.split('.').map(Number)
+    const pb = b.split('.').map(Number)
+    for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+        const diff = (pa[i] || 0) - (pb[i] || 0)
+        if (diff) {
+            return diff
+        }
+    }
+    return 0
+}
+
+/**
+    Return the version of the installed tm binary, or null if none is installed
+ */
+function installedVersion() {
+    const binaryDest = path.join(os.homedir(), '.bun', 'bin', os.platform() === 'win32' ? 'tm.exe' : 'tm')
+    if (!fs.existsSync(binaryDest)) {
+        return null
+    }
+    try {
+        const output = execSync(`"${binaryDest}" --version`, {stdio: 'pipe'}).toString()
+        const match = output.match(/(\d+\.\d+\.\d+)/)
+        return match ? match[1] : null
+    } catch {
+        return null
+    }
+}
+
+/**
+    A project that pins an older testme must not replace a newer tm and testme.h that other projects rely on.
+    Set TESTME_FORCE_INSTALL=1 to downgrade deliberately.
+ */
+function isDowngrade() {
+    const version = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8')).version
+    const installed = installedVersion()
+    if (installed && compareVersions(installed, version) > 0 && !process.env.TESTME_FORCE_INSTALL) {
+        log(`Installed tm ${installed} is newer than ${version}, skipping. Set TESTME_FORCE_INSTALL=1 to downgrade.`)
+        return true
+    }
+    return false
+}
+
 function buildBinary() {
     const platform = os.platform()
     const binaryName = platform === 'win32' ? 'dist/tm.exe' : 'dist/tm'
@@ -240,6 +283,9 @@ function main() {
         error('Bun is required but not found. Please install Bun first:')
         error('  curl -fsSL https://bun.sh/install | bash')
         process.exit(1)
+    }
+    if (isDowngrade()) {
+        return
     }
 
     // Build the binary
